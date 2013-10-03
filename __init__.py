@@ -1,7 +1,12 @@
 from trytond.pool import Pool
 
-from .invoice import ElectronicInvoice
-from .company import Company
+from .invoice import *
+from .company import *
+from .journal import *
 
 def register():
-    Pool.register(ElectronicInvoice, Company,  module='cooperative_ar', type_='model')
+    Pool.register(
+        ElectronicInvoice,
+        Company,
+        Journal,
+        module='account_invoice_ar', type_='model')

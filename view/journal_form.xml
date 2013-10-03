@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<data>
+    <xpath expr="/form/notebook/page[@id='general']" position="after">
+        <page string="Afip WS" id="afip" col="2">
+            <label name="pyafipws_electronic_invoice_service"/>
+            <field name="pyafipws_electronic_invoice_service"/>
+            <label name="pyafipws_invoice_type"/>
+            <field name="pyafipws_invoice_type"/>
+            <label name="pyafipws_point_of_sale"/>
+            <field name="pyafipws_point_of_sale"/>
+        </page>
+    </xpath>
+</data>
