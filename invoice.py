@@ -51,10 +51,6 @@ class ElectronicInvoice(Workflow, ModelSQL):
     pyafipws_barcode = fields.Char(u'Codigo de Barras', size=40,
         help=u"Código de barras para usar en la impresión", readonly=True,)
 
-    @staticmethod
-    def default_pyafipws_concept():
-        return '1'
-
     @classmethod
     def __setup__(cls):
         super(ElectronicInvoice, cls).__setup__()
@@ -62,6 +58,10 @@ class ElectronicInvoice(Workflow, ModelSQL):
         cls._buttons.update({
             'pyafipws_request_cae': {},
             })
+        cls._error_messages.update({
+            'missing_pyafipws_billing_date':
+                u'Debe establecer lose valores "Fecha desde" y "Fecha hasta" ' \
+                u'en el Diario, correspondientes al servicio que se está facturando'})
 
     def do_pyafipws_request_cae(self, *args):
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
@@ -264,7 +264,6 @@ class ElectronicInvoice(Workflow, ModelSQL):
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
                 tax = tax_line.tax
-                import ipdb; ipdb.set_trace()
                 if  tax.group.name == "IVA":
                     if tax.percentage == Decimal('0'):
                         iva_id = 3
@@ -299,7 +298,12 @@ class ElectronicInvoice(Workflow, ModelSQL):
         # analize line items - invoice detail
         if service in ('wsfex', 'wsmtxca'):
             for line in self.lines:
-                codigo = line.product_id.code
+                if line.product.type == u'service' \
+                   and (self.pyafipws_billing_start_date is None
+                        or self.pyafipws_billing_end_date is None):
+                    self.raise_user_error('missing_pyafipws_billing_date')
+
+                codigo = line.product.code
                 u_mtx = 1                       # TODO: get it from uom?
                 cod_mtx = None #FIXME: ean13
                 ds = line.description
