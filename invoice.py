@@ -5,6 +5,8 @@ from trytond.pyson import Eval
 from trytond.transaction import Transaction
 from trytond.pool import Pool
 
+from decimal import Decimal
+
 __all__ = ['ElectronicInvoice']
 
 _STATES = {
@@ -158,17 +160,13 @@ class ElectronicInvoice(Workflow, ModelSQL):
         # customer tax number:
         if self.party.vat_number:
             nro_doc = self.party.vat_number
-        else:
-            nro_doc = "0"               # only "consumidor final"
-        tipo_doc = None
-        if nro_doc.startswith("AR"):
-            nro_doc = nro_doc[2:]
-            if int(nro_doc)  == 0:
-                tipo_doc = 99           # consumidor final
-            elif len(nro_doc) < 11:
+            if len(nro_doc) < 11:
                 tipo_doc = 96           # DNI
             else:
                 tipo_doc = 80           # CUIT
+        else:
+            nro_doc = "0"           # only "consumidor final"
+            tipo_doc = 99           # consumidor final
 
         # invoice amount totals:
         imp_total = str("%.2f" % abs(self.total_amount))
@@ -265,17 +263,19 @@ class ElectronicInvoice(Workflow, ModelSQL):
         # analyze VAT (IVA) and other taxes (tributo):
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
-                if "IVA" in tax_line.tax.name:
-                    if '0%' in tax_line.tax.name:
+                tax = tax_line.tax
+                import ipdb; ipdb.set_trace()
+                if  tax.group.name == "IVA":
+                    if tax.percentage == Decimal('0'):
                         iva_id = 3
-                    elif '10%' in tax_line.tax.name:
+                    elif tax.percentage == Decimal('10.5'):
                         iva_id = 4
-                    elif '21%' in tax_line.tax.name:
+                    elif tax.percentage == Decimal('21'):
                         iva_id = 5
-                    elif '27%' in tax_line.tax.name:
+                    elif tax.percentage == Decimal('27'):
                         iva_id = 6
                     else:
-                        ivva_id = 0
+                        iva_id = 0
                     base_imp = ("%.2f" % abs(tax_line.base))
                     importe = ("%.2f" % abs(tax_line.amount))
                     # add the vat detail in the helper
@@ -294,7 +294,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
                     importe = ("%.2f" % abs(tax_line.amount))
                     alic = "%.2f" % tax_line.base
                     # add the other tax detail in the helper
-                    ws.AgregarTributo(id, desc, base_imp, alic, importe)
+                    ws.AgregarTributo(tributo_id, desc, base_imp, alic, importe)
 
         # analize line items - invoice detail
         if service in ('wsfex', 'wsmtxca'):
