@@ -13,6 +13,13 @@ _STATES = {
     'readonly': Eval('state') != 'draft',
 }
 
+_BILLING_STATES = _STATES.copy()
+_BILLING_STATES.update({
+        'required': (Eval('pyafipws_concept') == '2')
+                    | (Eval('pyafipws_concept') == '3')
+    })
+
+
 class AfipWSTransaction(ModelView, ModelSQL):
     'AFIP WS Transaction'
     __name__ = 'account_invoice_ar.afip_transaction'
@@ -48,10 +55,10 @@ class ElectronicInvoice(Workflow, ModelSQL):
                    select=True, required=True,
                    states=_STATES)
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
-       states=_STATES,
+       states=_BILLING_STATES,
        help=u"Seleccionar fecha de fin de servicios - Sólo servicios")
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
-       states=_STATES,
+       states=_BILLING_STATES,
        help=u"Seleccionar fecha de inicio de servicios - Sólo servicios")
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
        help=u"Código de Autorización Electrónico, devuelto por AFIP")
@@ -310,11 +317,6 @@ class ElectronicInvoice(Workflow, ModelSQL):
         # analize line items - invoice detail
         if service in ('wsfex', 'wsmtxca'):
             for line in self.lines:
-                if line.product.type == u'service' \
-                   and (self.pyafipws_billing_start_date is None
-                        or self.pyafipws_billing_end_date is None):
-                    self.raise_user_error('missing_pyafipws_billing_date')
-
                 codigo = line.product.code
                 u_mtx = 1                       # TODO: get it from uom?
                 cod_mtx = None #FIXME: ean13
