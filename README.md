@@ -3,7 +3,7 @@
 The `account_invoice_ar` module of the Tryton application platform.
 See *tryton.cfg*
 
-This module is a migration of [pyafipws.openerp](http://code.google.com/p/pyafipws/)
+This module is a migration of [pyafipws.openerp](http://code.google.com/p/pyafipws.openerp/)
 
 ## Installing
 
