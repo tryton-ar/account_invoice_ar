@@ -9,4 +9,5 @@ def register():
         ElectronicInvoice,
         Company,
         Journal,
+        AfipWSTransaction,
         module='account_invoice_ar', type_='model')

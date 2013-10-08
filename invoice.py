@@ -7,11 +7,33 @@ from trytond.pool import Pool
 
 from decimal import Decimal
 
-__all__ = ['ElectronicInvoice']
+__all__ = ['ElectronicInvoice', 'AfipWSTransaction']
 
 _STATES = {
     'readonly': Eval('state') != 'draft',
 }
+
+class AfipWSTransaction(ModelView, ModelSQL):
+    'AFIP WS Transaction'
+    __name__ = 'account_invoice_ar.afip_transaction'
+
+    pyafipws_result = fields.Selection([
+           ('', 'n/a'),
+           ('A', 'Aceptado'),
+           ('R', 'Rechazado'),
+           ('O', 'Observado'),
+       ], 'Resultado', readonly=True,
+       help=u"Resultado procesamiento de la Solicitud, devuelto por AFIP")
+
+    pyafipws_message = fields.Text('Mensaje', readonly=True,
+       help=u"Mensaje de error u observación, devuelto por AFIP")
+    pyafipws_xml_request = fields.Text('Requerimiento XML', readonly=True,
+       help=u"Mensaje XML enviado a AFIP (depuración)")
+    pyafipws_xml_response = fields.Text('Respuesta XML', readonly=True,
+       help=u"Mensaje XML recibido de AFIP (depuración)")
+
+    invoice = fields.Many2One('account.invoice', 'Invoice')
+
 
 class ElectronicInvoice(Workflow, ModelSQL):
     'Electronic Invoice'
@@ -31,26 +53,16 @@ class ElectronicInvoice(Workflow, ModelSQL):
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
        states=_STATES,
        help=u"Seleccionar fecha de inicio de servicios - Sólo servicios")
-    pyafipws_result = fields.Selection([
-           ('', 'n/a'),
-           ('A', 'Aceptado'),
-           ('R', 'Rechazado'),
-           ('O', 'Observado'),
-       ], 'Resultado', readonly=True,
-       help=u"Resultado procesamiento de la Solicitud, devuelto por AFIP")
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
        help=u"Código de Autorización Electrónico, devuelto por AFIP")
     pyafipws_cae_due_date = fields.Date('Vencimiento CAE', readonly=True,
        help=u"Fecha tope para verificar CAE, devuelto por AFIP")
-    pyafipws_message = fields.Text('Mensaje', readonly=True,
-       help=u"Mensaje de error u observación, devuelto por AFIP")
-    pyafipws_xml_request = fields.Text('Requerimiento XML', readonly=True,
-       help=u"Mensaje XML enviado a AFIP (depuración)")
-    pyafipws_xml_response = fields.Text('Respuesta XML', readonly=True,
-       help=u"Mensaje XML recibido de AFIP (depuración)")
     pyafipws_barcode = fields.Char(u'Codigo de Barras', size=40,
         help=u"Código de barras para usar en la impresión", readonly=True,)
 
+    transactions = fields.One2Many('account_invoice_ar.afip_transaction',
+                                   'invoice', u"Transacciones",
+                                   readonly=True)
     @classmethod
     def __setup__(cls):
         super(ElectronicInvoice, cls).__setup__()
@@ -313,7 +325,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 importe = line.get_amount('')
                 bonif =  None # line.discount
                 iva_id = 5                      # TODO: line.tax_code_id?
-                imp_iva = importe * line.taxes[0].amount
+                imp_iva = (importe * line.taxes[0].percentage).quantize(Decimal('0.01'))
                 if service == 'wsmtxca':
                     ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
                             precio, bonif, iva_id, imp_iva, importe+imp_iva)
@@ -338,6 +350,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
             else:
                 # avoid encoding problem when reporting exceptions to the user:
                 import traceback
+                import sys
                 msg = traceback.format_exception_only(sys.exc_type,
                                                       sys.exc_value)[0]
         else:
@@ -352,17 +365,24 @@ class ElectronicInvoice(Workflow, ModelSQL):
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
         else:
             bars = ""
-        # store the results
-        vals ={'pyafipws_cae': ws.CAE,
-                    'pyafipws_cae_due_date': ws.Vencimiento or None,
-                    'pyafipws_result': ws.Resultado,
-                    'pyafipws_message': msg,
-                    'pyafipws_xml_request': ws.XmlRequest,
-                    'pyafipws_xml_response': ws.XmlResponse,
-                    'pyafipws_barcode': bars,
-                   }
-        import ipdb; ipdb.set_trace()
-        self.write([self], vals)
+
+        AFIP_Transaction = Pool().get('account_invoice_ar.afip_transaction')
+        AFIP_Transaction.create([{'invoice': self,
+                            'pyafipws_result': ws.Resultado,
+                            'pyafipws_message': msg,
+                            'pyafipws_xml_request': ws.XmlRequest,
+                            'pyafipws_xml_response': ws.XmlResponse,
+                            }])
+
+        if ws.CAE:
+            # store the results
+            vals ={'pyafipws_cae': ws.CAE,
+                        'pyafipws_cae_due_date': ws.Vencimiento or None,
+                        'pyafipws_barcode': bars,
+                       }
+            self.write([self], vals)
+
+        return msg
 
     @classmethod
     @ModelView.button
@@ -370,9 +390,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
         for i, invoice in enumerate(invoices):
             # request authorization (CAE)
-            invoice.do_pyafipws_request_cae()
-            # check if an error message was returned
-            msg = invoice.pyafipws_message
+            msg = invoice.do_pyafipws_request_cae()
             if not invoice.pyafipws_cae and msg:
                 # notify the user with an exception message
                 #FIXME: raise ('Error al solicitar CAE AFIP', msg)
