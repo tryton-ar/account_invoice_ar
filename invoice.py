@@ -6,6 +6,7 @@ from trytond.transaction import Transaction
 from trytond.pool import Pool
 
 from decimal import Decimal
+import collections
 
 __all__ = ['ElectronicInvoice', 'AfipWSTransaction']
 
@@ -19,6 +20,14 @@ _BILLING_STATES.update({
                     | (Eval('pyafipws_concept') == '3')
     })
 
+
+IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
+IVA_AFIP_CODE.update({
+    Decimal('0'): 3,
+    Decimal('10.5'): 4,
+    Decimal('21'): 5,
+    Decimal('27'): 6,
+    })
 
 class AfipWSTransaction(ModelView, ModelSQL):
     'AFIP WS Transaction'
@@ -158,17 +167,20 @@ class ElectronicInvoice(Workflow, ModelSQL):
         # due and billing dates only for concept "services"
         concepto = tipo_expo = int(self.pyafipws_concept or 0)
         if int(concepto) != 1:
-            fecha_venc_pago = self.date_invoice
+
+            payments = self.payment_term.compute(self.total_amount, self.currency)
+            last_payment = max(payments, key=lambda x:x[0])[0]
+            fecha_venc_pago = last_payment.strftim("%Y-%m-%d")
             if service != 'wsmtxca':
                     fecha_venc_pago = fecha_venc_pago.replace("-", "")
             if self.pyafipws_billing_start_date:
-                fecha_serv_desde = self.pyafipws_billing_start_date
+                fecha_serv_desde = self.pyafipws_billing_start_date.strftime("%Y-%m-%d")
                 if service != 'wsmtxca':
                     fecha_serv_desde = fecha_serv_desde.replace("-", "")
             else:
                 fecha_serv_desde = None
             if  self.pyafipws_billing_end_date:
-                fecha_serv_hasta = self.pyafipws_billing_end_date
+                fecha_serv_hasta = self.pyafipws_billing_end_date.strftime("%Y-%m-%d")
                 if service != 'wsmtxca':
                     fecha_serv_desde = fecha_serv_desde.replace("-", "")
             else:
@@ -283,17 +295,8 @@ class ElectronicInvoice(Workflow, ModelSQL):
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
                 tax = tax_line.tax
-                if  tax.group.name == "IVA":
-                    if tax.percentage == Decimal('0'):
-                        iva_id = 3
-                    elif tax.percentage == Decimal('10.5'):
-                        iva_id = 4
-                    elif tax.percentage == Decimal('21'):
-                        iva_id = 5
-                    elif tax.percentage == Decimal('27'):
-                        iva_id = 6
-                    else:
-                        iva_id = 0
+                if tax.group.name == "IVA":
+                    iva_id = IVA_AFIP_CODE[tax.percentage]
                     base_imp = ("%.2f" % abs(tax_line.base))
                     importe = ("%.2f" % abs(tax_line.amount))
                     # add the vat detail in the helper
@@ -326,8 +329,10 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 precio = line.unit_price
                 importe = line.get_amount('')
                 bonif =  None # line.discount
-                iva_id = 5                      # TODO: line.tax_code_id?
-                imp_iva = (importe * line.taxes[0].percentage).quantize(Decimal('0.01'))
+                for tax in line.taxes:
+                    if tax.group.name == "IVA":
+                        iva_id = IVA_AFIP_CODE[tax.percentage]
+                        imp_iva = (importe * tax.percentage).quantize(Decimal('0.01'))
                 if service == 'wsmtxca':
                     ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
                             precio, bonif, iva_id, imp_iva, importe+imp_iva)
@@ -376,6 +381,8 @@ class ElectronicInvoice(Workflow, ModelSQL):
                             'pyafipws_xml_response': ws.XmlResponse,
                             }])
 
+        import ipdb; ipdb.set_trace()
+
         if ws.CAE:
             # store the results
             vals ={'pyafipws_cae': ws.CAE,
@@ -384,7 +391,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
                        }
             self.write([self], vals)
 
-        return msg
+        return msg, ws.Resultado
 
     @classmethod
     @ModelView.button
@@ -392,7 +399,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
         for i, invoice in enumerate(invoices):
             # request authorization (CAE)
-            msg = invoice.do_pyafipws_request_cae()
+            msg, resultado = invoice.do_pyafipws_request_cae()
             if not invoice.pyafipws_cae and msg:
                 # notify the user with an exception message
                 #FIXME: raise ('Error al solicitar CAE AFIP', msg)
@@ -402,7 +409,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 msg = "CAE: %s Vto.: %s Resultado: %s"
                 msg = msg % (invoice.pyafipws_cae,
                              invoice.pyafipws_cae_due_date,
-                             invoice.pyafipws_result)
+                             resultado)
                 print msg
 
     def pyafipws_verification_digit_modulo10(self, codigo):
