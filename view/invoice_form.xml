@@ -21,9 +21,11 @@
             <field name="transactions" colspan="4"/>
         </page>
     </xpath>
-    <xpath expr="/form/notebook/page[@id='invoice']/group/group/group/button[@name='validate_invoice']" position="before">
-        <button name="pyafipws_request_cae"
-            string="Obtener CAE"
-            icon="tryton-go-next"/>
+
+    <xpath expr="/form/notebook/page[@id='invoice']/group/group/group/button[@name='post']" position="replace">
+        <button name="afip_post"
+            string="_Post"
+            icon="tryton-ok"/>
     </xpath>
+
 </data>

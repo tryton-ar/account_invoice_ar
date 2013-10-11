@@ -84,14 +84,43 @@ class ElectronicInvoice(Workflow, ModelSQL):
         super(ElectronicInvoice, cls).__setup__()
 
         cls._buttons.update({
-            'pyafipws_request_cae': {},
+            'afip_post': {},
             })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
                 u'Debe establecer lose valores "Fecha desde" y "Fecha hasta" ' \
-                u'en el Diario, correspondientes al servicio que se está facturando'})
+                u'en el Diario, correspondientes al servicio que se está facturando',
+            'invalid_invoice_number':
+                u'El número de la factura (%d), no coincide con el que espera ' \
+                u'la AFIP (%d). Modifique la secuencia del diario',
+            'not_cae':
+                u'No fue posible obtener el CAE, revise. Revise las Transacciones ' \
+                u'para mas información',
+            })
 
-    def do_pyafipws_request_cae(self, *args):
+
+    @classmethod
+    @ModelView.button
+    @Workflow.transition('posted')
+    def afip_post(cls, invoices):
+        Move = Pool().get('account.move')
+
+        for invoice in invoices:
+            invoice.set_number()
+            move = invoice.create_move()
+            invoice.do_pyafipws_request_cae()
+            #COMMIT HERE !, Is mandatory to save the CAE
+            Transaction().cursor.commit()
+            if not invoice.pyafipws_cae:
+                invoice.raise_user_error('not_cae')
+            Move.post([move])
+            cls.write([invoice], {
+                    'state': 'posted',
+                    })
+            if invoice.type in ('out_invoice', 'out_credit_note'):
+                invoice.print_invoice()
+
+    def do_pyafipws_request_cae(self):
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
@@ -142,7 +171,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
         ws.Sign = auth_data['sign']
 
         # get the last 8 digit of the invoice number
-        cbte_nro = int(self.number[-8:])
+        cbte_nro = int(self.move.number[-8:])
         # get the last invoice number registered in AFIP
         if service == "wsfe" or service == "wsmtxca":
             cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
@@ -151,12 +180,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
         cbte_nro_next = int(cbte_nro_afip or 0) + 1
         # verify that the invoice is the next one to be registered in AFIP
         if cbte_nro != cbte_nro_next:
-            #FIXME: raise error 'Error !',
-            #        'Referencia: %s \n'
-            #        'El número del comprobante debería ser %s y no %s' % (
-            #        str(invoice.number), str(cbte_nro_next), str(cbte_nro)))
-            print "cbte_nro != cbte_nro_next", cbte_nro, cbte_nro_next
-            return
+            self.raise_user_error('invalid_invoice_number', (cbte_nro, cbte_nro_next))
 
         # invoice number range (from - to) and date:
         cbte_nro = cbt_desde = cbt_hasta = cbte_nro_next
@@ -170,7 +194,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
 
             payments = self.payment_term.compute(self.total_amount, self.currency)
             last_payment = max(payments, key=lambda x:x[0])[0]
-            fecha_venc_pago = last_payment.strftim("%Y-%m-%d")
+            fecha_venc_pago = last_payment.strftime("%Y-%m-%d")
             if service != 'wsmtxca':
                     fecha_venc_pago = fecha_venc_pago.replace("-", "")
             if self.pyafipws_billing_start_date:
@@ -182,7 +206,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
             if  self.pyafipws_billing_end_date:
                 fecha_serv_hasta = self.pyafipws_billing_end_date.strftime("%Y-%m-%d")
                 if service != 'wsmtxca':
-                    fecha_serv_desde = fecha_serv_desde.replace("-", "")
+                    fecha_serv_hasta = fecha_serv_hasta.replace("-", "")
             else:
                 fecha_serv_hasta = None
         else:
@@ -381,36 +405,20 @@ class ElectronicInvoice(Workflow, ModelSQL):
                             'pyafipws_xml_response': ws.XmlResponse,
                             }])
 
-        import ipdb; ipdb.set_trace()
-
         if ws.CAE:
             # store the results
             vals ={'pyafipws_cae': ws.CAE,
-                        'pyafipws_cae_due_date': ws.Vencimiento or None,
-                        'pyafipws_barcode': bars,
+                   'pyafipws_cae_due_date': ws.Vencimiento or None,
+                   'pyafipws_barcode': bars,
                        }
+            if not '-' in vals['pyafipws_cae_due_date']:
+                fe = vals['pyafipws_cae_due_date']
+                vals['pyafipws_cae_due_date'] = '-'.join([fe[:4],fe[4:6],fe[6:8]])
+
             self.write([self], vals)
 
         return msg, ws.Resultado
 
-    @classmethod
-    @ModelView.button
-    def pyafipws_request_cae(cls, invoices):
-        "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
-        for i, invoice in enumerate(invoices):
-            # request authorization (CAE)
-            msg, resultado = invoice.do_pyafipws_request_cae()
-            if not invoice.pyafipws_cae and msg:
-                # notify the user with an exception message
-                #FIXME: raise ('Error al solicitar CAE AFIP', msg)
-                return
-            else:
-                # TODO: use better notification (log not shown in workflow)
-                msg = "CAE: %s Vto.: %s Resultado: %s"
-                msg = msg % (invoice.pyafipws_cae,
-                             invoice.pyafipws_cae_due_date,
-                             resultado)
-                print msg
 
     def pyafipws_verification_digit_modulo10(self, codigo):
         "Calculate the verification digit 'modulo 10'"
