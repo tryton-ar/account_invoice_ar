@@ -14,7 +14,7 @@ class Journal(ModelSQL, ModelView):
     pyafipws_electronic_invoice_service = fields.Selection([
             ('' , ''),
             ('wsfe',   u'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
-            ('wsmtxca',u'Mercado interno -con detalle- RG2904 (WSMTXCA)'),
+#            ('wsmtxca',u'Mercado interno -con detalle- RG2904 (WSMTXCA)'),
             ('wsbfe',  u'Bono Fiscal -con detalle- RG2557 (WSMTXCA)'),
             ('wsfex',  u'Exportación -con detalle- RG2758 (WSFEXv1)'),
         ], u'AFIP Web Service',

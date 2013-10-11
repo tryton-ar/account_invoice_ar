@@ -124,9 +124,9 @@ class ElectronicInvoice(Workflow, ModelSQL):
         if service == 'wsfe':
             from pyafipws.wsfev1 import WSFEv1, SoapFault   # local market
             ws = WSFEv1()
-        elif service == 'wsmtxca':
-            from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
-            ws = WSMTXCA()
+#        elif service == 'wsmtxca':
+#            from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
+#            ws = WSMTXCA()
         elif service == 'wsfex':
             from pyafipws.wsfexv1 import WSFEXv1, SoapFault # foreign trade
             ws = WSFEXv1()
@@ -322,7 +322,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
             for line in self.lines:
                 codigo = line.product.code
                 u_mtx = 1                       # TODO: get it from uom?
-                cod_mtx = None #FIXME: ean13
+                cod_mtx = 'xxx' #FIXME: ean13
                 ds = line.description
                 qty = line.quantity
                 umed = 7                        # TODO: line.uos_id...?
@@ -333,10 +333,10 @@ class ElectronicInvoice(Workflow, ModelSQL):
                     if tax.group.name == "IVA":
                         iva_id = IVA_AFIP_CODE[tax.percentage]
                         imp_iva = (importe * tax.percentage).quantize(Decimal('0.01'))
-                if service == 'wsmtxca':
-                    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
-                            precio, bonif, iva_id, imp_iva, importe+imp_iva)
-                elif service == 'wsfex':
+                #if service == 'wsmtxca':
+                #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
+                #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
+                if service == 'wsfex':
                     ws.AgregarItem(codigo, ds, qty, umed, precio, importe,
                             bonif)
 
