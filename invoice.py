@@ -106,13 +106,11 @@ class ElectronicInvoice(Workflow, ModelSQL):
         Move = Pool().get('account.move')
 
         for invoice in invoices:
-            invoice.set_number()
-            move = invoice.create_move()
             invoice.do_pyafipws_request_cae()
-            #COMMIT HERE !, Is mandatory to save the CAE
-            Transaction().cursor.commit()
             if not invoice.pyafipws_cae:
                 invoice.raise_user_error('not_cae')
+            invoice.set_number()
+            move = invoice.create_move()
             Move.post([move])
             cls.write([invoice], {
                     'state': 'posted',
@@ -127,8 +125,9 @@ class ElectronicInvoice(Workflow, ModelSQL):
             print 'hay cae'
             return
         # get the electronic invoice type, point of sale and service:
+        pool = Pool()
         journal = self.journal
-        Company = Pool().get('company.company')
+        Company = pool.get('company.company')
         company_id = Transaction().context.get('company')
         if not company_id:
             #FIXME: raise error
@@ -171,7 +170,12 @@ class ElectronicInvoice(Workflow, ModelSQL):
         ws.Sign = auth_data['sign']
 
         # get the last 8 digit of the invoice number
-        cbte_nro = int(self.move.number[-8:])
+        if self.move:
+            cbte_nro = int(self.move.number[-8:])
+        else:
+            Sequence = pool.get('ir.sequence')
+            cbte_nro = int(Sequence(journal.sequence.id).get_number_next(''))
+
         # get the last invoice number registered in AFIP
         if service == "wsfe" or service == "wsmtxca":
             cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
@@ -184,7 +188,13 @@ class ElectronicInvoice(Workflow, ModelSQL):
 
         # invoice number range (from - to) and date:
         cbte_nro = cbt_desde = cbt_hasta = cbte_nro_next
-        fecha_cbte = self.invoice_date.strftime("%Y-%m-%d")
+
+        if self.invoice_date:
+            fecha_cbte = self.invoice_date.strftime("%Y-%m-%d")
+        else:
+            Date = pool.get('ir.date')
+            fecha_cbte = Date.today().strftime("%Y-%m-%d")
+
         if service != 'wsmtxca':
             fecha_cbte = fecha_cbte.replace("-", "")
 
@@ -397,13 +407,15 @@ class ElectronicInvoice(Workflow, ModelSQL):
         else:
             bars = ""
 
-        AFIP_Transaction = Pool().get('account_invoice_ar.afip_transaction')
-        AFIP_Transaction.create([{'invoice': self,
-                            'pyafipws_result': ws.Resultado,
-                            'pyafipws_message': msg,
-                            'pyafipws_xml_request': ws.XmlRequest,
-                            'pyafipws_xml_response': ws.XmlResponse,
-                            }])
+        AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
+        with Transaction().new_cursor():
+            AFIP_Transaction.create([{'invoice': self,
+                                'pyafipws_result': ws.Resultado,
+                                'pyafipws_message': msg,
+                                'pyafipws_xml_request': ws.XmlRequest,
+                                'pyafipws_xml_response': ws.XmlResponse,
+                                }])
+            Transaction().cursor.commit()
 
         if ws.CAE:
             # store the results
