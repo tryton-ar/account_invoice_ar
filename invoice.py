@@ -1,12 +1,14 @@
 #! -*- coding: utf8 -*-
 
+import collections
+import logging
+from decimal import Decimal
+
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.pyson import Eval
 from trytond.transaction import Transaction
 from trytond.pool import Pool
 
-from decimal import Decimal
-import collections
 
 __all__ = ['ElectronicInvoice', 'AfipWSTransaction']
 
@@ -96,6 +98,9 @@ class ElectronicInvoice(Workflow, ModelSQL):
             'not_cae':
                 u'No fue posible obtener el CAE, revise. Revise las Transacciones ' \
                 u'para mas información',
+            'invalid_journal':
+                u'Este diario (%s) no tiene establecido los datos necesaios para ' \
+                u'facturar electrónicamente'
             })
 
 
@@ -119,10 +124,12 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
+        logger = logging.getLogger('pyafipws')
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
-            print 'hay cae'
+            logger.info(u'Se trata de obtener CAE de la factura que ya tiene. '\
+                        u'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
             return
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
@@ -130,9 +137,9 @@ class ElectronicInvoice(Workflow, ModelSQL):
         Company = pool.get('company.company')
         company_id = Transaction().context.get('company')
         if not company_id:
-            #FIXME: raise error
-            print 'no hay company_id'
+            logger.info(u'No hay companía')
             return
+
         company = Company(company_id)
 
         tipo_cbte = journal.pyafipws_invoice_type
@@ -140,10 +147,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
         service = journal.pyafipws_electronic_invoice_service
         # check if it is an electronic invoice sale point:
         if not tipo_cbte or not punto_vta or not service:
-            #FIXME: raise error
-            # Este diario no opera con CAE,
-            print 'no hay tipo_cbte, punto_vta, service'
-            return
+            self.raise_user_error('invalid_journal', journal.name)
 
         # authenticate against AFIP:
         auth_data = company.pyafipws_authenticate(service=service)
@@ -159,7 +163,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
             from pyafipws.wsfexv1 import WSFEXv1, SoapFault # foreign trade
             ws = WSFEXv1()
         else:
-            #FIXME: raise error'Error !', "%s no soportado" % service
+            logger.critical(u'WS no soportado: %s', service)
             return
 
         # connect to the webservice and call to the test method
@@ -428,8 +432,6 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 vals['pyafipws_cae_due_date'] = '-'.join([fe[:4],fe[4:6],fe[6:8]])
 
             self.write([self], vals)
-
-        return msg, ws.Resultado
 
 
     def pyafipws_verification_digit_modulo10(self, codigo):
