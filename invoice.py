@@ -5,10 +5,11 @@ import logging
 from decimal import Decimal
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
-from trytond.pyson import Eval
+from trytond.pyson import Eval, In
 from trytond.transaction import Transaction
 from trytond.pool import Pool
 
+from trytond.modules.account_invoice import Invoice
 
 __all__ = ['ElectronicInvoice', 'AfipWSTransaction']
 
@@ -81,6 +82,22 @@ class ElectronicInvoice(Workflow, ModelSQL):
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
                                    'invoice', u"Transacciones",
                                    readonly=True)
+
+    electronic_invoice = fields.Boolean(u'Factura electrónica',
+            states={ 'readonly': ((Eval('state') != 'draft')
+                                  | In(Eval('type'), ['in_invoice', 'in_credit_note'])),
+                    },
+                                     )
+    journal = fields.Many2One('account.journal', 'Journal', required=True,
+        states= { 'readonly': ((Eval('state') != 'draft')
+                               | Eval('electronic_invoice', False)),
+                },
+        depends=['state', 'electronic_invoice'], domain=[('centralised', '=', False)])
+
+    @staticmethod
+    def default_electronic_invoice():
+        return 'out' in Transaction().context.get('type', 'out_invoice')
+
     @classmethod
     def __setup__(cls):
         super(ElectronicInvoice, cls).__setup__()
@@ -110,7 +127,16 @@ class ElectronicInvoice(Workflow, ModelSQL):
     def afip_post(cls, invoices):
         Move = Pool().get('account.move')
 
+        electronic_invoices = []
         for invoice in invoices:
+            if invoice.electronic_invoice:
+                electronic_invoices.append(invoice)
+                invoices.remove(invoice)
+
+        if invoices:
+            Invoice.post(invoices)
+
+        for invoice in electronic_invoices:
             invoice.do_pyafipws_request_cae()
             if not invoice.pyafipws_cae:
                 invoice.raise_user_error('not_cae')

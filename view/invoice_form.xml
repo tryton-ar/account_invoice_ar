@@ -28,4 +28,8 @@
             icon="tryton-ok"/>
     </xpath>
 
+    <xpath expr="/form/field[@name='invoice_address']" position="after">
+        <label name="electronic_invoice"/>
+        <field name="electronic_invoice"/>
+    </xpath>
 </data>
