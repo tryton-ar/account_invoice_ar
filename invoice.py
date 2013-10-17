@@ -17,6 +17,13 @@ _STATES = {
     'readonly': Eval('state') != 'draft',
 }
 
+_TYPE2JOURNAL = {
+    'out_invoice': 'revenue',
+    'in_invoice': 'expense',
+    'out_credit_note': 'revenue',
+    'in_credit_note': 'expense',
+}
+
 _BILLING_STATES = _STATES.copy()
 _BILLING_STATES.update({
         'required': (Eval('pyafipws_concept') == '2')
@@ -32,6 +39,16 @@ IVA_AFIP_CODE.update({
     Decimal('27'): 6,
     })
 
+INVOICE_TYPE_AFIP_CODE = {
+        ('out_invoice', 'A'): ('1', u'01-Factura A'),
+        ('out_invoice', 'B'): ('6', u'06-Factura B'),
+        ('out_invoice', 'C'): ('11',u'11-Factura C'),
+        ('out_invoice', 'E'): ('19',u'19-Factura E'),
+        ('out_credit_note', 'A'): ('3', u'03-Nota de Crédito A'),
+        ('out_credit_note', 'B'): ('8', u'08-Nota de Crédito B'),
+        ('out_credit_note', 'C'): ('13',u'13-Nota de Crédito C'),
+        ('out_credit_note', 'E'): ('21',u'21-Nota de Crédito E'),
+        }
 class AfipWSTransaction(ModelView, ModelSQL):
     'AFIP WS Transaction'
     __name__ = 'account_invoice_ar.afip_transaction'
@@ -87,16 +104,67 @@ class ElectronicInvoice(Workflow, ModelSQL):
             states={ 'readonly': ((Eval('state') != 'draft')
                                   | In(Eval('type'), ['in_invoice', 'in_credit_note'])),
                     },
-                                     )
+            on_change=['electronic_invoice', 'type', 'company', 'party'],
+            depends=['electronic_invoice'],)
+
     journal = fields.Many2One('account.journal', 'Journal', required=True,
         states= { 'readonly': ((Eval('state') != 'draft')
                                | Eval('electronic_invoice', False)),
                 },
-        depends=['state', 'electronic_invoice'], domain=[('centralised', '=', False)])
+        depends=['state', 'electronic_invoice'],
+        domain=[('centralised', '=', False)],)
 
     @staticmethod
     def default_electronic_invoice():
         return 'out' in Transaction().context.get('type', 'out_invoice')
+
+    def _get_electronic_journal(self):
+        Journal = Pool().get('account.journal')
+
+        client_iva = company_iva = None
+        if self.party:
+            client_iva = self.party.iva_condition
+        if self.company:
+            company_iva = self.company.party.iva_condition
+
+        if company_iva == 'responsable_inscripto':
+            if client_iva is None:
+                #TODO: Todavía no lo podemos determinar
+                return #?
+            if client_iva == 'responsable_inscripto':
+                kind = 'A'
+            elif self.party.vat_country is None:
+                #TODO: raise error no se puede determinar el tipo de factura, pues se desconoce el país del cliente
+                self.raise_user_error('unknown_country')
+            elif self.party.vat_country == u'AR':
+                kind = 'B'
+            else:
+                kind = 'E'
+        else:
+            kind = 'C'
+
+        invoice_type, invoice_type_desc= INVOICE_TYPE_AFIP_CODE[(self.type, kind)]
+        journals = Journal.search([('pyafipws_electronic_invoice_service', '!=', ''),
+                                   ('pyafipws_invoice_type', '=', invoice_type)])
+        if len(journals) == 0:
+            self.raise_user_error('missing_journal', invoice_type_desc)
+        elif len(journals) > 1:
+            self.raise_user_error('too_many_journals', invoice_type_desc)
+        else:
+            return journals[0]
+
+    def on_change_electronic_invoice(self):
+        res ={}
+        if self.electronic_invoice:
+            journal = self._get_electronic_journal()
+            if journal:
+                res['journal'] = journal.id
+                res['journal.rec_name'] = journal.rec_name
+            else:
+                res['journal'] = None
+        else:
+            res.update(self.on_change_type())
+        return res
 
     @classmethod
     def __setup__(cls):
@@ -107,17 +175,21 @@ class ElectronicInvoice(Workflow, ModelSQL):
             })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
-                u'Debe establecer lose valores "Fecha desde" y "Fecha hasta" ' \
+                u'Debe establecer los valores "Fecha desde" y "Fecha hasta" ' \
                 u'en el Diario, correspondientes al servicio que se está facturando',
             'invalid_invoice_number':
                 u'El número de la factura (%d), no coincide con el que espera ' \
                 u'la AFIP (%d). Modifique la secuencia del diario',
             'not_cae':
-                u'No fue posible obtener el CAE, revise. Revise las Transacciones ' \
+                u'No fue posible obtener el CAE. Revise las Transacciones ' \
                 u'para mas información',
             'invalid_journal':
                 u'Este diario (%s) no tiene establecido los datos necesaios para ' \
-                u'facturar electrónicamente'
+                u'facturar electrónicamente',
+            'missing_journal':
+                u'No existe un diario para facturas electrónicas del tipo: %s',
+            'too_many_journals':
+                u'Existe mas de un diario para facturas electrónicas del tipo: %s',
             })
 
 
