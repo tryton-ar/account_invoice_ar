@@ -32,4 +32,11 @@
         <label name="electronic_invoice"/>
         <field name="electronic_invoice"/>
     </xpath>
+
+    <xpath expr="/form/label[@name='number']" position="replace">
+        <label name="pyafipws_number"/>
+    </xpath>
+    <xpath expr="/form/field[@name='number']" position="replace">
+        <field name="pyafipws_number"/>
+    </xpath>
 </data>

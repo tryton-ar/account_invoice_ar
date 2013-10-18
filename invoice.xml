@@ -7,6 +7,12 @@
             <field name="inherit" ref="account_invoice.invoice_view_form"/>
             <field name="name">invoice_form</field>
         </record>
+        <record model="ir.ui.view" id="invoice_view_tree">
+            <field name="model">account.invoice</field>
+            <field name="type">tree</field>
+            <field name="inherit" ref="account_invoice.invoice_view_tree"/>
+            <field name="name">invoice_tree</field>
+        </record>
         <record model="ir.ui.view" id="afip_transaction_view_tree">
             <field name="model">account_invoice_ar.afip_transaction</field>
             <field name="type">tree</field>

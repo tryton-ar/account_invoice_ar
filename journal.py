@@ -46,6 +46,7 @@ class Journal(ModelSQL, ModelView):
 
     pyafipws_point_of_sale = fields.Integer('Punto de Venta AFIP',
         help=u"Prefijo de emisión habilitado en AFIP",
+        required=True,
         states=STATES,
         depends=['pyafipws_electronic_invoice_service'])
 

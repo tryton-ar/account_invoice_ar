@@ -49,6 +49,7 @@ INVOICE_TYPE_AFIP_CODE = {
         ('out_credit_note', 'C'): ('13',u'13-Nota de Crédito C'),
         ('out_credit_note', 'E'): ('21',u'21-Nota de Crédito E'),
         }
+
 class AfipWSTransaction(ModelView, ModelSQL):
     'AFIP WS Transaction'
     __name__ = 'account_invoice_ar.afip_transaction'
@@ -80,9 +81,13 @@ class ElectronicInvoice(Workflow, ModelSQL):
                    ('2',u'2-Servicios'),
                    ('3',u'3-Productos y Servicios (mercado interno)'),
                    ('4',u'4-Otros (exportación)'),
+                   ('' , ''),
                    ], 'Concepto',
-                   select=True, required=True,
-                   states=_STATES)
+                   select=True,
+                   states={'readonly': Eval('state') != 'draft',
+                           'required': Eval('electronic_invoice', False)
+                        },
+                   )
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
        states=_BILLING_STATES,
        help=u"Seleccionar fecha de fin de servicios - Sólo servicios")
@@ -95,6 +100,8 @@ class ElectronicInvoice(Workflow, ModelSQL):
        help=u"Fecha tope para verificar CAE, devuelto por AFIP")
     pyafipws_barcode = fields.Char(u'Codigo de Barras', size=40,
         help=u"Código de barras para usar en la impresión", readonly=True,)
+    pyafipws_number = fields.Char(u'Número', size=13, readonly=True,
+            help=u"Número de factura informado a la AFIP")
 
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
                                    'invoice', u"Transacciones",
@@ -173,12 +180,22 @@ class ElectronicInvoice(Workflow, ModelSQL):
         res.update(self.on_change_electronic_invoice())
         return res
 
+    def set_number(self):
+        Invoice.set_number(self)
+        vals = {}
+        self.create_move()
+        vals['pyafipws_number'] = '%04d-%08d' % (self.journal.pyafipws_point_of_sale,
+                                                 int(self.move.number[-8:]))
+        self.write([self], vals)
+
     @classmethod
     def __setup__(cls):
         super(ElectronicInvoice, cls).__setup__()
 
         cls._buttons.update({
-            'afip_post': {},
+            'afip_post': {
+                'invisible': ~Eval('state').in_(['draft', 'validated']),
+                },
             })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
@@ -531,6 +548,8 @@ class ElectronicInvoice(Workflow, ModelSQL):
             vals ={'pyafipws_cae': ws.CAE,
                    'pyafipws_cae_due_date': ws.Vencimiento or None,
                    'pyafipws_barcode': bars,
+                   'pyafipws_number': '%04d-%08d' % (journal.pyafipws_point_of_sale,
+                                                     cbte_nro)
                        }
             if not '-' in vals['pyafipws_cae_due_date']:
                 fe = vals['pyafipws_cae_due_date']
