@@ -7,10 +7,10 @@
     <label name="pyafipws_message" />
     <field name="pyafipws_message" colspan="3" />
     <notebook colspan="4">
-        <page string="XML Request">
+        <page string="XML Request" id='request'>
             <field name="pyafipws_xml_request" />
         </page>
-        <page string="XML Response">
+        <page string="XML Response" id='response'>
             <field name="pyafipws_xml_response" />
         </page>
     </notebook>

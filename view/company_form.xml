@@ -2,9 +2,9 @@
 <data>
     <xpath expr="/form/notebook/page[@id='reports']" position="after">
         <page string="Afip WS" id="afip" col="1">
-            <separator string="Certificado AFIP WS"/>
+            <separator string="Certificado AFIP WS" id='certificate'/>
             <field name="pyafipws_certificate"/>
-            <separator string="Clave Privada AFIP WS"/>
+            <separator string="Clave Privada AFIP WS" id='pass'/>
             <field name="pyafipws_private_key"/>
         </page>
     </xpath>
