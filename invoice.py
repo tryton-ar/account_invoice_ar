@@ -114,6 +114,10 @@ class ElectronicInvoice(Workflow, ModelSQL):
         depends=['state', 'electronic_invoice'],
         domain=[('centralised', '=', False)],)
 
+    party = fields.Many2One('party.party', 'Party',
+        required=True, states=_STATES, depends=['state'],
+        on_change=['party', 'payment_term', 'type', 'company', 'electronic_invoice'])
+
     @staticmethod
     def default_electronic_invoice():
         return 'out' in Transaction().context.get('type', 'out_invoice')
@@ -129,12 +133,10 @@ class ElectronicInvoice(Workflow, ModelSQL):
 
         if company_iva == 'responsable_inscripto':
             if client_iva is None:
-                #TODO: Todavía no lo podemos determinar
-                return #?
+                return
             if client_iva == 'responsable_inscripto':
                 kind = 'A'
             elif self.party.vat_country is None:
-                #TODO: raise error no se puede determinar el tipo de factura, pues se desconoce el país del cliente
                 self.raise_user_error('unknown_country')
             elif self.party.vat_country == u'AR':
                 kind = 'B'
@@ -164,6 +166,11 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 res['journal'] = None
         else:
             res.update(self.on_change_type())
+        return res
+
+    def on_change_party(self):
+        res = Invoice.on_change_party(self)
+        res.update(self.on_change_electronic_invoice())
         return res
 
     @classmethod
