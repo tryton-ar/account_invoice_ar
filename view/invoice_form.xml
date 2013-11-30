@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <data>
     <xpath expr="/form/notebook/page[@id='payment']" position="after">
-        <page string="Factura Electronica Argentina" id="electronic_invoice">
+        <page string="Factura Electronica Argentina" id="electronic_invoice"
+            states="{'invisible': Equal(Eval('pos.pos_type'), 'electronic')}">
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
             <newline/>
@@ -22,21 +23,23 @@
         </page>
     </xpath>
 
-    <xpath expr="/form/notebook/page[@id='invoice']/group/group/group/button[@name='post']" position="replace">
-        <button name="afip_post"
-            string="_Post"
-            icon="tryton-ok"/>
+    <xpath expr="/form/label[@name='number']" position="replace"/>
+    <xpath expr="/form/field[@name='number']" position="replace"/>
+    <xpath
+        expr="/form/field[@name='journal']"
+        position="after">
+        <newline/>
+    </xpath>
+    <xpath
+        expr="/form/label[@name='description']"
+        position="before">
+        <newline/>
+        <label name="pos"/>
+        <field name="pos"/>
+        <label name="invoice_type"/>
+        <field name="invoice_type" widget="selection"/>
+        <label name="number"/>
+        <field name="number"/>
     </xpath>
 
-    <xpath expr="/form/field[@name='invoice_address']" position="after">
-        <label name="electronic_invoice"/>
-        <field name="electronic_invoice"/>
-    </xpath>
-
-    <xpath expr="/form/label[@name='number']" position="replace">
-        <label name="pyafipws_number"/>
-    </xpath>
-    <xpath expr="/form/field[@name='number']" position="replace">
-        <field name="pyafipws_number"/>
-    </xpath>
 </data>

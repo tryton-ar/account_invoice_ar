@@ -40,15 +40,15 @@ DEBUG = False
 def authenticate(service, certificate, private_key, force=False,
                  cache=CACHE, wsdl=WSAA_URL, proxy=PROXY, ):
     "Call AFIP Authentication webservice to get token & sign or error message"
-    
+
     # import AFIP webservice authentication helper:
     from pyafipws.wsaa import WSAA
-    
+
     # create AFIP webservice authentication helper instance:
     wsaa = WSAA()
     wsaa.LanzarExcepciones = True       # raise python exceptions on any failure
-    
-    # make md5 hash of the parameter for caching... 
+
+    # make md5 hash of the parameter for caching...
     fn = "%s.xml" % hashlib.md5(service + certificate + private_key).hexdigest()
     if cache:
         fn = os.path.join(cache, fn)
@@ -57,15 +57,17 @@ def authenticate(service, certificate, private_key, force=False,
 
     try:
         # read the access ticket (if already authenticated)
+        #import pdb
+        #pdb.set_trace()
         if not os.path.exists(fn) or \
-           os.path.getmtime(fn)+(DEFAULT_TTL) < time.time():    
-            # access ticket (TA) outdated, create new access request ticket (TRA) 
+           os.path.getmtime(fn)+(DEFAULT_TTL) < time.time():
+            # access ticket (TA) outdated, create new access request ticket (TRA)
             tra = wsaa.CreateTRA(service=service, ttl=DEFAULT_TTL)
             # cryptographically sing the access ticket
             cms = wsaa.SignTRA(tra, certificate, private_key)
             # connect to the webservice:
             wsaa.Conectar(cache, wsdl, proxy)
-            # call the remote method 
+            # call the remote method
             ta = wsaa.LoginCMS(cms)
             if not ta:
                 raise RuntimeError()
@@ -74,19 +76,22 @@ def authenticate(service, certificate, private_key, force=False,
         else:
             # get the access ticket from the previously written file
             ta = open(fn, "r").read()
-        # analyze the access ticket xml and extract the relevant fields 
+        # analyze the access ticket xml and extract the relevant fields
         wsaa.AnalizarXml(xml=ta)
         token = wsaa.ObtenerTagXml("token")
+        print "token", token
         sign = wsaa.ObtenerTagXml("sign")
+        print "sign", sign
         err_msg = None
     except:
+        print "sali x el except"
         token = sign = None
         if wsaa.Excepcion:
             # get the exception already parsed by the helper
             err_msg = wsaa.Excepcion
         else:
             # avoid encoding problem when reporting exceptions to the user:
-            err_msg = traceback.format_exception_only(sys.exc_type, 
+            err_msg = traceback.format_exception_only(sys.exc_type,
                                                       sys.exc_value)[0]
         if DEBUG:
             raise

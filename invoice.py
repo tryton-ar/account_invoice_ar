@@ -5,24 +5,18 @@ import logging
 from decimal import Decimal
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
-from trytond.pyson import Eval, In
+from trytond.pyson import Eval
 from trytond.transaction import Transaction
-from trytond.pool import Pool
+from trytond.pool import Pool, PoolMeta
 
-from trytond.modules.account_invoice import Invoice
 
-__all__ = ['ElectronicInvoice', 'AfipWSTransaction']
+__all__ = ['Invoice', 'AfipWSTransaction']
+__metaclass__ = PoolMeta
 
 _STATES = {
     'readonly': Eval('state') != 'draft',
 }
-
-_TYPE2JOURNAL = {
-    'out_invoice': 'revenue',
-    'in_invoice': 'expense',
-    'out_credit_note': 'revenue',
-    'in_credit_note': 'expense',
-}
+_DEPENDS = ['state']
 
 _BILLING_STATES = _STATES.copy()
 _BILLING_STATES.update({
@@ -30,6 +24,11 @@ _BILLING_STATES.update({
                     | (Eval('pyafipws_concept') == '3')
     })
 
+_POS_STATES = _STATES.copy()
+_POS_STATES.update({
+        'required': Eval('type').in_(['out_invoice', 'out_credit_note']),
+        'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
+            })
 
 IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
 IVA_AFIP_CODE.update({
@@ -42,13 +41,14 @@ IVA_AFIP_CODE.update({
 INVOICE_TYPE_AFIP_CODE = {
         ('out_invoice', 'A'): ('1', u'01-Factura A'),
         ('out_invoice', 'B'): ('6', u'06-Factura B'),
-        ('out_invoice', 'C'): ('11',u'11-Factura C'),
-        ('out_invoice', 'E'): ('19',u'19-Factura E'),
+        ('out_invoice', 'C'): ('11', u'11-Factura C'),
+        ('out_invoice', 'E'): ('19', u'19-Factura E'),
         ('out_credit_note', 'A'): ('3', u'03-Nota de Crédito A'),
         ('out_credit_note', 'B'): ('8', u'08-Nota de Crédito B'),
-        ('out_credit_note', 'C'): ('13',u'13-Nota de Crédito C'),
-        ('out_credit_note', 'E'): ('21',u'21-Nota de Crédito E'),
+        ('out_credit_note', 'C'): ('13', u'13-Nota de Crédito C'),
+        ('out_credit_note', 'E'): ('21', u'21-Nota de Crédito E'),
         }
+
 
 class AfipWSTransaction(ModelView, ModelSQL):
     'AFIP WS Transaction'
@@ -72,27 +72,35 @@ class AfipWSTransaction(ModelView, ModelSQL):
     invoice = fields.Many2One('account.invoice', 'Invoice')
 
 
-class ElectronicInvoice(Workflow, ModelSQL):
-    'Electronic Invoice'
+class Invoice:
+    'Invoice'
     __name__ = 'account.invoice'
 
+    pos = fields.Many2One('account.pos', 'Point of Sale',
+        on_change=['pos', 'party', 'type', 'company'],
+        states=_POS_STATES, depends=_DEPENDS)
+    invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
+        domain=([('pos', '=', Eval('pos'))]),
+        states=_POS_STATES, depends=_DEPENDS)
+
     pyafipws_concept = fields.Selection([
-                   ('1',u'1-Productos'),
-                   ('2',u'2-Servicios'),
-                   ('3',u'3-Productos y Servicios (mercado interno)'),
-                   ('4',u'4-Otros (exportación)'),
-                   ('' , ''),
-                   ], 'Concepto',
-                   select=True,
-                   states={'readonly': Eval('state') != 'draft',
-                           'required': Eval('electronic_invoice', False)
-                        },
-                   )
+       ('1', u'1-Productos'),
+       ('2', u'2-Servicios'),
+       ('3', u'3-Productos y Servicios (mercado interno)'),
+       ('4', u'4-Otros (exportación)'),
+       ('', ''),
+       ], 'Concepto',
+       select=True,
+       states={
+           'readonly': Eval('state') != 'draft',
+           'required': Eval('pos.pos_type') == 'electronic',
+            }, depends=['state']
+       )
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
-       states=_BILLING_STATES,
+       states=_BILLING_STATES, depends=_DEPENDS,
        help=u"Seleccionar fecha de fin de servicios - Sólo servicios")
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
-       states=_BILLING_STATES,
+       states=_BILLING_STATES, depends=_DEPENDS,
        help=u"Seleccionar fecha de inicio de servicios - Sólo servicios")
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
        help=u"Código de Autorización Electrónico, devuelto por AFIP")
@@ -107,90 +115,9 @@ class ElectronicInvoice(Workflow, ModelSQL):
                                    'invoice', u"Transacciones",
                                    readonly=True)
 
-    electronic_invoice = fields.Boolean(u'Factura electrónica',
-            states={ 'readonly': ((Eval('state') != 'draft')
-                                  | In(Eval('type'), ['in_invoice', 'in_credit_note'])),
-                    },
-            on_change=['electronic_invoice', 'type', 'company', 'party'],
-            depends=['electronic_invoice'],)
-
-    journal = fields.Many2One('account.journal', 'Journal', required=True,
-        states= { 'readonly': ((Eval('state') != 'draft')
-                               | Eval('electronic_invoice', False)),
-                },
-        depends=['state', 'electronic_invoice'],
-        domain=[('centralised', '=', False)],)
-
-    party = fields.Many2One('party.party', 'Party',
-        required=True, states=_STATES, depends=['state'],
-        on_change=['party', 'payment_term', 'type', 'company', 'electronic_invoice'])
-
-    @staticmethod
-    def default_electronic_invoice():
-        return 'out' in Transaction().context.get('type', 'out_invoice')
-
-    def _get_electronic_journal(self):
-        Journal = Pool().get('account.journal')
-
-        client_iva = company_iva = None
-        if self.party:
-            client_iva = self.party.iva_condition
-        if self.company:
-            company_iva = self.company.party.iva_condition
-
-        if company_iva == 'responsable_inscripto':
-            if client_iva is None:
-                return
-            if client_iva == 'responsable_inscripto':
-                kind = 'A'
-            elif self.party.vat_country is None:
-                self.raise_user_error('unknown_country')
-            elif self.party.vat_country == u'AR':
-                kind = 'B'
-            else:
-                kind = 'E'
-        else:
-            kind = 'C'
-
-        invoice_type, invoice_type_desc= INVOICE_TYPE_AFIP_CODE[(self.type, kind)]
-        journals = Journal.search([('pyafipws_electronic_invoice_service', '!=', ''),
-                                   ('pyafipws_invoice_type', '=', invoice_type)])
-        if len(journals) == 0:
-            self.raise_user_error('missing_journal', invoice_type_desc)
-        elif len(journals) > 1:
-            self.raise_user_error('too_many_journals', invoice_type_desc)
-        else:
-            return journals[0]
-
-    def on_change_electronic_invoice(self):
-        res ={}
-        if self.electronic_invoice:
-            journal = self._get_electronic_journal()
-            if journal:
-                res['journal'] = journal.id
-                res['journal.rec_name'] = journal.rec_name
-            else:
-                res['journal'] = None
-        else:
-            res.update(self.on_change_type())
-        return res
-
-    def on_change_party(self):
-        res = Invoice.on_change_party(self)
-        res.update(self.on_change_electronic_invoice())
-        return res
-
-    def set_number(self):
-        Invoice.set_number(self)
-        vals = {}
-        self.create_move()
-        vals['pyafipws_number'] = '%04d-%08d' % (self.journal.pyafipws_point_of_sale,
-                                                 int(self.move.number[-8:]))
-        self.write([self], vals)
-
     @classmethod
     def __setup__(cls):
-        super(ElectronicInvoice, cls).__setup__()
+        super(Invoice, cls).__setup__()
 
         cls._buttons.update({
             'afip_post': {
@@ -210,38 +137,108 @@ class ElectronicInvoice(Workflow, ModelSQL):
             'invalid_journal':
                 u'Este diario (%s) no tiene establecido los datos necesaios para ' \
                 u'facturar electrónicamente',
-            'missing_journal':
-                u'No existe un diario para facturas electrónicas del tipo: %s',
-            'too_many_journals':
-                u'Existe mas de un diario para facturas electrónicas del tipo: %s',
+            'missing_sequence':
+                u'No existe una secuencia para facturas del tipo: %s',
+            'too_many_sequences':
+                u'Existe mas de una secuencia para facturas del tipo: %s',
+            'missing_company_iva_condition': ('The iva condition on company '
+                    '"%(company)s" is missing.'),
+            'missing_party_iva_condition': ('The iva condition on party '
+                    '"%(party)s" is missing.'),
             })
 
+    @classmethod
+    def validate(cls, invoices):
+        super(Invoice, cls).validate(invoices)
+        for invoice in invoices:
+            invoice.check_invoice_type()
+
+    def check_invoice_type(self):
+        if not self.company.party.iva_condition:
+            self.raise_user_error('missing_company_iva_condition', {
+                    'company': self.company.rec_name,
+                    })
+        if not self.party.iva_condition:
+            self.raise_user_error('missing_party_iva_condition', {
+                    'party': self.party.rec_name,
+                    })
+
+    def on_change_pos(self):
+        PosSequence = Pool().get('account.pos.sequence')
+
+        if not self.pos:
+            return {'invoice_type': None}
+
+        res = {}
+        client_iva = company_iva = None
+        if self.party:
+            client_iva = self.party.iva_condition
+        if self.company:
+            company_iva = self.company.party.iva_condition
+
+        if company_iva == 'responsable_inscripto':
+            if client_iva is None:
+                return res
+            if client_iva == 'responsable_inscripto':
+                kind = 'A'
+            elif client_iva == 'consumidor_final':
+                kind = 'B'
+            elif self.party.vat_country is None:
+                self.raise_user_error('unknown_country')
+            elif self.party.vat_country == u'AR':
+                kind = 'B'
+            else:
+                kind = 'E'
+        else:
+            kind = 'C'
+
+        invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
+            (self.type, kind)
+            ]
+        sequences = PosSequence.search([
+            ('pos', '=', self.pos.id),
+            ('invoice_type', '=', invoice_type)
+            ])
+        if len(sequences) == 0:
+            self.raise_user_error('missing_sequence', invoice_type_desc)
+        elif len(sequences) > 1:
+            self.raise_user_error('too_many_sequences', invoice_type_desc)
+        else:
+            res['invoice_type'] = sequences[0].id
+
+        return res
+
+    def set_number(self):
+        super(Invoice, self).set_number()
+
+        if self.type == 'out_invoice' or self.type == 'out_credit_note':
+            vals = {}
+            Sequence = Pool().get('ir.sequence')
+
+            number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
+            vals['number'] = '%04d-%08d' % (self.pos, int(number))
+            self.write([self], vals)
 
     @classmethod
     @ModelView.button
     @Workflow.transition('posted')
-    def afip_post(cls, invoices):
+    def post(cls, invoices):
         Move = Pool().get('account.move')
 
-        electronic_invoices = []
+        moves = []
         for invoice in invoices:
-            if invoice.electronic_invoice:
-                electronic_invoices.append(invoice)
-                invoices.remove(invoice)
-
-        if invoices:
-            Invoice.post(invoices)
-
-        for invoice in electronic_invoices:
-            invoice.do_pyafipws_request_cae()
-            if not invoice.pyafipws_cae:
-                invoice.raise_user_error('not_cae')
+            if invoice.pos:
+                if invoice.pos.pos_type == 'electronic':
+                    invoice.do_pyafipws_request_cae()
+                    if not invoice.pyafipws_cae:
+                        invoice.raise_user_error('not_cae')
             invoice.set_number()
-            move = invoice.create_move()
-            Move.post([move])
-            cls.write([invoice], {
-                    'state': 'posted',
-                    })
+            moves.append(invoice.create_move())
+        Move.post(moves)
+        cls.write(invoices, {
+                'state': 'posted',
+                })
+        for invoice in invoices:
             if invoice.type in ('out_invoice', 'out_credit_note'):
                 invoice.print_invoice()
 
@@ -255,7 +252,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
             return
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
-        journal = self.journal
+
         Company = pool.get('company.company')
         company_id = Transaction().context.get('company')
         if not company_id:
@@ -264,12 +261,13 @@ class ElectronicInvoice(Workflow, ModelSQL):
 
         company = Company(company_id)
 
-        tipo_cbte = journal.pyafipws_invoice_type
-        punto_vta = journal.pyafipws_point_of_sale
-        service = journal.pyafipws_electronic_invoice_service
+        tipo_cbte = self.invoice_type.invoice_type
+        punto_vta = self.pos.number
+        service = self.pos.pyafipws_electronic_invoice_service
         # check if it is an electronic invoice sale point:
-        if not tipo_cbte or not punto_vta or not service:
-            self.raise_user_error('invalid_journal', journal.name)
+        ##TODO
+        #if not tipo_cbte:
+        #    self.raise_user_error('invalid_sequence', pos.invoice_type.invoice_type)
 
         # authenticate against AFIP:
         auth_data = company.pyafipws_authenticate(service=service)
@@ -300,7 +298,8 @@ class ElectronicInvoice(Workflow, ModelSQL):
             cbte_nro = int(self.move.number[-8:])
         else:
             Sequence = pool.get('ir.sequence')
-            cbte_nro = int(Sequence(journal.sequence.id).get_number_next(''))
+            cbte_nro = int(Sequence(
+                self.invoice_type.invoice_sequence.id).get_number_next(''))
 
         # get the last invoice number registered in AFIP
         if service == "wsfe" or service == "wsmtxca":
@@ -488,7 +487,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
                 umed = 7                        # TODO: line.uos_id...?
                 precio = line.unit_price
                 importe = line.get_amount('')
-                bonif =  None # line.discount
+                bonif = None  # line.discount
                 for tax in line.taxes:
                     if tax.group.name == "IVA":
                         iva_id = IVA_AFIP_CODE[tax.percentage]
@@ -513,7 +512,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
         except Exception, e:
             if ws.Excepcion:
                 # get the exception already parsed by the helper
-                msg = ws.Excepcion
+                msg = ws.Excepcion + ' ' + e
             else:
                 # avoid encoding problem when reporting exceptions to the user:
                 import traceback
@@ -548,8 +547,7 @@ class ElectronicInvoice(Workflow, ModelSQL):
             vals ={'pyafipws_cae': ws.CAE,
                    'pyafipws_cae_due_date': ws.Vencimiento or None,
                    'pyafipws_barcode': bars,
-                   'pyafipws_number': '%04d-%08d' % (journal.pyafipws_point_of_sale,
-                                                     cbte_nro)
+                   'number': '%04d-%08d' % (self.pos.number, cbte_nro)
                        }
             if not '-' in vals['pyafipws_cae_due_date']:
                 fe = vals['pyafipws_cae_due_date']

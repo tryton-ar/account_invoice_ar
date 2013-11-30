@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<tryton>
+    <data>
+
+        <menuitem name="Points of Sale" parent="account.menu_account_configuration"
+            id="menu_main_point_of_sale" sequence="10"/>
+
+        <record model="ir.ui.view" id="pos_view_form">
+            <field name="model">account.pos</field>
+            <field name="type">form</field>
+            <field name="name">pos_form</field>
+        </record>
+        <record model="ir.ui.view" id="pos_view_tree">
+            <field name="model">account.pos</field>
+            <field name="type">tree</field>
+            <field name="name">pos_tree</field>
+        </record>
+
+        <record model="ir.action.act_window" id="act_account_pos">
+            <field name="name">Points of Sale</field>
+            <field name="res_model">account.pos</field>
+        </record>
+        <record model="ir.action.act_window.view"
+            id="act_account_pos_view1">
+            <field name="sequence" eval="10"/>
+            <field name="view" ref="pos_view_tree"/>
+            <field name="act_window" ref="act_account_pos"/>
+        </record>
+        <record model="ir.action.act_window.view"
+            id="act_account_pos_view2">
+            <field name="sequence" eval="20"/>
+            <field name="view" ref="pos_view_form"/>
+            <field name="act_window" ref="act_account_pos"/>
+        </record>
+
+        <menuitem name="Points of Sale" parent="menu_main_point_of_sale"
+            id="menu_point_of_sale" action="act_account_pos"/>
+
+        <record model="ir.ui.view" id="pos_sequence_view_form">
+            <field name="model">account.pos.sequence</field>
+            <field name="type">form</field>
+            <field name="name">pos_sequence_form</field>
+        </record>
+        <record model="ir.ui.view" id="pos_sequence_view_tree">
+            <field name="model">account.pos.sequence</field>
+            <field name="type">tree</field>
+            <field name="name">pos_sequence_tree</field>
+        </record>
+
+    </data>
+</tryton>
