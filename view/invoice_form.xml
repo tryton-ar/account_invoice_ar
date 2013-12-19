@@ -10,8 +10,6 @@
             <field name="pyafipws_billing_start_date"/>
             <label name="pyafipws_billing_end_date"/>
             <field name="pyafipws_billing_end_date"/>
-            <label name="pyafipws_incoterms"/>
-            <field name="pyafipws_incoterms"/>
             <newline/>
             <label name="pyafipws_cae"/>
             <field name="pyafipws_cae"/>

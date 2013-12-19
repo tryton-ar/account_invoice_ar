@@ -33,9 +33,9 @@ _POS_STATES.update({
 IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
 IVA_AFIP_CODE.update({
     Decimal('0'): 3,
-    Decimal('10.5'): 4,
-    Decimal('21'): 5,
-    Decimal('27'): 6,
+    Decimal('0.105'): 4,
+    Decimal('0.21'): 5,
+    Decimal('0.27'): 6,
     })
 
 INVOICE_TYPE_AFIP_CODE = {
@@ -50,7 +50,7 @@ INVOICE_TYPE_AFIP_CODE = {
         }
 
 
-class AfipWSTransaction(ModelView, ModelSQL):
+class AfipWSTransaction(ModelSQL, ModelView):
     'AFIP WS Transaction'
     __name__ = 'account_invoice_ar.afip_transaction'
 
@@ -455,7 +455,7 @@ class Invoice:
             for tax_line in self.taxes:
                 tax = tax_line.tax
                 if tax.group.name == "IVA":
-                    iva_id = IVA_AFIP_CODE[tax.percentage]
+                    iva_id = IVA_AFIP_CODE[tax.rate]
                     base_imp = ("%.2f" % abs(tax_line.base))
                     importe = ("%.2f" % abs(tax_line.amount))
                     # add the vat detail in the helper
@@ -490,8 +490,8 @@ class Invoice:
                 bonif = None  # line.discount
                 for tax in line.taxes:
                     if tax.group.name == "IVA":
-                        iva_id = IVA_AFIP_CODE[tax.percentage]
-                        imp_iva = (importe * tax.percentage).quantize(Decimal('0.01'))
+                        iva_id = IVA_AFIP_CODE[tax.rate]
+                        imp_iva = importe * tax.rate
                 #if service == 'wsmtxca':
                 #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
                 #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
