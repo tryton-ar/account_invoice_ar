@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <form string="Transaction">
-    <label name="create_date" />
-    <field name="create_date" />
     <label name="pyafipws_result" />
     <field name="pyafipws_result" />
-    <label name="pyafipws_message" />
-    <field name="pyafipws_message" colspan="3" />
+    <notebook colspan="4">
+        <page string="Mensaje" id='mensaje'>
+            <field name="pyafipws_message" />
+        </page>
+    </notebook>
     <notebook colspan="4">
         <page string="XML Request" id='request'>
             <field name="pyafipws_xml_request" />

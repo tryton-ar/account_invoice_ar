@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
+this repository contains the full copyright notices and license terms. -->
+<data>
+    <xpath
+        expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']"
+        position="after">
+        <separator string="Informacion Fiscal" colspan="4" id="informacion_fiscal"/>
+        <label name="iva_condition"/>
+        <field name="iva_condition"/>
+        <newline/>
+    </xpath>
+    <xpath
+        expr="/form/notebook/page[@id='accounting']"
+        position="after">
+        <page string="Empresa" id="empresa">
+        <label name="company_type"/>
+        <field name="company_type"/>
+        <label name="company_name"/>
+        <field name="company_name"/>
+        <label name="iibb_type"/>
+        <field name="iibb_type"/>
+        <label name="iibb_number"/>
+        <field name="iibb_number"/>
+        <label name="start_activity_date"/>
+        <field name="start_activity_date"/>
+        <newline/>
+        <label name="primary_activity_code"/>
+        <field name="primary_activity_code" colspan="3"/>
+        <newline/>
+        <label name="secondary_activity_code"/>
+        <field name="secondary_activity_code" colspan="3"/>
+        </page>
+    </xpath>
+</data>
