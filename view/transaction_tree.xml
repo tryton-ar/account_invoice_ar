@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <tree string="Transaction">
-    <field name="create_date" />
+    <!-- <field name="create_date" /> -->
     <field name="pyafipws_result" />
     <field name="pyafipws_message" />
 </tree>

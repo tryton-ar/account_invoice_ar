@@ -14,11 +14,10 @@ See INSTALL
 If you encounter any problems with this module, please don't hesitate to ask
 questions on the module bug tracker:
 
-https://github.com/gcoop-libre/account_invoice_ar/issues
+https://github.com/tryton-ar/account_invoice_ar/issues
 
-For more information please contact the programmers at Gcoop
- * website: http://www.gcoop.coop/
- * email: info@gcoop.coop
+For more information please contact the programmers at tryton-ar
+ * website: https://groups.google.com/forum/#!forum/tryton-ar
 
 If you encounter any problems with Tryton, please don't hesitate to ask
 questions on the Tryton bug tracker, mailing list, wiki or IRC channel:
@@ -36,7 +35,6 @@ See LICENSE
 ## Copyright
 
 See COPYRIGHT
-
 
 For more information please visit the Tryton web site:
 
