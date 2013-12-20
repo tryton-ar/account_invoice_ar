@@ -1,18 +1,18 @@
 from trytond.pool import Pool
 
-from .address import *
-from .company import *
 from .invoice import *
-from .party import *
+from .company import *
 from .pos import *
+from .party import *
+from .address import *
 
 def register():
     Pool.register(
-        AfipWSTransaction,
-        Address,
-        Company,
-        Invoice,
-        Party,
         Pos,
         PosSequence,
+        Invoice,
+        Company,
+        AfipWSTransaction,
+        Party,
+        Address,
         module='account_invoice_ar', type_='model')
