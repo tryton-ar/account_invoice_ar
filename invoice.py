@@ -593,12 +593,49 @@ class InvoiceReport(Report):
         user = User(Transaction().user)
         localcontext['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice, invoice)
         localcontext['condicion_iva'] = cls._get_condicion_iva(user.company)
+        localcontext['iibb_type'] = cls._get_iibb_type(user.company)
+        localcontext['vat_number'] = cls._get_vat_number(user.company)
+        localcontext['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice, invoice)
+        localcontext['nombre_comprobante'] = cls._get_nombre_comprobante(Invoice, invoice)
+        localcontext['codigo_comprobante'] = cls._get_codigo_comprobante(Invoice, invoice)
+        localcontext['condicion_iva_cliente'] = cls._get_condicion_iva_cliente(Invoice, invoice)
+        localcontext['vat_number_cliente'] = cls._get_vat_number_cliente(Invoice, invoice)
         return super(InvoiceReport, cls).parse(report, records, data,
                 localcontext=localcontext)
 
     @classmethod
+    def _get_condicion_iva_cliente(cls, Invoice, invoice):
+        return dict(invoice.party._fields['iva_condition'].selection)[invoice.party.iva_condition]
+
+    @classmethod
+    def _get_vat_number_cliente(cls, Invoice, invoice):
+        value = invoice.party.vat_number
+        return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
+
+    @classmethod
+    def _get_tipo_comprobante(cls, Invoice, invoice):
+        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][-1]
+
+    @classmethod
+    def _get_nombre_comprobante(cls, Invoice, invoice):
+        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][3:-2]
+
+    @classmethod
+    def _get_codigo_comprobante(cls, Invoice, invoice):
+        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][:2]
+
+    @classmethod
+    def _get_vat_number(cls, company):
+        value = company.party.vat_number
+        return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
+
+    @classmethod
     def _get_condicion_iva(cls, company):
         return dict(company.party._fields['iva_condition'].selection)[company.party.iva_condition]
+
+    @classmethod
+    def _get_iibb_type(cls, company):
+        return company.party.iibb_type.upper()+' '+company.party.iibb_number
 
     @classmethod
     def _get_pyafipws_barcode_img(cls, Invoice, invoice):
@@ -614,7 +651,7 @@ class InvoiceReport(Report):
         bars = ''.join([c for c in invoice.pyafipws_barcode if c.isdigit()])
         if not bars:
             bars = "00"
-        pyi25.GenerarImagen(bars, output, basewidth=3, width=300, height=30, extension="PNG")
+        pyi25.GenerarImagen(bars, output, basewidth=3, width=380, height=50, extension="PNG")
         image = buffer(output.getvalue())
         output.close()
         return image
