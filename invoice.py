@@ -5,12 +5,13 @@ import logging
 from decimal import Decimal
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
+from trytond.report import Report
 from trytond.pyson import Eval
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
 
-__all__ = ['Invoice', 'AfipWSTransaction']
+__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceReport']
 __metaclass__ = PoolMeta
 
 _STATES = {
@@ -276,9 +277,9 @@ class Invoice:
         if service == 'wsfe':
             from pyafipws.wsfev1 import WSFEv1, SoapFault   # local market
             ws = WSFEv1()
-#        elif service == 'wsmtxca':
-#            from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
-#            ws = WSMTXCA()
+        #elif service == 'wsmtxca':
+        #    from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
+        #    ws = WSMTXCA()
         elif service == 'wsfex':
             from pyafipws.wsfexv1 import WSFEXv1, SoapFault # foreign trade
             ws = WSFEXv1()
@@ -576,23 +577,44 @@ class Invoice:
             digito = 0
         return str(digito)
 
-    def _get_pyafipws_barcode_img(self, cr, uid, ids, field_name, arg, context):
+
+
+class InvoiceReport(Report):
+    __name__ = 'account.invoice'
+
+    @classmethod
+    def parse(cls, report, records, data, localcontext):
+        pool = Pool()
+        User = pool.get('res.user')
+        Invoice = pool.get('account.invoice')
+
+        invoice = records[0]
+
+        user = User(Transaction().user)
+        localcontext['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice, invoice)
+        localcontext['condicion_iva'] = cls._get_condicion_iva(user.company)
+        return super(InvoiceReport, cls).parse(report, records, data,
+                localcontext=localcontext)
+
+    @classmethod
+    def _get_condicion_iva(cls, company):
+        return dict(company.party._fields['iva_condition'].selection)[company.party.iva_condition]
+
+    @classmethod
+    def _get_pyafipws_barcode_img(cls, Invoice, invoice):
         "Generate the required barcode Interleaved of 7 image using PIL"
         from pyafipws.pyi25 import PyI25
         from cStringIO import StringIO as StringIO
         # create the helper:
         pyi25 = PyI25()
-        images = {}
-        for invoice in self.browse(cr, uid, ids):
-            if not invoice.pyafipws_barcode:
-                continue
-            output = StringIO()
-            # call the helper:
-            bars = ''.join([c for c in invoice.pyafipws_barcode if c.isdigit()])
-            if not bars:
-                bars = "00"
-            pyi25.GenerarImagen(bars, output, extension="PNG")
-            # get the result and encode it for openerp binary field:
-            images[invoice.id] = output.getvalue().encode("base64")
-            output.close()
-        return images
+        output = StringIO()
+        if not invoice.pyafipws_barcode:
+            return
+        # call the helper:
+        bars = ''.join([c for c in invoice.pyafipws_barcode if c.isdigit()])
+        if not bars:
+            bars = "00"
+        pyi25.GenerarImagen(bars, output, basewidth=3, width=300, height=30, extension="PNG")
+        image = buffer(output.getvalue())
+        output.close()
+        return image
