@@ -1,6 +1,6 @@
 #! -*- coding: utf8 -*-
 from trytond.model import ModelView, ModelSQL, fields
-from trytond.pyson import Bool, Eval, Equal
+from trytond.pyson import Bool, Eval, Equal, Not, Or, And
 
 from afip_codigo_actividad import CODES
 
@@ -52,8 +52,9 @@ class Party(ModelSQL, ModelView):
     iibb_type = fields.Selection(
             [
                 ('', ''),
-                ('convenio_multilateral', 'Convenio Multilateral'),
-                ('regimen_simplificado', 'Regimen Simplificado'),
+                ('cm', 'Convenio Multilateral'),
+                ('rs', 'Regimen Simplificado'),
+                ('exento', 'Exento'),
             ],
             'Tipo de Inscripcion de II BB',
             states={
@@ -64,7 +65,7 @@ class Party(ModelSQL, ModelView):
     iibb_number = fields.Char('II BB',
             states={
                 'readonly': ~Eval('active', True),
-                'required': Bool(Eval('iibb_type')),
+                'required': And(Not(Equal(Eval('iibb_type'), 'exento')), Bool(Eval('iibb_type')))
                 },
             depends=['active'],
             )

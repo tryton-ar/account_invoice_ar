@@ -17,5 +17,21 @@
             <field name="type">form</field>
             <field name="name">transaction_form</field>
         </record>
+
+        <!--
+        <record model="ir.action.report" id="account_invoice.report_invoice">
+          <field name="active" eval="False"/>
+        </record>
+        -->
+
+        <record model="ir.action.report" id="account_invoice.report_invoice">
+            <field name="active" eval="True"/>
+            <field name="name">Invoice</field>
+            <field name="model">account.invoice</field>
+            <field name="report_name">account.invoice</field>
+            <field name="report">account_invoice_ar/invoice.odt</field>
+            <field name="style">account_invoice_ar/header_A4.odt</field>
+            <field name="template_extension">odt</field>
+        </record>
     </data>
 </tryton>

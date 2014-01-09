@@ -16,3 +16,6 @@ def register():
         Party,
         Address,
         module='account_invoice_ar', type_='model')
+    Pool.register(
+        InvoiceReport,
+        module='account_invoice_ar', type_='report')

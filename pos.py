@@ -66,7 +66,7 @@ class PosSequence(ModelSQL, ModelView):
     invoice_sequence = fields.Property(fields.Many2One('ir.sequence',
             'Sequence', required=True,
             domain=[('code', '=', 'account.invoice')],
-            context={'code': 'account.invoicel'}))
+            context={'code': 'account.invoicel'}))  ##FIXME ?
 
     def get_rec_name(self, name):
         type2name = {}
