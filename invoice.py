@@ -217,7 +217,7 @@ class Invoice:
             Sequence = Pool().get('ir.sequence')
 
             number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-            vals['number'] = '%04d-%08d' % (self.pos, int(number))
+            vals['number'] = '%04d-%08d' % (self.pos.number, int(number))
             self.write([self], vals)
 
     @classmethod
@@ -275,13 +275,13 @@ class Invoice:
 
         # import the AFIP webservice helper for electronic invoice
         if service == 'wsfe':
-            from pyafipws.wsfev1 import WSFEv1, SoapFault   # local market
+            from pyafipws.wsfev1 import WSFEv1  # local market
             ws = WSFEv1()
         #elif service == 'wsmtxca':
         #    from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
         #    ws = WSMTXCA()
         elif service == 'wsfex':
-            from pyafipws.wsfexv1 import WSFEXv1, SoapFault # foreign trade
+            from pyafipws.wsfexv1 import WSFEXv1 # foreign trade
             ws = WSFEXv1()
         else:
             logger.critical(u'WS no soportado: %s', service)
@@ -293,6 +293,7 @@ class Invoice:
         ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
+        #ws.LanzarExcepciones = True
 
         # get the last 8 digit of the invoice number
         if self.move:
