@@ -1,0 +1,3 @@
+[submodule "docs"]
+	path = docs
+	url = git@github.com:tryton-ar/documentacion-tryton-ar.git
