@@ -550,11 +550,10 @@ class Invoice:
 
         if ws.CAE:
             # store the results
-            vals ={'pyafipws_cae': ws.CAE,
+            vals = {'pyafipws_cae': ws.CAE,
                    'pyafipws_cae_due_date': ws.Vencimiento or None,
                    'pyafipws_barcode': bars,
-                   'number': '%04d-%08d' % (self.pos.number, cbte_nro)
-                       }
+                }
             if not '-' in vals['pyafipws_cae_due_date']:
                 fe = vals['pyafipws_cae_due_date']
                 vals['pyafipws_cae_due_date'] = '-'.join([fe[:4],fe[4:6],fe[6:8]])
