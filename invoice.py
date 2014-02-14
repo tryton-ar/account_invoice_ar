@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.report import Report
-from trytond.pyson import Eval
+from trytond.pyson import Eval, And
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
@@ -27,7 +27,7 @@ _BILLING_STATES.update({
 
 _POS_STATES = _STATES.copy()
 _POS_STATES.update({
-        'required': Eval('type').in_(['out_invoice', 'out_credit_note']),
+        'required': And(Eval('type').in_(['out_invoice', 'out_credit_note']), ~Eval('state').in_(['draft'])),
         'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
             })
 
@@ -146,6 +146,8 @@ class Invoice:
                     '"%(company)s" is missing.'),
             'missing_party_iva_condition': ('The iva condition on party '
                     '"%(party)s" is missing.'),
+            'not_invoice_type':
+                u'El campo «Tipo de factura» en «Factura» es requerido.',
             })
 
     @classmethod
@@ -228,6 +230,8 @@ class Invoice:
 
         moves = []
         for invoice in invoices:
+            if not invoice.invoice_type:
+                invoice.raise_user_error('not_invoice_type')
             if invoice.pos:
                 if invoice.pos.pos_type == 'electronic':
                     invoice.do_pyafipws_request_cae()
