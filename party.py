@@ -1,6 +1,6 @@
 #! -*- coding: utf8 -*-
 from trytond.model import ModelView, ModelSQL, fields
-from trytond.pyson import Bool, Eval, Equal, Not, Or, And
+from trytond.pyson import Bool, Eval, Equal, Not, And
 
 from afip_codigo_actividad import CODES
 
@@ -89,6 +89,12 @@ class Party(ModelSQL, ModelView):
                 },
             depends=['active'],
             )
+    vat_number = fields.Char('VAT Number', help="Value Added Tax number",
+        states={
+            'readonly': ~Eval('active', True),
+            'required': And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final'))),
+            },
+        depends=['active', 'vat_country', 'iva_condition'])
 
     @staticmethod
     def default_vat_country():
