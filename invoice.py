@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.report import Report
-from trytond.pyson import Eval
+from trytond.pyson import Eval, And
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
@@ -27,7 +27,7 @@ _BILLING_STATES.update({
 
 _POS_STATES = _STATES.copy()
 _POS_STATES.update({
-        'required': Eval('type').in_(['out_invoice', 'out_credit_note']),
+        'required': And(Eval('type').in_(['out_invoice', 'out_credit_note']), ~Eval('state').in_(['draft'])),
         'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
             })
 
@@ -146,6 +146,8 @@ class Invoice:
                     '"%(company)s" is missing.'),
             'missing_party_iva_condition': ('The iva condition on party '
                     '"%(party)s" is missing.'),
+            'not_invoice_type':
+                u'El campo «Tipo de factura» en «Factura» es requerido.',
             })
 
     @classmethod
@@ -228,6 +230,8 @@ class Invoice:
 
         moves = []
         for invoice in invoices:
+            if not invoice.invoice_type:
+                invoice.raise_user_error('not_invoice_type')
             if invoice.pos:
                 if invoice.pos.pos_type == 'electronic':
                     invoice.do_pyafipws_request_cae()
@@ -546,11 +550,10 @@ class Invoice:
 
         if ws.CAE:
             # store the results
-            vals ={'pyafipws_cae': ws.CAE,
+            vals = {'pyafipws_cae': ws.CAE,
                    'pyafipws_cae_due_date': ws.Vencimiento or None,
                    'pyafipws_barcode': bars,
-                   'number': '%04d-%08d' % (self.pos.number, cbte_nro)
-                       }
+                }
             if not '-' in vals['pyafipws_cae_due_date']:
                 fe = vals['pyafipws_cae_due_date']
                 vals['pyafipws_cae_due_date'] = '-'.join([fe[:4],fe[4:6],fe[6:8]])
@@ -601,8 +604,35 @@ class InvoiceReport(Report):
         localcontext['codigo_comprobante'] = cls._get_codigo_comprobante(Invoice, invoice)
         localcontext['condicion_iva_cliente'] = cls._get_condicion_iva_cliente(Invoice, invoice)
         localcontext['vat_number_cliente'] = cls._get_vat_number_cliente(Invoice, invoice)
+        localcontext['invoice_impuestos'] = cls._get_invoice_impuestos(Invoice, invoice)
+        localcontext['show_tax'] = cls._show_tax(Invoice, invoice)
+        localcontext['get_line_amount'] = cls.get_line_amount
         return super(InvoiceReport, cls).parse(report, records, data,
                 localcontext=localcontext)
+
+    @classmethod
+    def get_line_amount(self,tipo_comprobante, line_amount, line_taxes):
+        total = line_amount
+        if tipo_comprobante != 'A':
+            for tax in line_taxes:
+                total = tax.amount + total
+        return total
+
+    @classmethod
+    def _show_tax(cls, Invoice, invoice):
+        tipo_comprobante = cls._get_tipo_comprobante(Invoice, invoice)
+        if tipo_comprobante == 'A':
+            return True
+        else:
+            return False
+
+    @classmethod
+    def _get_invoice_impuestos(cls, Invoice, invoice):
+        tipo_comprobante = cls._get_tipo_comprobante(Invoice, invoice)
+        if tipo_comprobante == 'A':
+            return invoice.tax_amount
+        else:
+            return Decimal('00.00')
 
     @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
