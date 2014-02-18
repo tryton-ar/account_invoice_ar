@@ -604,8 +604,35 @@ class InvoiceReport(Report):
         localcontext['codigo_comprobante'] = cls._get_codigo_comprobante(Invoice, invoice)
         localcontext['condicion_iva_cliente'] = cls._get_condicion_iva_cliente(Invoice, invoice)
         localcontext['vat_number_cliente'] = cls._get_vat_number_cliente(Invoice, invoice)
+        localcontext['invoice_impuestos'] = cls._get_invoice_impuestos(Invoice, invoice)
+        localcontext['show_tax'] = cls._show_tax(Invoice, invoice)
+        localcontext['get_line_amount'] = cls.get_line_amount
         return super(InvoiceReport, cls).parse(report, records, data,
                 localcontext=localcontext)
+
+    @classmethod
+    def get_line_amount(self,tipo_comprobante, line_amount, line_taxes):
+        total = line_amount
+        if tipo_comprobante != 'A':
+            for tax in line_taxes:
+                total = tax.amount + total
+        return total
+
+    @classmethod
+    def _show_tax(cls, Invoice, invoice):
+        tipo_comprobante = cls._get_tipo_comprobante(Invoice, invoice)
+        if tipo_comprobante == 'A':
+            return True
+        else:
+            return False
+
+    @classmethod
+    def _get_invoice_impuestos(cls, Invoice, invoice):
+        tipo_comprobante = cls._get_tipo_comprobante(Invoice, invoice)
+        if tipo_comprobante == 'A':
+            return invoice.tax_amount
+        else:
+            return Decimal('00.00')
 
     @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
