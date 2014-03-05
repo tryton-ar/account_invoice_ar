@@ -95,6 +95,16 @@ class Party(ModelSQL, ModelView):
             'required': And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final'))),
             },
         depends=['active', 'vat_country', 'iva_condition'])
+    controlling_entity = fields.Char('Controlling entity', help="Controlling entity",
+        states={
+            'readonly': ~Eval('active', True),
+            },
+        depends=['active'])
+    controlling_entity_number = fields.Char('Controlling entity number', help="Controlling entity",
+        states={
+            'readonly': ~Eval('active', True),
+            },
+        depends=['active'])
 
     @staticmethod
     def default_vat_country():

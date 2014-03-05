@@ -25,6 +25,11 @@ this repository contains the full copyright notices and license terms. -->
         <label name="start_activity_date"/>
         <field name="start_activity_date"/>
         <newline/>
+        <label name="controlling_entity"/>
+        <field name="controlling_entity"/>
+        <label name="controlling_entity_number"/>
+        <field name="controlling_entity_number"/>
+        <newline/>
         <label name="primary_activity_code"/>
         <field name="primary_activity_code" colspan="3"/>
         <newline/>
