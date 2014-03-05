@@ -643,7 +643,9 @@ class InvoiceReport(Report):
     @classmethod
     def _get_vat_number_cliente(cls, Invoice, invoice):
         value = invoice.party.vat_number
-        return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
+        if value:
+            return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
+        return ''
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
