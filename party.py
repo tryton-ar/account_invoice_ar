@@ -95,6 +95,16 @@ class Party(ModelSQL, ModelView):
             'required': And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final'))),
             },
         depends=['active', 'vat_country', 'iva_condition'])
+    controlling_entity = fields.Char('Controlling entity', help="Controlling entity",
+        states={
+            'readonly': ~Eval('active', True),
+            },
+        depends=['active'])
+    controlling_entity_number = fields.Char('Controlling entity number', help="Controlling entity",
+        states={
+            'readonly': ~Eval('active', True),
+            },
+        depends=['active'])
 
     @staticmethod
     def default_vat_country():
@@ -106,6 +116,12 @@ class Party(ModelSQL, ModelView):
         cls._error_messages.update({
             'unique_vat_number': 'The VAT number must be unique in each country.',
             })
+
+    @classmethod
+    def validate(cls, parties):
+        for party in parties:
+            if party.iva_condition != u'consumidor_final' and bool(party.vat_number):
+                super(Party, cls).validate(parties)
 
     @classmethod
     def create(cls, vlist):
@@ -121,6 +137,9 @@ class Party(ModelSQL, ModelView):
 
     @classmethod
     def write(cls, parties, vals):
+        if vals['iva_condition'] == u'consumidor_final':
+            vals['vat_number'] = u''
+
         if 'vat_number' in vals and 'vat_country' in vals:
             data = cls.search([('vat_number','=', vals['vat_number']),
                                ('vat_country','=', vals['vat_country']),
