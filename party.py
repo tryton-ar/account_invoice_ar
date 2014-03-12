@@ -137,8 +137,9 @@ class Party(ModelSQL, ModelView):
 
     @classmethod
     def write(cls, parties, vals):
-        if vals['iva_condition'] == u'consumidor_final':
-            vals['vat_number'] = u''
+        if 'iva_condition' in vals:
+            if vals['iva_condition'] == u'consumidor_final':
+                vals['vat_number'] = u''
 
         if 'vat_number' in vals and 'vat_country' in vals:
             data = cls.search([('vat_number','=', vals['vat_number']),
