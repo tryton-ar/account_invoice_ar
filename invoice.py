@@ -232,13 +232,14 @@ class Invoice:
 
         moves = []
         for invoice in invoices:
-            if not invoice.invoice_type:
-                invoice.raise_user_error('not_invoice_type')
-            if invoice.pos:
-                if invoice.pos.pos_type == 'electronic':
-                    invoice.do_pyafipws_request_cae()
-                    if not invoice.pyafipws_cae:
-                        invoice.raise_user_error('not_cae')
+            if invoice.type == u'out_invoice' or invoice.type == u'out_credit_note':
+                if not invoice.invoice_type:
+                    invoice.raise_user_error('not_invoice_type')
+                if invoice.pos:
+                    if invoice.pos.pos_type == 'electronic':
+                        invoice.do_pyafipws_request_cae()
+                        if not invoice.pyafipws_cae:
+                            invoice.raise_user_error('not_cae')
             invoice.set_number()
             moves.append(invoice.create_move())
         Move.post(moves)
