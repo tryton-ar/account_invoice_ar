@@ -242,10 +242,10 @@ class Invoice:
                             invoice.raise_user_error('not_cae')
             invoice.set_number()
             moves.append(invoice.create_move())
-        Move.post(moves)
         cls.write(invoices, {
                 'state': 'posted',
                 })
+        Move.post(moves)
         for invoice in invoices:
             if invoice.type in ('out_invoice', 'out_credit_note'):
                 invoice.print_invoice()
@@ -618,7 +618,7 @@ class InvoiceReport(Report):
         total = line_amount
         if tipo_comprobante != 'A':
             for tax in line_taxes:
-                total = tax.amount + total
+                total = line_amount + (line_amount * tax.tax.rate)
         return total
 
     @classmethod
