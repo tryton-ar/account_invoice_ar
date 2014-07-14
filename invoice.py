@@ -618,7 +618,10 @@ class InvoiceReport(Report):
         total = line_amount
         if tipo_comprobante != 'A':
             for tax in line_taxes:
-                total = line_amount + (line_amount * tax.tax.rate)
+                if tax.tax.rate:
+                    total = total + (line_amount * tax.tax.rate)
+                elif tax.tax.amount:
+                    total = total + tax.tax.amount
         return total
 
     @classmethod
