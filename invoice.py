@@ -246,9 +246,10 @@ class Invoice:
                 'state': 'posted',
                 })
         Move.post(moves)
-        for invoice in invoices:
-            if invoice.type in ('out_invoice', 'out_credit_note'):
-                invoice.print_invoice()
+        #Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
+        #for invoice in invoices:
+        #    if invoice.type in ('out_invoice', 'out_credit_note'):
+        #        invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
         logger = logging.getLogger('pyafipws')
