@@ -599,6 +599,7 @@ class InvoiceReport(Report):
         invoice = records[0]
 
         user = User(Transaction().user)
+        localcontext['company'] = user.company
         localcontext['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice, invoice)
         localcontext['condicion_iva'] = cls._get_condicion_iva(user.company)
         localcontext['iibb_type'] = cls._get_iibb_type(user.company)
