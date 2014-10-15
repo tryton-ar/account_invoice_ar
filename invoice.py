@@ -296,12 +296,16 @@ class Invoice:
             return
 
         # connect to the webservice and call to the test method
+        #ws.Conectar()
+        cache = ""
+        wsdl = ""
+        proxy = ""
+        ws.LanzarExcepciones = True
         ws.Conectar()
         # set AFIP webservice credentials:
         ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
-        #ws.LanzarExcepciones = True
 
         # get the last 8 digit of the invoice number
         if self.move:
@@ -655,15 +659,24 @@ class InvoiceReport(Report):
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
-        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][-1]
+        if hasattr(invoice.invoice_type, 'invoice_type') == True:
+            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][-1]
+        else:
+           return ''
 
     @classmethod
     def _get_nombre_comprobante(cls, Invoice, invoice):
-        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][3:-2]
+        if hasattr(invoice.invoice_type, 'invoice_type') == True:
+            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][3:-2]
+        else:
+           return ''
 
     @classmethod
     def _get_codigo_comprobante(cls, Invoice, invoice):
-        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][:2]
+        if hasattr(invoice.invoice_type, 'invoice_type') == True:
+            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][:2]
+        else:
+           return ''
 
     @classmethod
     def _get_vat_number(cls, company):
