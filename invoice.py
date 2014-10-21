@@ -80,7 +80,6 @@ class Invoice:
     __name__ = 'account.invoice'
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
-        on_change=['pos', 'party', 'type', 'company'],
         states=_POS_STATES, depends=_DEPENDS)
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
         domain=([('pos', '=', Eval('pos'))]),
@@ -168,6 +167,7 @@ class Invoice:
                     'party': self.party.rec_name,
                     })
 
+    @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
         PosSequence = Pool().get('account.pos.sequence')
 
@@ -285,23 +285,27 @@ class Invoice:
         if service == 'wsfe':
             from pyafipws.wsfev1 import WSFEv1  # local market
             ws = WSFEv1()
+            if company.pyafipws_mode_cert == 'homologacion':
+                WSDL = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
+            elif company.pyafipws_mode_cert == 'produccion':
+                WSDL = "https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL"
         #elif service == 'wsmtxca':
         #    from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
         #    ws = WSMTXCA()
         elif service == 'wsfex':
             from pyafipws.wsfexv1 import WSFEXv1 # foreign trade
             ws = WSFEXv1()
+            if company.pyafipws_mode_cert == 'homologacion':
+                WSDL = "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"
+            elif company.pyafipws_mode_cert == 'produccion':
+                WSDL = "https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL"
         else:
             logger.critical(u'WS no soportado: %s', service)
             return
 
         # connect to the webservice and call to the test method
-        #ws.Conectar()
-        cache = ""
-        wsdl = ""
-        proxy = ""
         ws.LanzarExcepciones = True
-        ws.Conectar()
+        ws.Conectar(wsdl=WSDL)
         # set AFIP webservice credentials:
         ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
