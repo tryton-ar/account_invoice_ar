@@ -80,7 +80,6 @@ class Invoice:
     __name__ = 'account.invoice'
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
-        on_change=['pos', 'party', 'type', 'company'],
         states=_POS_STATES, depends=_DEPENDS)
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
         domain=([('pos', '=', Eval('pos'))]),
@@ -168,6 +167,7 @@ class Invoice:
                     'party': self.party.rec_name,
                     })
 
+    @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
         PosSequence = Pool().get('account.pos.sequence')
 
@@ -246,9 +246,10 @@ class Invoice:
                 'state': 'posted',
                 })
         Move.post(moves)
-        for invoice in invoices:
-            if invoice.type in ('out_invoice', 'out_credit_note'):
-                invoice.print_invoice()
+        #Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
+        #for invoice in invoices:
+        #    if invoice.type in ('out_invoice', 'out_credit_note'):
+        #        invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
         logger = logging.getLogger('pyafipws')
@@ -284,23 +285,31 @@ class Invoice:
         if service == 'wsfe':
             from pyafipws.wsfev1 import WSFEv1  # local market
             ws = WSFEv1()
+            if company.pyafipws_mode_cert == 'homologacion':
+                WSDL = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
+            elif company.pyafipws_mode_cert == 'produccion':
+                WSDL = "https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL"
         #elif service == 'wsmtxca':
         #    from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
         #    ws = WSMTXCA()
         elif service == 'wsfex':
             from pyafipws.wsfexv1 import WSFEXv1 # foreign trade
             ws = WSFEXv1()
+            if company.pyafipws_mode_cert == 'homologacion':
+                WSDL = "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"
+            elif company.pyafipws_mode_cert == 'produccion':
+                WSDL = "https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL"
         else:
             logger.critical(u'WS no soportado: %s', service)
             return
 
         # connect to the webservice and call to the test method
-        ws.Conectar()
+        ws.LanzarExcepciones = True
+        ws.Conectar(wsdl=WSDL)
         # set AFIP webservice credentials:
         ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
-        #ws.LanzarExcepciones = True
 
         # get the last 8 digit of the invoice number
         if self.move:
@@ -598,6 +607,7 @@ class InvoiceReport(Report):
         invoice = records[0]
 
         user = User(Transaction().user)
+        localcontext['company'] = user.company
         localcontext['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice, invoice)
         localcontext['condicion_iva'] = cls._get_condicion_iva(user.company)
         localcontext['iibb_type'] = cls._get_iibb_type(user.company)
@@ -653,15 +663,24 @@ class InvoiceReport(Report):
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
-        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][-1]
+        if hasattr(invoice.invoice_type, 'invoice_type') == True:
+            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][-1]
+        else:
+           return ''
 
     @classmethod
     def _get_nombre_comprobante(cls, Invoice, invoice):
-        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][3:-2]
+        if hasattr(invoice.invoice_type, 'invoice_type') == True:
+            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][3:-2]
+        else:
+           return ''
 
     @classmethod
     def _get_codigo_comprobante(cls, Invoice, invoice):
-        return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][:2]
+        if hasattr(invoice.invoice_type, 'invoice_type') == True:
+            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][:2]
+        else:
+           return ''
 
     @classmethod
     def _get_vat_number(cls, company):

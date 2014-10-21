@@ -57,8 +57,6 @@ def authenticate(service, certificate, private_key, force=False,
 
     try:
         # read the access ticket (if already authenticated)
-        #import pdb
-        #pdb.set_trace()
         if not os.path.exists(fn) or \
            os.path.getmtime(fn)+(DEFAULT_TTL) < time.time():
             # access ticket (TA) outdated, create new access request ticket (TRA)
@@ -76,6 +74,22 @@ def authenticate(service, certificate, private_key, force=False,
         else:
             # get the access ticket from the previously written file
             ta = open(fn, "r").read()
+        # force to connect against WSAA
+        if force:
+            tra = None
+            cms = None
+            ta = None
+            tra = wsaa.CreateTRA(service=service, ttl=DEFAULT_TTL)
+            # cryptographically sing the access ticket
+            cms = wsaa.SignTRA(tra, certificate, private_key)
+            # connect to the webservice:
+            wsaa.Conectar(cache, wsdl, proxy)
+            # call the remote method
+            ta = wsaa.LoginCMS(cms)
+            if not ta:
+                raise RuntimeError()
+            # write the access ticket for further consumption
+            open(fn, "w").write(ta)
         # analyze the access ticket xml and extract the relevant fields
         wsaa.AnalizarXml(xml=ta)
         token = wsaa.ObtenerTagXml("token")
@@ -84,7 +98,6 @@ def authenticate(service, certificate, private_key, force=False,
         print "sign", sign
         err_msg = None
     except:
-        print "sali x el except"
         token = sign = None
         if wsaa.Excepcion:
             # get the exception already parsed by the helper
