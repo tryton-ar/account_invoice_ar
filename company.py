@@ -29,8 +29,6 @@ class Company(ModelSQL, ModelView):
         cls._error_messages.update({
             'wrong_pyafipws_mode': ('Problemas de Certificado: '
                     '"%(message)s".'),
-            'missing_pyafipws_mode':
-                u'Falta configurar el modo de certificación',
         })
 
     @classmethod
@@ -41,7 +39,7 @@ class Company(ModelSQL, ModelView):
 
     def check_pyafipws_mode_cert(self):
         if self.pyafipws_mode_cert == '':
-            self.raise_user_error('missing_pyafipws_mode')
+            return
 
         auth_data = self.pyafipws_authenticate(service="wsfe", force=True)
         if auth_data['err_msg'] != None:
