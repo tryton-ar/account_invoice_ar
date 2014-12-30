@@ -126,6 +126,8 @@ class Party(ModelSQL, ModelView):
     @classmethod
     def create(cls, vlist):
         for vals in vlist:
+            if 'vat_number' in vals and vals['vat_number'] == '':
+                vals.pop('vat_number')
             if 'vat_number' in vals and 'vat_country' in vals:
                 data = cls.search([('vat_number','=', vals['vat_number']),
                                    ('vat_country','=', vals['vat_country']),
