@@ -121,32 +121,11 @@ class Party(ModelSQL, ModelView):
     def validate(cls, parties):
         for party in parties:
             if party.iva_condition != u'consumidor_final' and bool(party.vat_number):
-                super(Party, cls).validate(parties)
+                party.check_vat()
 
-    @classmethod
-    def create(cls, vlist):
-        for vals in vlist:
-            if 'vat_number' in vals and 'vat_country' in vals:
-                data = cls.search([('vat_number','=', vals['vat_number']),
-                                   ('vat_country','=', vals['vat_country']),
-                                  ])
-                if data:
+            if bool(party.vat_number) and bool(party.vat_country):
+                data = cls.search([('vat_number','=', party.vat_number),
+                                   ('vat_country','=', party.vat_country),
+                                   ])
+                if len(data) != 1:
                     cls.raise_user_error('unique_vat_number')
-
-        return super(Party, cls).create(vlist)
-
-    @classmethod
-    def write(cls, parties, vals):
-        if 'iva_condition' in vals:
-            if vals['iva_condition'] == u'consumidor_final':
-                vals['vat_number'] = u''
-
-        if 'vat_number' in vals and 'vat_country' in vals:
-            data = cls.search([('vat_number','=', vals['vat_number']),
-                               ('vat_country','=', vals['vat_country']),
-                              ])
-            if data and data != parties:
-                cls.raise_user_error('unique_vat_number')
-
-        return super(Party, cls).write(parties, vals)
-        pass

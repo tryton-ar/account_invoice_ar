@@ -149,7 +149,18 @@ class Invoice:
                     '"%(party)s" is missing.'),
             'not_invoice_type':
                 u'El campo «Tipo de factura» en «Factura» es requerido.',
+            'change_sale_configuration':
+                u'Se debe cambiar la configuracion de la venta para procesar la factura de forma Manual.',
             })
+
+    @classmethod
+    @ModelView.button
+    @Workflow.transition('validated')
+    def validate_invoice(cls, invoices):
+        for invoice in invoices:
+            if invoice.type in ('out_invoice', 'out_credit_note'):
+                invoice.check_invoice_type()
+        super(Invoice, cls).validate(invoices)
 
     @classmethod
     def validate(cls, invoices):
@@ -166,6 +177,11 @@ class Invoice:
             self.raise_user_error('missing_party_iva_condition', {
                     'party': self.party.rec_name,
                     })
+        if not self.invoice_type:
+            if self.sales:
+                self.raise_user_error('change_sale_configuration')
+            else:
+                self.raise_user_error('not_invoice_type')
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
