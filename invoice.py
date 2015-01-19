@@ -129,7 +129,7 @@ class Invoice:
        states={
             'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
             'readonly': Eval('state') != 'draft',
-            'required': Eval('type').in_(['out_invoice', 'out_credit_note']),
+            'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
             }, depends=['state', 'type']
        )
 
@@ -197,7 +197,8 @@ class Invoice:
             if self.sales:
                 self.raise_user_error('change_sale_configuration')
             else:
-                self.raise_user_error('not_invoice_type')
+                if self.type in ('out_invoice', 'out_credit_note'):
+                    self.raise_user_error('not_invoice_type')
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
