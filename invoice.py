@@ -116,6 +116,22 @@ class Invoice:
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
                                    'invoice', u"Transacciones",
                                    readonly=True)
+    tipo_comprobante = fields.Selection([
+       ('tka', u'Ticket A'),
+       ('tkb', u'Ticket B'),
+       ('tkc', u'Ticket C'),
+       ('fca', u'Factura A'),
+       ('fcb', u'Factura B'),
+       ('fcc', u'Factura C'),
+       ('', ''),
+       ], 'Tipo de Comprobante',
+       select=True,
+       states={
+            'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
+            'readonly': Eval('state') != 'draft',
+            'required': Eval('type').in_(['out_invoice', 'out_credit_note']),
+            }, depends=['state', 'type']
+       )
 
     @classmethod
     def __setup__(cls):
@@ -223,6 +239,19 @@ class Invoice:
             number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
             vals['number'] = '%04d-%08d' % (self.pos.number, int(number))
             self.write([self], vals)
+
+    def _get_move_line(self, date, amount):
+        res = super(Invoice, self)._get_move_line(date, amount)
+
+        if self.type[:3] == 'out':
+            res['description'] = self.party.name + u' Nro. ' + self.number
+        else:
+            res['description'] = self.party.name + u' Nro. ' + self.reference
+
+        if self.description:
+            res['description'] += ' / ' + self.description
+
+        return res
 
     @classmethod
     @ModelView.button

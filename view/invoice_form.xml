@@ -38,6 +38,10 @@
         <field name="invoice_type" widget="selection"/>
         <label name="number"/>
         <field name="number"/>
+        <newline/>
+        <label name="tipo_comprobante"/>
+        <field name="tipo_comprobante"/>
+        <newline/>
     </xpath>
 
 </data>
