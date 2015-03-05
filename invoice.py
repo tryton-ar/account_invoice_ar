@@ -460,7 +460,8 @@ class Invoice:
             moneda_ctz = 1
         else:
             moneda_id = {'USD':'DOL'}[self.currency.code]
-            moneda_ctz = str(self.currency.rate)
+            ctz = 1 / self.currency.rate
+            moneda_ctz =  str("%.2f" % ctz)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
