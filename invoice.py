@@ -519,7 +519,7 @@ class Invoice:
                 'tw': 313, 'in': 315, 'il': 319, 'jp': 320, 'at': 405,
                 'be': 406, 'dk': 409, 'es': 410, 'fr': 412, 'gr': 413,
                 'it': 417, 'nl': 423, 'pt': 620, 'uk': 426, 'sz': 430,
-                'de': 438, 'ru': 444, 'eu': 497,
+                'de': 438, 'ru': 444, 'eu': 497, 'cr': '206'
                 }[self.invoice_address.country.code.lower()]
 
 
