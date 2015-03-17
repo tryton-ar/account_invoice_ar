@@ -20,6 +20,12 @@
             <field name="transactions" colspan="4"/>
         </page>
     </xpath>
+    <xpath expr="/form/notebook/page[@id='electronic_invoice']" position="after">
+        <page string="Factura Electronica Incoterms" id="electronic_invoice_incoterms">
+            <label name="pyafipws_incoterms"/>
+            <field name="pyafipws_incoterms"/>
+        </page>
+    </xpath>
 
     <xpath expr="/form/label[@name='number']" position="replace"/>
     <xpath expr="/form/field[@name='number']" position="replace"/>
@@ -38,6 +44,10 @@
         <field name="invoice_type" widget="selection"/>
         <label name="number"/>
         <field name="number"/>
+        <newline/>
+        <label name="tipo_comprobante"/>
+        <field name="tipo_comprobante"/>
+        <newline/>
     </xpath>
 
 </data>

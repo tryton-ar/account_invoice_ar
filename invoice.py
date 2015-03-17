@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.report import Report
-from trytond.pyson import Eval, And
+from trytond.pyson import Eval, And, Equal
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
@@ -51,6 +51,25 @@ INVOICE_TYPE_AFIP_CODE = {
         ('out_credit_note', 'C'): ('13', u'13-Nota de Crédito C'),
         ('out_credit_note', 'E'): ('21', u'21-Nota de Crédito E'),
         }
+
+INCOTERMS = [
+        ('', ''),
+        ('EXW', 'EX WORKS'),
+        ('FCA', 'FREE CARRIER'),
+        ('FAS', 'FREE ALONGSIDE SHIP'),
+        ('FOB', 'FREE ON BOARD'),
+        ('CFR', 'COST AND FREIGHT'),
+        ('CIF', 'COST, INSURANCE AND FREIGHT'),
+        ('CPT', 'CARRIAGE PAID TO'),
+        ('CIP', 'CARRIAGE AND INSURANCE PAID TO'),
+        ('DAF', 'DELIVERED AT FRONTIER'),
+        ('DES', 'DELIVERED EX SHIP'),
+        ('DEQ', 'DELIVERED EX QUAY'),
+        ('DDU', 'DELIVERED DUTY UNPAID'),
+        ('DAT', 'Delivered At Terminal'),
+        ('DAP', 'Delivered At Place'),
+        ('DDP', 'Delivered Duty Paid'),
+]
 
 
 class AfipWSTransaction(ModelSQL, ModelView):
@@ -116,6 +135,26 @@ class Invoice:
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
                                    'invoice', u"Transacciones",
                                    readonly=True)
+    tipo_comprobante = fields.Selection([
+       ('tka', u'Ticket A'),
+       ('tkb', u'Ticket B'),
+       ('tkc', u'Ticket C'),
+       ('fca', u'Factura A'),
+       ('fcb', u'Factura B'),
+       ('fcc', u'Factura C'),
+       ('', ''),
+       ], 'Tipo de Comprobante',
+       select=True,
+       states={
+            'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
+            'readonly': Eval('state') != 'draft',
+            'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
+            }, depends=['state', 'type']
+       )
+    pyafipws_incoterms = fields.Selection(
+        INCOTERMS,
+        'Incoterms',
+    )
 
     @classmethod
     def __setup__(cls):
@@ -151,6 +190,8 @@ class Invoice:
                 u'El campo «Tipo de factura» en «Factura» es requerido.',
             'change_sale_configuration':
                 u'Se debe cambiar la configuracion de la venta para procesar la factura de forma Manual.',
+            'missing_pyafipws_incoterms':
+                u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
             })
 
     @classmethod
@@ -181,7 +222,8 @@ class Invoice:
             if self.sales:
                 self.raise_user_error('change_sale_configuration')
             else:
-                self.raise_user_error('not_invoice_type')
+                if self.type in ('out_invoice', 'out_credit_note'):
+                    self.raise_user_error('not_invoice_type')
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
@@ -239,6 +281,19 @@ class Invoice:
             number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
             vals['number'] = '%04d-%08d' % (self.pos.number, int(number))
             self.write([self], vals)
+
+    def _get_move_line(self, date, amount):
+        res = super(Invoice, self)._get_move_line(date, amount)
+
+        if self.type[:3] == 'out':
+            res['description'] = self.party.name + u' Nro. ' + self.number
+        else:
+            res['description'] = self.party.name + u' Nro. ' + self.reference
+
+        if self.description:
+            res['description'] += ' / ' + self.description
+
+        return res
 
     @classmethod
     @ModelView.button
@@ -405,14 +460,19 @@ class Invoice:
             moneda_ctz = 1
         else:
             moneda_id = {'USD':'DOL'}[self.currency.code]
-            moneda_ctz = str(self.currency.rate)
+            ctz = 1 / self.currency.rate
+            moneda_ctz =  str("%.2f" % ctz)
 
         # foreign trade data: export permit, country code, etc.:
-        #if invoice.pyafipws_incoterms:
-        #    incoterms = invoice.pyafipws_incoterms.code
-        #    incoterms_ds = invoice.pyafipws_incoterms.name
-        #else:
-        #    incoterms = incoterms_ds = None
+        if self.pyafipws_incoterms:
+            incoterms = self.pyafipws_incoterms
+            incoterms_ds = dict(self._fields['pyafipws_incoterms'].selection)[self.pyafipws_incoterms]
+        else:
+            incoterms = incoterms_ds = None
+
+        if incoterms == None and incoterms_ds == None and service == 'wsfex':
+            self.raise_user_error('missing_pyafipws_incoterms')
+
         if int(tipo_cbte) == 19 and tipo_expo == 1:
             permiso_existente =  "N" or "S"     # not used now
         else:
@@ -459,7 +519,7 @@ class Invoice:
                 'tw': 313, 'in': 315, 'il': 319, 'jp': 320, 'at': 405,
                 'be': 406, 'dk': 409, 'es': 410, 'fr': 412, 'gr': 413,
                 'it': 417, 'nl': 423, 'pt': 620, 'uk': 426, 'sz': 430,
-                'de': 438, 'ru': 444, 'eu': 497,
+                'de': 438, 'ru': 444, 'eu': 497, 'cr': '206'
                 }[self.invoice_address.country.code.lower()]
 
 
@@ -510,43 +570,59 @@ class Invoice:
                     # add the other tax detail in the helper
                     ws.AgregarTributo(tributo_id, desc, base_imp, alic, importe)
 
+                ## Agrego un item:
+                #codigo = "PRO1"
+                #ds = "Producto Tipo 1 Exportacion MERCOSUR ISO 9001"
+                #qty = 2
+                #precio = "150.00"
+                #umed = 1 # Ver tabla de parámetros (unidades de medida)
+                #bonif = "50.00"
+                #imp_total = "250.00" # importe total final del artículo
         # analize line items - invoice detail
+        # umeds
+        # Parametros. Unidades de Medida, etc.
+        # https://code.google.com/p/pyafipws/wiki/WSFEX#WSFEX/RECEX_Parameter_Tables
         if service in ('wsfex', 'wsmtxca'):
             for line in self.lines:
-                codigo = line.product.code
-                u_mtx = 1                       # TODO: get it from uom?
-                cod_mtx = 'xxx' #FIXME: ean13
+                if line.product:
+                    codigo = line.product.code
+                else:
+                    codigo = 0
                 ds = line.description
                 qty = line.quantity
-                umed = 7                        # TODO: line.uos_id...?
-                precio = line.unit_price
-                importe = line.get_amount('')
+                umed = 7 # FIXME: (7 - unit)
+                precio = str(line.unit_price)
+                importe_total = str(line.amount)
                 bonif = None  # line.discount
-                for tax in line.taxes:
-                    if tax.group.name == "IVA":
-                        iva_id = IVA_AFIP_CODE[tax.rate]
-                        imp_iva = importe * tax.rate
+                #for tax in line.taxes:
+                #    if tax.group.name == "IVA":
+                #        iva_id = IVA_AFIP_CODE[tax.rate]
+                #        imp_iva = importe * tax.rate
                 #if service == 'wsmtxca':
                 #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
                 #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
                 if service == 'wsfex':
-                    ws.AgregarItem(codigo, ds, qty, umed, precio, importe,
-                            bonif)
+                    ws.AgregarItem(codigo, ds, qty, umed, precio, importe_total,
+                                   bonif)
 
         # Request the authorization! (call the AFIP webservice method)
         try:
             if service == 'wsfe':
                 ws.CAESolicitar()
+                vto = ws.Vencimiento
             elif service == 'wsmtxca':
                 ws.AutorizarComprobante()
+                vto = ws.Vencimiento
             elif service == 'wsfex':
                 ws.Authorize(self.id)
-        except SoapFault as fault:
-            msg = 'Falla SOAP %s: %s' % (fault.faultcode, fault.faultstring)
+                vto = ws.FchVencCAE
+        #except SoapFault as fault:
+        #    msg = 'Falla SOAP %s: %s' % (fault.faultcode, fault.faultstring)
         except Exception, e:
             if ws.Excepcion:
                 # get the exception already parsed by the helper
-                msg = ws.Excepcion + ' ' + e
+                #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
+                msg = ws.Excepcion + ' ' + str(e)
             else:
                 # avoid encoding problem when reporting exceptions to the user:
                 import traceback
@@ -577,9 +653,10 @@ class Invoice:
             Transaction().cursor.commit()
 
         if ws.CAE:
+
             # store the results
             vals = {'pyafipws_cae': ws.CAE,
-                   'pyafipws_cae_due_date': ws.Vencimiento or None,
+                   'pyafipws_cae_due_date': vto or None,
                    'pyafipws_barcode': bars,
                 }
             if not '-' in vals['pyafipws_cae_due_date']:
