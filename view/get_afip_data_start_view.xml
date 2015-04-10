@@ -1,0 +1,23 @@
+<?xml version="1.0"?><!-- -*- encoding: utf-8 -*-
+  cultura-tryton cultura_party/view/get_afip_data_start_view.xml
+
+  this file is part of the cultura-tryton package for tryton.
+  the COPYRIGHT file at the top level of this repository
+  contains the full copyright notice and license terms.
+  -->
+<form string="Confirmar información de AFIP" col="2">
+  <label name="nombre"/>
+  <field name="nombre"/>
+  <label name="direccion"/>
+  <field name="direccion"/>
+  <label name="codigo_postal"/>
+  <field name="codigo_postal"/>
+  <label name="fecha_inscripcion"/>
+  <field name="fecha_inscripcion"/>
+  <label name="estado"/>
+  <field name="estado"/>
+  <label name="primary_activity_code"/>
+  <field name="primary_activity_code" />
+  <label name="secondary_activity_code"/>
+  <field name="secondary_activity_code" />
+</form>
