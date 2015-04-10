@@ -15,7 +15,11 @@ def register():
         AfipWSTransaction,
         Party,
         Address,
+        GetAFIPDataStart,
         module='account_invoice_ar', type_='model')
+    Pool.register(
+        GetAFIPData,
+        module='account_invoice_ar', type_='wizard')
     Pool.register(
         InvoiceReport,
         module='account_invoice_ar', type_='report')

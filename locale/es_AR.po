@@ -110,14 +110,14 @@ msgstr "Nombre de la Compañía"
 
 msgctxt "field:party.party,company_type:"
 msgid "Company Type"
-msgstr "Tipo de Compañía"
+msgstr "Tipo Compañía"
 
 msgctxt "field:party.party,iibb_number:"
 msgid "II BB"
 msgstr ""
 
 msgctxt "field:party.party,iibb_type:"
-msgid "Tipo de Inscripcion de II BB"
+msgid "Inscripcion II BB"
 msgstr ""
 
 msgctxt "field:party.party,iva_condition:"
@@ -126,15 +126,15 @@ msgstr ""
 
 msgctxt "field:party.party,primary_activity_code:"
 msgid "Primary Activity Code"
-msgstr "Código de Actividad Primaria"
+msgstr "Act. Primaria"
 
 msgctxt "field:party.party,secondary_activity_code:"
 msgid "Secondary Activity Code"
-msgstr "Código de Actividad Secundaria"
+msgstr "Act. Secundaria"
 
 msgctxt "field:party.party,start_activity_date:"
 msgid "Start activity date"
-msgstr "Fecha de inicio de actividades"
+msgstr "Inicio de actividad"
 
 msgctxt "help:account.pos,number:"
 msgid "Prefijo de emisión habilitado en AFIP"

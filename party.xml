@@ -15,5 +15,17 @@ this repository contains the full copyright notices and license terms. -->
             <field name="name">party_form</field>
         </record>
 
+    <!-- wizard datos AFIP -->
+    <record model="ir.action.wizard" id="wizard_get_afip_data">
+      <field name="name">Get AFIP Data</field>
+      <field name="wiz_name">party.get_afip_data</field>
+      <field name="model">party.party</field>
+    </record>
+    <record model="ir.ui.view" id="get_afip_data_start_view">
+      <field name="model">party.get_afip_data.start</field>
+      <field name="type">form</field>
+      <field name="name">get_afip_data_start_view</field>
+    </record>
+
     </data>
 </tryton>

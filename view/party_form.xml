@@ -1,40 +1,60 @@
 <?xml version="1.0"?>
-<!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
-this repository contains the full copyright notices and license terms. -->
 <data>
-    <xpath
-        expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']"
-        position="after">
-        <separator string="Informacion Fiscal" colspan="4" id="informacion_fiscal"/>
+
+    <!-- esconder code -->
+    <xpath expr="/form/label[@name='code']" position="replace"/>
+    <xpath expr="/form/field[@name='code']" position="replace"/>
+
+    <!-- data de AFIP -->
+    <xpath expr="/form/group[@id='checkboxes']/field[@name='active']" position="after">
+        <button name="get_afip_data" string="AFIP" icon="tryton-connect"/>
+    </xpath>
+
+    <!-- agregar cuit y tipo al encabezado -->
+    <xpath expr="/form/group[@id='checkboxes']" position="after">
+        <newline/>
+        <label name="vat_number"/>
+        <field name="vat_number"/>
+        <label name="vat_country"/>
+        <field name="vat_country"/>
+        <newline/>
         <label name="iva_condition"/>
         <field name="iva_condition"/>
-        <newline/>
     </xpath>
+    
+    <!-- esconder CUIT de la página de Contabilidad -->
+    <xpath expr="/form/notebook/page[@id='accounting']/separator[@id='vat']" position="replace" />
+    <xpath expr="/form/notebook/page[@id='accounting']/label[@name='vat_country']" position="replace" />
+    <xpath expr="/form/notebook/page[@id='accounting']/field[@name='vat_country']" position="replace" />
+    <xpath expr="/form/notebook/page[@id='accounting']/label[@name='vat_number']" position="replace" />
+    <xpath expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']" position="replace" />
+
+    <!-- otros campos adicionales en General -->
     <xpath
-        expr="/form/notebook/page[@id='accounting']"
+        expr="/form/notebook/page[@id='general']"
         position="after">
-        <page string="Empresa" id="empresa">
-        <label name="company_type"/>
-        <field name="company_type"/>
-        <label name="company_name"/>
-        <field name="company_name"/>
-        <label name="iibb_type"/>
-        <field name="iibb_type"/>
-        <label name="iibb_number"/>
-        <field name="iibb_number"/>
-        <label name="start_activity_date"/>
-        <field name="start_activity_date"/>
-        <newline/>
-        <label name="controlling_entity"/>
-        <field name="controlling_entity"/>
-        <label name="controlling_entity_number"/>
-        <field name="controlling_entity_number"/>
-        <newline/>
-        <label name="primary_activity_code"/>
-        <field name="primary_activity_code" colspan="3"/>
-        <newline/>
-        <label name="secondary_activity_code"/>
-        <field name="secondary_activity_code" colspan="3"/>
+        <page string="Datos" id="empresa">
+            <label name="company_type"/>
+            <field name="company_type"/>
+            <label name="company_name"/>
+            <field name="company_name"/>
+            <label name="iibb_type"/>
+            <field name="iibb_type"/>
+            <label name="iibb_number"/>
+            <field name="iibb_number"/>
+            <label name="start_activity_date"/>
+            <field name="start_activity_date"/>
+            <newline/>
+            <label name="controlling_entity"/>
+            <field name="controlling_entity"/>
+            <label name="controlling_entity_number"/>
+            <field name="controlling_entity_number"/>
+            <newline/>
+            <label name="primary_activity_code"/>
+            <field name="primary_activity_code" colspan="3"/>
+            <newline/>
+            <label name="secondary_activity_code"/>
+            <field name="secondary_activity_code" colspan="3"/>
         </page>
     </xpath>
 </data>
