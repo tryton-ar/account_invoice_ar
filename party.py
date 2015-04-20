@@ -96,12 +96,6 @@ class Party(ModelSQL, ModelView):
                 },
             depends=['active'],
             )
-    vat_number = fields.Char('VAT Number', help="Value Added Tax number",
-        states={
-            'readonly': ~Eval('active', True),
-            'required': And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final'))),
-            },
-        depends=['active', 'vat_country', 'iva_condition'])
     controlling_entity = fields.Char('Entidad controladora', help="Controlling entity",
         states={
             'readonly': ~Eval('active', True),
@@ -127,6 +121,8 @@ class Party(ModelSQL, ModelView):
             'unique_vat_number': 'The VAT number must be unique in each country.',
             'vat_number_not_found': 'El CUIT no ha sido encontrado',
         })
+
+        cls.vat_number.states['required'] = And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final')))
 
     @classmethod
     def validate(cls, parties):
