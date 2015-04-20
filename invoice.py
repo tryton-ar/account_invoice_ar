@@ -99,6 +99,7 @@ class Invoice:
     __name__ = 'account.invoice'
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
+        on_change=['pos', 'party', 'type', 'company'],
         states=_POS_STATES, depends=_DEPENDS)
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
         domain=([('pos', '=', Eval('pos'))]),
@@ -225,7 +226,6 @@ class Invoice:
                 if self.type in ('out_invoice', 'out_credit_note'):
                     self.raise_user_error('not_invoice_type')
 
-    @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
         PosSequence = Pool().get('account.pos.sequence')
 
