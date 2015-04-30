@@ -34,7 +34,12 @@ for dep in info.get('depends', []):
 requires.append('trytond >= %s.%s, < %s.%s' %
         (major_version, minor_version, major_version, minor_version + 1))
 
-setup(name='account_invoice_ar',
+requires.append('trytonspain_company_logo >= %s.%s, < %s.%s' %
+        (major_version, minor_version, major_version, minor_version + 1))
+
+requires.append('vatnumber')
+
+setup(name='trytonar_account_invoice_ar',
     version=info.get('version', '0.0.1'),
     description=info.get('description', ''),
     author=info.get('author', ''),
@@ -50,7 +55,7 @@ setup(name='account_invoice_ar',
                     'icons/*.svg']),
     },
     classifiers=[
-        'Development Status :: 1 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Plugins',
         'Intended Audience :: Developers',
         'Intended Audience :: Financial and Insurance Industry',
