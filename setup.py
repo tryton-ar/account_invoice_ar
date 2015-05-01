@@ -37,14 +37,19 @@ requires.append('trytond >= %s.%s, < %s.%s' %
 requires.append('trytonspain_company_logo >= %s.%s, < %s.%s' %
         (major_version, minor_version, major_version, minor_version + 1))
 
-requires.append('vatnumber')
+requires.append('vatnumber>=1.2')
+requires.append('M2Crypto>=0.22.3')
+requires.append('Pillow>=2.8.1')
+requires.append('PySimpleSOAP==1.16')
+requires.append('httplib2>=0.9.1')
+requires.append('suds>=0.4')
 
 setup(name='trytonar_account_invoice_ar',
     version=info.get('version', '0.0.1'),
-    description=info.get('description', ''),
-    author=info.get('author', ''),
-    author_email=info.get('email', ''),
-    url=info.get('website', ''),
+    description='Tryton module to add account invoice (electronic/manual) localizacion for Argentina (AFIP)',
+    author='tryton-ar',
+    long_description=read('README.md'),
+    url='https://github.com/tryton-ar/account_invoice_ar',
     package_dir={'trytond.modules.account_invoice_ar': '.'},
     packages=[
         'trytond.modules.account_invoice_ar',
@@ -57,6 +62,7 @@ setup(name='trytonar_account_invoice_ar',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Plugins',
+        'Framework :: Tryton',
         'Intended Audience :: Developers',
         'Intended Audience :: Financial and Insurance Industry',
         'Intended Audience :: Legal Industry',
@@ -64,8 +70,6 @@ setup(name='trytonar_account_invoice_ar',
         'Natural Language :: English',
         'Natural Language :: Spanish',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.5',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Office/Business',
         'Topic :: Office/Business :: Financial :: Accounting',
