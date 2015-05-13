@@ -38,7 +38,6 @@
             <field name="report">account_invoice_ar/invoice.odt</field>
             <field name="style">account_invoice_ar/header_A4.odt</field>
             <field name="template_extension">odt</field>
-            <field name="extension">sxw</field>
         </record>
     </data>
 </tryton>
