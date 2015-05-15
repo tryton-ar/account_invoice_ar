@@ -58,6 +58,10 @@ class Company(ModelSQL, ModelView):
             WSAA_URL = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms?wsdl"
         elif self.pyafipws_mode_cert == 'produccion':
             WSAA_URL = "https://wsaa.afip.gov.ar/ws/services/LoginCms?wsdl"
+        else:
+            self.raise_user_error('wrong_pyafipws_mode', {
+                'message': u'El modo de certificación no es ni producción, ni homologación. Configure su Empresa',
+            })
 
         # call the helper function to obtain the access ticket:
         auth = afip_auth.authenticate(service, certificate, private_key, wsdl=WSAA_URL, force=force)
