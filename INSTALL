@@ -4,23 +4,17 @@ Installing account_invoice_ar
 Prerequisites
 -------------
 
- * Python 2.6 or later (http://www.python.org/)
+ * Python 2.7 or later (http://www.python.org/)
  * trytond (http://www.tryton.org/)
  * trytond_account (http://www.tryton.org/)
 
- * Pyafipws (and dependencies): 
+ * Pyafipws and swig:
      * swig
        apt-get install swig
-     * pysimpelsoap 
-       pip install -e hg+https://code.google.com/p/pysimplesoap/@reingart#egg=pysimplesoap
-     * httplib2
-       pip install httplib2
-     * M2Crypto
-       apt-get install python-m2crypto
-       cp -r /usr/lib/python2.7/dist-packages/M2Crypto* [..]/tryton/lib/pythonX.X/site-packages/
      * Pyafipws
-       hg clone https://code.google.com/p/pyafipws
-       move pyafipws to ../tryton/lib/pythonX.X/site-packages
+       wget https://github.com/reingart/pyafipws/archive/2.7.tar.gz
+       tar zxvf 2.7.tar.gz
+       mv pyafipws-2.7 /usr/lib/pythonX.X/dist-packages/pyafipws
 
 Installation
 ------------

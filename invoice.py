@@ -201,13 +201,7 @@ class Invoice:
         for invoice in invoices:
             if invoice.type in ('out_invoice', 'out_credit_note'):
                 invoice.check_invoice_type()
-        super(Invoice, cls).validate(invoices)
-
-    @classmethod
-    def validate(cls, invoices):
-        super(Invoice, cls).validate(invoices)
-        for invoice in invoices:
-            invoice.check_invoice_type()
+        super(Invoice, cls).validate_invoice(invoices)
 
     def check_invoice_type(self):
         if not self.company.party.iva_condition:
@@ -219,11 +213,7 @@ class Invoice:
                     'party': self.party.rec_name,
                     })
         if not self.invoice_type:
-            if self.sales:
-                self.raise_user_error('change_sale_configuration')
-            else:
-                if self.type in ('out_invoice', 'out_credit_note'):
-                    self.raise_user_error('not_invoice_type')
+            self.raise_user_error('not_invoice_type')
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
@@ -304,8 +294,7 @@ class Invoice:
         moves = []
         for invoice in invoices:
             if invoice.type == u'out_invoice' or invoice.type == u'out_credit_note':
-                if not invoice.invoice_type:
-                    invoice.raise_user_error('not_invoice_type')
+                invoice.check_invoice_type()
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
                         invoice.do_pyafipws_request_cae()

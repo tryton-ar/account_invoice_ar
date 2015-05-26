@@ -1,9 +1,10 @@
 # account_invoice_ar
 
-The `account_invoice_ar` module of the Tryton application platform.
+The Tryton `account_invoice_ar` module add account invoice localization for Argentina (AFIP).
+
 See *tryton.cfg*
 
-This module is a migration of [pyafipws.openerp](http://code.google.com/p/pyafipws.openerp/)
+This module is based on [pyafipws.openerp](http://code.google.com/p/pyafipws.openerp/)
 
 ## Installing
 
