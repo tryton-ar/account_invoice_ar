@@ -13,7 +13,7 @@ from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
 
-__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceReport']
+__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceReport', 'ActionReport']
 __metaclass__ = PoolMeta
 
 _STATES = {
@@ -148,7 +148,7 @@ class Invoice:
        states={
             'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
             'readonly': Eval('state') != 'draft',
-            'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
+            #'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
             }, depends=['state', 'type']
        )
     pyafipws_incoterms = fields.Selection(
@@ -795,3 +795,17 @@ class InvoiceReport(Report):
         image = buffer(output.getvalue())
         output.close()
         return image
+
+
+class ActionReport:
+    "Action report"
+    __name__ = 'ir.action.report'
+
+    @classmethod
+    def check_xml_record(cls, records, values):
+        "check_xml_record. If model == account.invoice, return True"
+
+        for record in records:
+            if record.report_name == 'account.invoice':
+                print "check_xml_record. account.invoice"
+                return True
