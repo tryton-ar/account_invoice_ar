@@ -71,6 +71,115 @@ INCOTERMS = [
         ('DDP', 'Delivered Duty Paid'),
 ]
 
+REL_TIPO_COMPROBANTE_AFIP = {
+    'fca': '001',
+    'tka': '081',
+    'fcb': '006',
+    'tkb': '082',
+    'fcc': '011',
+    'tkc': '111',
+}
+
+TIPO_COMPROBANTE_OLD = [
+    ('tka', u'Ticket A'),
+    ('tkb', u'Ticket B'),
+    ('tkc', u'Ticket C'),
+    ('fca', u'Factura A'),
+    ('fcb', u'Factura B'),
+    ('fcc', u'Factura C'),
+    ('', ''),
+]
+
+TIPO_COMPROBANTE = [
+    ('', ''),
+    ('001', u'FACTURAS A'),
+    ('002', u'NOTAS DE DEBITO A'),
+    ('003', u'NOTAS DE CREDITO A'),
+    ('004', u'RECIBOS A'),
+    ('005', u'NOTAS DE VENTA AL CONTADO A'),
+    ('006', u'FACTURAS B'),
+    ('007', u'NOTAS DE DEBITO B'),
+    ('008', u'NOTAS DE CREDITO B'),
+    ('009', u'RECIBOS B'),
+    ('010', u'NOTAS DE VENTA AL CONTADO B'),
+    ('011', u'FACTURAS C'),
+    ('012', u'NOTAS DE DEBITO C'),
+    ('013', u'NOTAS DE CREDITO C'),
+    ('015', u'RECIBOS C'),
+    ('016', u'NOTAS DE VENTA AL CONTADO C'),
+    ('017', u'LIQUIDACION DE SERVICIOS PUBLICOS CLASE A'),
+    ('018', u'LIQUIDACION DE SERVICIOS PUBLICOS CLASE B'),
+    ('019', u'FACTURAS DE EXPORTACION'),
+    ('020', u'NOTAS DE DEBITO POR OPERACIONES CON EL EXTERIOR'),
+    ('021', u'NOTAS DE CREDITO POR OPERACIONES CON EL EXTERIOR'),
+    ('022', u'FACTURAS - PERMISO EXPORTACION SIMPLIFICADO - DTO. 855/97'),
+    ('023', u'COMPROBANTES A DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('024', u'COMPROBANTES A DE CONSIGNACION PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('025', u'COMPROBANTES B DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('026', u'COMPROBANTES B DE CONSIGNACION PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('027', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
+    ('028', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
+    ('029', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
+    ('030', u'COMPROBANTES DE COMPRA DE BIENES USADOS'),
+    ('031', u'MANDATO - CONSIGNACION'),
+    ('032', u'COMPROBANTES PARA RECICLAR MATERIALES'),
+    ('033', u'LIQUIDACION PRIMARIA DE GRANOS'),
+    ('034', u'COMPROBANTES A DEL APARTADO A INCISO F RG N.1415'),
+    ('035', u'COMPROBANTES B DEL ANEXO I, APARTADO A, INC. F), RG N. 1415'),
+    ('036', u'COMPROBANTES C DEL Anexo I, Apartado A, INC.F), R.G. N° 1415'),
+    ('037', u'NOTAS DE DEBITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415'),
+    ('038', u'NOTAS DE CREDITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415'),
+    ('039', u'OTROS COMPROBANTES A QUE CUMPLEN CON LA R G  1415'),
+    ('040', u'OTROS COMPROBANTES B QUE CUMPLAN CON LA R.G. N° 1415'),
+    ('041', u'OTROS COMPROBANTES C QUE CUMPLAN CON LA R.G. N° 1415'),
+    ('043', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
+    ('044', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
+    ('045', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
+    ('046', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
+    ('047', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
+    ('048', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
+    ('049', u'COMPROBANTES DE COMPRA DE BIENES NO REGISTRABLES A CONSUMIDORES FINALES'),
+    ('050', u'RECIBO FACTURA A  REGIMEN DE FACTURA DE CREDITO'),
+    ('051', u'FACTURAS M'),
+    ('052', u'NOTAS DE DEBITO M'),
+    ('053', u'NOTAS DE CREDITO M'),
+    ('054', u'RECIBOS M'),
+    ('055', u'NOTAS DE VENTA AL CONTADO M'),
+    ('056', u'COMPROBANTES M DEL ANEXO I  APARTADO A  INC F) R.G. N° 1415'),
+    ('057', u'OTROS COMPROBANTES M QUE CUMPLAN CON LA R.G. N° 1415'),
+    ('058', u'CUENTAS DE VENTA Y LIQUIDO PRODUCTO M'),
+    ('059', u'LIQUIDACIONES M'),
+    ('060', u'CUENTAS DE VENTA Y LIQUIDO PRODUCTO A'),
+    ('061', u'CUENTAS DE VENTA Y LIQUIDO PRODUCTO B'),
+    ('063', u'LIQUIDACIONES A'),
+    ('064', u'LIQUIDACIONES B'),
+    ('066', u'DESPACHO DE IMPORTACION'),
+    ('068', u'LIQUIDACION C'),
+    ('070', u'RECIBOS FACTURA DE CREDITO'),
+    ('080', u'INFORME DIARIO DE CIERRE (ZETA) - CONTROLADORES FISCALES'),
+    ('081', u'TIQUE FACTURA A'),
+    ('082', u'TIQUE FACTURA B'),
+    ('083', u'TIQUE'),
+    ('088', u'REMITO ELECTRONICO'),
+    ('089', u'RESUMEN DE DATOS'),
+    ('090', u'OTROS COMPROBANTES - DOCUMENTOS EXCEPTUADOS - NOTAS DE CREDITO'),
+    ('091', u'REMITOS R'),
+    ('099', u'OTROS COMPROBANTES QUE NO CUMPLEN O ESTÁN EXCEPTUADOS DE LA R.G. 1415 Y SUS MODIF'),
+    ('110', u'TIQUE NOTA DE CREDITO'),
+    ('111', u'TIQUE FACTURA C'),
+    ('112', u'TIQUE NOTA DE CREDITO A'),
+    ('113', u'TIQUE NOTA DE CREDITO B'),
+    ('114', u'TIQUE NOTA DE CREDITO C'),
+    ('115', u'TIQUE NOTA DE DEBITO A'),
+    ('116', u'TIQUE NOTA DE DEBITO B'),
+    ('117', u'TIQUE NOTA DE DEBITO C'),
+    ('118', u'TIQUE FACTURA M'),
+    ('119', u'TIQUE NOTA DE CREDITO M'),
+    ('120', u'TIQUE NOTA DE DEBITO M'),
+    ('331', u'LIQUIDACION SECUNDARIA DE GRANOS'),
+    ('332', u'CERTIFICACION ELECTRONICA (GRANOS)'),
+]
+
 
 class AfipWSTransaction(ModelSQL, ModelView):
     'AFIP WS Transaction'
@@ -135,20 +244,12 @@ class Invoice:
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
                                    'invoice', u"Transacciones",
                                    readonly=True)
-    tipo_comprobante = fields.Selection([
-       ('tka', u'Ticket A'),
-       ('tkb', u'Ticket B'),
-       ('tkc', u'Ticket C'),
-       ('fca', u'Factura A'),
-       ('fcb', u'Factura B'),
-       ('fcc', u'Factura C'),
-       ('', ''),
-       ], 'Tipo de Comprobante',
+    tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
        select=True,
        states={
             'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
             'readonly': Eval('state') != 'draft',
-            #'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
+            'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
             }, depends=['state', 'type']
        )
     pyafipws_incoterms = fields.Selection(
@@ -193,6 +294,24 @@ class Invoice:
             'missing_pyafipws_incoterms':
                 u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
             })
+
+    @classmethod
+    def __register__(cls, module_name):
+        super(Invoice, cls).__register__(module_name)
+        cursor = Transaction().cursor
+        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '001' \
+                        WHERE tipo_comprobante='fca';")
+        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '006' \
+                        WHERE tipo_comprobante='fcb';")
+        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '011' \
+                        WHERE tipo_comprobante='fcc';")
+        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '081' \
+                        WHERE tipo_comprobante='tka';")
+        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '082' \
+                        WHERE tipo_comprobante='tkb';")
+        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '111' \
+                        WHERE tipo_comprobante='tkc';")
+
 
     @classmethod
     @ModelView.button
@@ -795,7 +914,6 @@ class InvoiceReport(Report):
         image = buffer(output.getvalue())
         output.close()
         return image
-
 
 class ActionReport:
     "Action report"
