@@ -10,6 +10,8 @@
         expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']"
         position="after">
         <separator string="Informacion Fiscal" colspan="4" id="informacion_fiscal"/>
+        <label name="tipo_documento"/>
+        <field name="tipo_documento"/>
         <label name="iva_condition"/>
         <field name="iva_condition"/>
         <newline/>
