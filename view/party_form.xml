@@ -1,33 +1,21 @@
 <?xml version="1.0"?>
 <data>
 
-    <!-- esconder code -->
-    <xpath expr="/form/label[@name='code']" position="replace"/>
-    <xpath expr="/form/field[@name='code']" position="replace"/>
-
     <!-- data de AFIP -->
     <xpath expr="/form/group[@id='checkboxes']/field[@name='active']" position="after">
         <button name="get_afip_data" string="AFIP" icon="tryton-connect"/>
     </xpath>
 
-    <!-- agregar cuit y tipo al encabezado -->
-    <xpath expr="/form/group[@id='checkboxes']" position="after">
-        <newline/>
-        <label name="vat_number"/>
-        <field name="vat_number"/>
-        <label name="vat_country"/>
-        <field name="vat_country"/>
-        <newline/>
+    <xpath
+        expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']"
+        position="after">
+        <separator string="Informacion Fiscal" colspan="4" id="informacion_fiscal"/>
+        <label name="tipo_documento"/>
+        <field name="tipo_documento"/>
         <label name="iva_condition"/>
         <field name="iva_condition"/>
+        <newline/>
     </xpath>
-    
-    <!-- esconder CUIT de la página de Contabilidad -->
-    <xpath expr="/form/notebook/page[@id='accounting']/separator[@id='vat']" position="replace" />
-    <xpath expr="/form/notebook/page[@id='accounting']/label[@name='vat_country']" position="replace" />
-    <xpath expr="/form/notebook/page[@id='accounting']/field[@name='vat_country']" position="replace" />
-    <xpath expr="/form/notebook/page[@id='accounting']/label[@name='vat_number']" position="replace" />
-    <xpath expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']" position="replace" />
 
     <!-- otros campos adicionales en General -->
     <xpath

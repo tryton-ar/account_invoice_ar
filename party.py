@@ -13,6 +13,48 @@ from actividades import CODES
 __all__ = ['Party', 'GetAFIPData', 'GetAFIPDataStart']
 
 
+TIPO_DOCUMENTO = [
+('0',  u'CI Policía Federal'),
+('1',  u'CI Buenos Aires'),
+('2',  u'CI Catamarca'),
+('3',  u'CI Córdoba'),
+('4',  u'CI Corrientes'),
+('5',  u'CI Entre Ríos'),
+('6',  u'CI Jujuy'),
+('7',  u'CI Mendoza'),
+('8',  u'CI La Rioja'),
+('9',  u'CI Salta'),
+('10', u'CI San Juan'),
+('11', u'CI San Luis'),
+('12', u'CI Santa Fe'),
+('13', u'CI Santiago del Estero'),
+('14', u'CI Tucumán'),
+('16', u'CI Chaco'),
+('17', u'CI Chubut'),
+('18', u'CI Formosa'),
+('19', u'CI Misiones'),
+('20', u'CI Neuquén'),
+('21', u'CI La Pampa'),
+('22', u'CI Río Negro'),
+('23', u'CI Santa Cruz'),
+('24', u'CI Tierra del Fuego'),
+('80', u'CUIT'),
+('86', u'CUIL'),
+('87', u'CDI'),
+('89', u'LE'),
+('90', u'LC'),
+('91', u'CI extranjera'),
+('92', u'en trámite'),
+('93', u'Acta nacimiento'),
+('94', u'Pasaporte'),
+('95', u'CI Bs. As. RNP'),
+('96', u'DNI'),
+('99', u'Sin identificar/venta global diaria'),
+('30', u'Certificado de Migración'),
+('88', u'Usado por Anses para Padrón'),
+]
+
+
 class Party(ModelSQL, ModelView):
     """Pary module, extended for account_invoice_ar"""
 
@@ -106,6 +148,19 @@ class Party(ModelSQL, ModelView):
             'readonly': ~Eval('active', True),
             },
         depends=['active'])
+
+    tipo_documento = fields.Selection(
+            TIPO_DOCUMENTO,
+            'Tipo documento',
+            states={
+                'readonly': ~Eval('active', True),
+                },
+            depends=['active'],
+            )
+
+    @staticmethod
+    def default_tipo_documento():
+        return '80'
 
     @staticmethod
     def default_vat_country():
