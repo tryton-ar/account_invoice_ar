@@ -40,7 +40,7 @@ requires.append('trytonspain_company_logo >= %s.%s, < %s.%s' %
 requires.append('vatnumber>=1.2')
 requires.append('M2Crypto>=0.22.3')
 requires.append('Pillow>=2.8.1')
-requires.append('PySimpleSOAP==1.16')
+requires.append('PySimpleSOAP==1.08.8')
 requires.append('httplib2>=0.9.1')
 requires.append('suds>=0.4')
 
