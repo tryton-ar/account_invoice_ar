@@ -894,7 +894,10 @@ class InvoiceReport(Report):
 
     @classmethod
     def _get_iibb_type(cls, company):
-        return company.party.iibb_type.upper()+' '+company.party.iibb_number
+        if company.party.iibb_type and company.party.iibb_number:
+            return company.party.iibb_type.upper()+' '+company.party.iibb_number
+        else:
+            return ''
 
     @classmethod
     def _get_pyafipws_barcode_img(cls, Invoice, invoice):
