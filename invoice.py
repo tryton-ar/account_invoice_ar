@@ -13,7 +13,7 @@ from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
 
-__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense', 
+__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
     'InvoiceReport']
 __metaclass__ = PoolMeta
 
@@ -856,13 +856,17 @@ class Invoice:
         imp_subtotal = imp_neto  # TODO: not allways the case!
         imp_trib = "0.00"
         imp_op_ex = "0.00"
+        if self.company.currency.rate == Decimal('1'):
+            ctz = 1 / self.currency.rate
+        else:
+            ctz = self.company.currency.rate / self.currency.rate
+
         if self.currency.code == 'ARS':
             moneda_id = "PES"
-            moneda_ctz = 1
         else:
-            moneda_id = {'USD':'DOL'}[self.currency.code]
-            ctz = 1 / self.currency.rate
-            moneda_ctz =  str("%.2f" % ctz)
+            moneda_id = {'USD':'DOL', 'EUR':'060'}[self.currency.code]
+
+        moneda_ctz =  str("%.2f" % ctz)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
@@ -1116,12 +1120,12 @@ class InvoiceReport:
 
         user = User(Transaction().user)
         report_context['company'] = user.company
-        report_context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice, 
+        report_context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
             invoice)
         report_context['condicion_iva'] = cls._get_condicion_iva(user.company)
         report_context['iibb_type'] = cls._get_iibb_type(user.company)
         report_context['vat_number'] = cls._get_vat_number(user.company)
-        report_context['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice, 
+        report_context['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice,
             invoice)
         report_context['nombre_comprobante'] = cls._get_nombre_comprobante(
             Invoice, invoice)
