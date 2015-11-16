@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<form string="Export License">
+    <label name="license_id"/>
+    <field name="license_id"/>
+    <label name="country" />
+    <field name="country" />
+</form>

@@ -13,6 +13,18 @@
             <field name="inherit" ref="account_invoice.invoice_view_tree"/>
             <field name="name">invoice_tree</field>
         </record>
+
+        <record model="ir.ui.view" id="invoice_export_license_view_tree">
+            <field name="model">account.invoice.export.license</field>
+            <field name="type">tree</field>
+            <field name="name">invoice_export_license_tree</field>
+        </record>
+        <record model="ir.ui.view" id="invoice_export_license_view_form">
+            <field name="model">account.invoice.export.license</field>
+            <field name="type">form</field>
+            <field name="name">invoice_export_license_form</field>
+        </record>
+
         <record model="ir.ui.view" id="afip_transaction_view_tree">
             <field name="model">account_invoice_ar.afip_transaction</field>
             <field name="type">tree</field>

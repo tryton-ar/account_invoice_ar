@@ -11,12 +11,13 @@ def register():
         Pos,
         PosSequence,
         Invoice,
+        InvoiceExportLicense,
         Company,
         AfipWSTransaction,
         Party,
+        AFIPVatCountry,
         Address,
         GetAFIPDataStart,
-        ActionReport,
         module='account_invoice_ar', type_='model')
     Pool.register(
         GetAFIPData,

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<form string="AFIP Vat Country">
+    <label name="vat_country" />
+    <field name="vat_country" />
+    <label name="vat_number" />
+    <field name="vat_number" />
+    <label name="type_code" />
+    <field name="type_code" />
+</form>

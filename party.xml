@@ -15,6 +15,35 @@ this repository contains the full copyright notices and license terms. -->
             <field name="name">party_form</field>
         </record>
 
+        <record model="ir.ui.view" id="party_afip_vat_country_view_form">
+            <field name="model">party.afip.vat.country</field>
+            <field name="type">form</field>
+            <field name="name">party_afip_vat_country_form</field>
+        </record>
+        <record model="ir.ui.view" id="party_afip_vat_country_view_tree">
+            <field name="model">party.afip.vat.country</field>
+            <field name="type">tree</field>
+            <field name="name">party_afip_vat_country_tree</field>
+            </record>
+        <record model="ir.action.act_window" id="act_party_afip_vat_country">
+            <field name="name">AFIP Vat Countries</field>
+            <field name="res_model">party.afip.vat.country</field>
+        </record>
+        <record model="ir.action.act_window.view" id="act_party_afip_vat_country_view1">
+            <field name="sequence" eval="10"/>
+            <field name="view" ref="party_afip_vat_country_view_tree"/>
+            <field name="act_window" ref="act_party_afip_vat_country"/>
+        </record>
+        <record model="ir.action.act_window.view" id="act_party_afip_vat_country_view2">
+            <field name="sequence" eval="20"/>
+            <field name="view" ref="party_afip_vat_country_view_form"/>
+            <field name="act_window" ref="act_party_afip_vat_country"/>
+        </record>
+        <menuitem parent="party.menu_configuration" sequence="50"
+            action="act_party_afip_vat_country" 
+            id="menu_party_afip_vat_country"/>
+
+
     <!-- wizard datos AFIP -->
     <record model="ir.action.wizard" id="wizard_get_afip_data">
       <field name="name">Get AFIP Data</field>

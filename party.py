@@ -2,7 +2,7 @@
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pyson import Bool, Eval, Equal, Not, And
-from trytond.pool   import Pool
+from trytond.pool   import Pool, PoolMeta
 from trytond.report import Report
 from trytond.transaction import Transaction
 from urllib2 import urlopen
@@ -10,7 +10,8 @@ from json import loads, dumps
 
 from actividades import CODES
 
-__all__ = ['Party', 'GetAFIPData', 'GetAFIPDataStart']
+__all__ = ['Party', 'AFIPVatCountry', 'GetAFIPData', 'GetAFIPDataStart']
+__metaclass__ = PoolMeta
 
 
 TIPO_DOCUMENTO = [
@@ -55,9 +56,7 @@ TIPO_DOCUMENTO = [
 ]
 
 
-class Party(ModelSQL, ModelView):
-    """Pary module, extended for account_invoice_ar"""
-
+class Party:
     __name__ = 'party.party'
 
     iva_condition = fields.Selection(
@@ -179,11 +178,21 @@ class Party(ModelSQL, ModelView):
 
         cls.vat_number.states['required'] = And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final')))
 
+        VAT_COUNTRIES = []
+        Country = Pool().get('country.country')
+        countries = Country.search([])
+        for country in countries:
+            VAT_COUNTRIES.append((country.code, country.name))
+        cls.vat_country.selection = VAT_COUNTRIES
+
     @classmethod
     def validate(cls, parties):
         for party in parties:
-            if party.iva_condition != u'consumidor_final' and bool(party.vat_number):
-                party.check_vat()
+            if party.vat_country == 'AR':
+                if party.iva_condition != u'consumidor_final' and bool(party.vat_number):
+                    party.check_vat()
+            else:
+                party.check_foreign_vat()
 
             if bool(party.vat_number) and bool(party.vat_country):
                 data = cls.search([('vat_number','=', party.vat_number),
@@ -192,11 +201,41 @@ class Party(ModelSQL, ModelView):
                 if len(data) != 1:
                     cls.raise_user_error('unique_vat_number')
 
+    def check_foreign_vat(self):
+        AFIPVatCountry = Pool().get('party.afip.vat.country')
+
+        if not self.vat_country:
+            return
+
+        vat_numbers = AFIPVatCountry.search([
+            ('vat_country.code', '=', self.vat_country),
+            ('vat_number', '=', self.vat_number),
+            ])
+        
+        if not vat_numbers:
+            self.raise_user_error('invalid_vat', {
+                    'vat': self.vat_number,
+                    'party': self.rec_name,
+                    })
+
     # Button de AFIP
     @classmethod
     @ModelView.button_action('account_invoice_ar.wizard_get_afip_data')
     def get_afip_data(cls, parties):
         pass
+
+
+class AFIPVatCountry(ModelSQL, ModelView):
+    'AFIP Vat Country'
+    __name__ = 'party.afip.vat.country'
+
+    vat_number = fields.Char('VAT Number')
+    vat_country = fields.Many2One('country.country', 'VAT Country')
+    type_code = fields.Selection([
+        ('0', 'Juridica'),
+        ('1', 'Fisica'),
+        ('2', 'Otro Tipo de Entidad'),
+        ], 'Type Code')
 
 
 class GetAFIPDataStart(ModelView):
@@ -232,6 +271,10 @@ class GetAFIPData(Wizard):
             activ  = afip_dict['actividades']
             activ1 = str(activ[0]) if len(activ) >= 1 else ''
             activ2 = str(activ[1]) if len(activ) >= 2 else ''
+            if activ1:
+                activ1 = activ1.rjust(6, '0')
+            if activ2:
+                activ2 = activ2.rjust(6, '0')
             res = {
                 'nombre': afip_dict['nombre'],
                 'direccion': afip_dict['domicilioFiscal']['direccion'],
