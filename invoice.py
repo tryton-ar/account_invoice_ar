@@ -13,7 +13,8 @@ from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
 
-__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceReport', 'ActionReport']
+__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
+    'InvoiceReport']
 __metaclass__ = PoolMeta
 
 _STATES = {
@@ -69,25 +70,6 @@ INCOTERMS = [
         ('DAT', 'Delivered At Terminal'),
         ('DAP', 'Delivered At Place'),
         ('DDP', 'Delivered Duty Paid'),
-]
-
-REL_TIPO_COMPROBANTE_AFIP = {
-    'fca': '001',
-    'tka': '081',
-    'fcb': '006',
-    'tkb': '082',
-    'fcc': '011',
-    'tkc': '111',
-}
-
-TIPO_COMPROBANTE_OLD = [
-    ('tka', u'Ticket A'),
-    ('tkb', u'Ticket B'),
-    ('tkc', u'Ticket C'),
-    ('fca', u'Factura A'),
-    ('fcb', u'Factura B'),
-    ('fcc', u'Factura C'),
-    ('', ''),
 ]
 
 TIPO_COMPROBANTE = [
@@ -180,6 +162,264 @@ TIPO_COMPROBANTE = [
     ('332', u'CERTIFICACION ELECTRONICA (GRANOS)'),
 ]
 
+PAIS_DESTINO = [
+    ('101', u'BURKINA FASO'),
+    ('102', u'ARGELIA'),
+    ('103', u'BOTSWANA'),
+    ('104', u'BURUNDI'),
+    ('105', u'CAMERUN'),
+    ('107', u'REP. CENTROAFRICANA.'),
+    ('108', u'CONGO'),
+    ('109', u'REP.DEMOCRAT.DEL CONGO EX ZAIRE'),
+    ('110', u'COSTA DE MARFIL'),
+    ('111', u'CHAD'),
+    ('112', u'BENIN'),
+    ('113', u'EGIPTO'),
+    ('115', u'GABON'),
+    ('116', u'GAMBIA'),
+    ('117', u'GHANA'),
+    ('118', u'GUINEA'),
+    ('119', u'GUINEA ECUATORIAL'),
+    ('120', u'KENYA'),
+    ('121', u'LESOTHO'),
+    ('122', u'LIBERIA'),
+    ('123', u'LIBIA'),
+    ('124', u'MADAGASCAR'),
+    ('125', u'MALAWI'),
+    ('126', u'MALI'),
+    ('127', u'MARRUECOS'),
+    ('128', u'MAURICIO,ISLAS'),
+    ('129', u'MAURITANIA'),
+    ('130', u'NIGER'),
+    ('131', u'NIGERIA'),
+    ('132', u'ZIMBABWE'),
+    ('133', u'RWANDA'),
+    ('134', u'SENEGAL'),
+    ('135', u'SIERRA LEONA'),
+    ('136', u'SOMALIA'),
+    ('137', u'SWAZILANDIA'),
+    ('138', u'SUDAN'),
+    ('139', u'TANZANIA'),
+    ('140', u'TOGO'),
+    ('141', u'TUNEZ'),
+    ('142', u'UGANDA'),
+    ('144', u'ZAMBIA'),
+    ('145', u'TERRIT.VINCULADOS AL R UNIDO'),
+    ('146', u'TERRIT.VINCULADOS A ESPAÑA'),
+    ('147', u'TERRIT.VINCULADOS A FRANCIA'),
+    ('149', u'ANGOLA'),
+    ('150', u'CABO VERDE'),
+    ('151', u'MOZAMBIQUE'),
+    ('152', u'SEYCHELLES'),
+    ('153', u'DJIBOUTI'),
+    ('155', u'COMORAS'),
+    ('156', u'GUINEA BISSAU'),
+    ('157', u'STO.TOME Y PRINCIPE'),
+    ('158', u'NAMIBIA'),
+    ('159', u'SUDAFRICA'),
+    ('160', u'ERITREA'),
+    ('161', u'ETIOPIA'),
+    ('197', u'RESTO (AFRICA)'),
+    ('198', u'INDETERMINADO (AFRICA)'),
+    ('200', u'ARGENTINA'),
+    ('201', u'BARBADOS'),
+    ('202', u'BOLIVIA'),
+    ('203', u'BRASIL'),
+    ('204', u'CANADA'),
+    ('205', u'COLOMBIA'),
+    ('206', u'COSTA RICA'),
+    ('207', u'CUBA'),
+    ('208', u'CHILE'),
+    ('209', u'REPÚBLICA DOMINICANA'),
+    ('210', u'ECUADOR'),
+    ('211', u'EL SALVADOR'),
+    ('212', u'ESTADOS UNIDOS'),
+    ('213', u'GUATEMALA'),
+    ('214', u'GUYANA'),
+    ('215', u'HAITI'),
+    ('216', u'HONDURAS'),
+    ('217', u'JAMAICA'),
+    ('218', u'MEXICO'),
+    ('219', u'NICARAGUA'),
+    ('220', u'PANAMA'),
+    ('221', u'PARAGUAY'),
+    ('222', u'PERU'),
+    ('223', u'PUERTO RICO'),
+    ('224', u'TRINIDAD Y TOBAGO'),
+    ('225', u'URUGUAY'),
+    ('226', u'VENEZUELA'),
+    ('227', u'TERRIT.VINCULADO AL R.UNIDO'),
+    ('228', u'TER.VINCULADOS A DINAMARCA'),
+    ('229', u'TERRIT.VINCULADOS A FRANCIA AMERIC.'),
+    ('230', u'TERRIT. HOLANDESES'),
+    ('231', u'TER.VINCULADOS A ESTADOS UNIDOS'),
+    ('232', u'SURINAME'),
+    ('233', u'DOMINICA'),
+    ('234', u'SANTA LUCIA'),
+    ('235', u'SAN VICENTE Y LAS GRANADINAS'),
+    ('236', u'BELICE'),
+    ('237', u'ANTIGUA Y BARBUDA'),
+    ('238', u'S.CRISTOBAL Y NEVIS'),
+    ('239', u'BAHAMAS'),
+    ('240', u'GRENADA'),
+    ('241', u'ANTILLAS HOLANDESAS'),
+    ('250', u'AAE Tierra del Fuego - ARGENTINA'),
+    ('251', u'ZF La Plata - ARGENTINA'),
+    ('252', u'ZF Justo Daract - ARGENTINA'),
+    ('253', u'ZF Río Gallegos - ARGENTINA'),
+    ('254', u'Islas Malvinas - ARGENTINA'),
+    ('255', u'ZF Tucumán - ARGENTINA'),
+    ('256', u'ZF Córdoba - ARGENTINA'),
+    ('257', u'ZF Mendoza - ARGENTINA'),
+    ('258', u'ZF General Pico - ARGENTINA'),
+    ('259', u'ZF Comodoro Rivadavia - ARGENTINA'),
+    ('260', u'ZF Iquique'),
+    ('261', u'ZF Punta Arenas'),
+    ('262', u'ZF Salta - ARGENTINA'),
+    ('263', u'ZF Paso de los Libres - ARGENTINA'),
+    ('264', u'ZF Puerto Iguazú - ARGENTINA'),
+    ('265', u'SECTOR ANTARTICO ARG.'),
+    ('270', u'ZF Colón - REPÚBLICA DE PANAMÁ'),
+    ('271', u'ZF Winner (Sta. C. de la Sierra) - BOLIVIA'),
+    ('280', u'ZF Colonia - URUGUAY'),
+    ('281', u'ZF Florida - URUGUAY'),
+    ('282', u'ZF Libertad - URUGUAY'),
+    ('283', u'ZF Zonamerica - URUGUAY'),
+    ('284', u'ZF Nueva Helvecia - URUGUAY'),
+    ('285', u'ZF Nueva Palmira - URUGUAY'),
+    ('286', u'ZF Río Negro - URUGUAY'),
+    ('287', u'ZF Rivera - URUGUAY'),
+    ('288', u'ZF San José - URUGUAY'),
+    ('291', u'ZF Manaos - BRASIL'),
+    ('295', u'MAR ARG ZONA ECO.EX'),
+    ('296', u'RIOS ARG NAVEG INTER'),
+    ('297', u'RESTO AMERICA'),
+    ('298', u'INDETERMINADO (AMERICA)'),
+    ('301', u'AFGANISTAN'),
+    ('302', u'ARABIA SAUDITA'),
+    ('303', u'BAHREIN'),
+    ('304', u'MYANMAR (EX-BIRMANIA)'),
+    ('305', u'BUTAN'),
+    ('306', u'CAMBODYA (EX-KAMPUCHE)'),
+    ('307', u'SRI LANKA'),
+    ('308', u'COREA DEMOCRATICA'),
+    ('309', u'COREA REPUBLICANA'),
+    ('310', u'CHINA'),
+    ('312', u'FILIPINAS'),
+    ('313', u'TAIWAN'),
+    ('315', u'INDIA'),
+    ('316', u'INDONESIA'),
+    ('317', u'IRAK'),
+    ('318', u'IRAN'),
+    ('319', u'ISRAEL'),
+    ('320', u'JAPON'),
+    ('321', u'JORDANIA'),
+    ('322', u'QATAR'),
+    ('323', u'KUWAIT'),
+    ('324', u'LAOS'),
+    ('325', u'LIBANO'),
+    ('326', u'MALASIA'),
+    ('327', u'MALDIVAS ISLAS'),
+    ('328', u'OMAN'),
+    ('329', u'MONGOLIA'),
+    ('330', u'NEPAL'),
+    ('331', u'EMIRATOS ARABES UNIDOS'),
+    ('332', u'PAKISTÁN'),
+    ('333', u'SINGAPUR'),
+    ('334', u'SIRIA'),
+    ('335', u'THAILANDIA'),
+    ('337', u'VIETNAM'),
+    ('341', u'HONG KONG'),
+    ('344', u'MACAO'),
+    ('345', u'BANGLADESH'),
+    ('346', u'BRUNEI'),
+    ('348', u'REPUBLICA DE YEMEN'),
+    ('349', u'ARMENIA'),
+    ('350', u'AZERBAIJAN'),
+    ('351', u'GEORGIA'),
+    ('352', u'KAZAJSTAN'),
+    ('353', u'KIRGUIZISTAN'),
+    ('354', u'TAYIKISTAN'),
+    ('355', u'TURKMENISTAN'),
+    ('356', u'UZBEKISTAN'),
+    ('357', u'TERR. AU. PALESTINOS'),
+    ('397', u'RESTO DE ASIA'),
+    ('398', u'INDET.(ASIA)'),
+    ('401', u'ALBANIA'),
+    ('404', u'ANDORRA'),
+    ('405', u'AUSTRIA'),
+    ('406', u'BELGICA'),
+    ('407', u'BULGARIA'),
+    ('409', u'DINAMARCA'),
+    ('410', u'ESPAÑA'),
+    ('411', u'FINLANDIA'),
+    ('412', u'FRANCIA'),
+    ('413', u'GRECIA'),
+    ('414', u'HUNGRIA'),
+    ('415', u'IRLANDA'),
+    ('416', u'ISLANDIA'),
+    ('417', u'ITALIA'),
+    ('418', u'LIECHTENSTEIN'),
+    ('419', u'LUXEMBURGO'),
+    ('420', u'MALTA'),
+    ('421', u'MONACO'),
+    ('422', u'NORUEGA'),
+    ('423', u'PAISES BAJOS'),
+    ('424', u'POLONIA'),
+    ('425', u'PORTUGAL'),
+    ('426', u'REINO UNIDO'),
+    ('427', u'RUMANIA'),
+    ('428', u'SAN MARINO'),
+    ('429', u'SUECIA'),
+    ('430', u'SUIZA'),
+    ('431', u'VATICANO(SANTA SEDE)'),
+    ('433', u'POS.BRIT.(EUROPA)'),
+    ('435', u'CHIPRE'),
+    ('436', u'TURQUIA'),
+    ('438', u'ALEMANIA,REP.FED.'),
+    ('439', u'BIELORRUSIA'),
+    ('440', u'ESTONIA'),
+    ('441', u'LETONIA'),
+    ('442', u'LITUANIA'),
+    ('443', u'MOLDAVIA'),
+    ('444', u'RUSIA'),
+    ('445', u'UCRANIA'),
+    ('446', u'BOSNIA HERZEGOVINA'),
+    ('447', u'CROACIA'),
+    ('448', u'ESLOVAQUIA'),
+    ('449', u'ESLOVENIA'),
+    ('450', u'MACEDONIA'),
+    ('451', u'REP. CHECA'),
+    ('453', u'MONTENEGRO'),
+    ('454', u'SERBIA'),
+    ('497', u'RESTO EUROPA'),
+    ('498', u'INDET.(EUROPA)'),
+    ('501', u'AUSTRALIA'),
+    ('503', u'NAURU'),
+    ('504', u'NUEVA ZELANDIA'),
+    ('505', u'VANATU'),
+    ('506', u'SAMOA OCCIDENTAL'),
+    ('507', u'TERRITORIO VINCULADOS A AUSTRALIA'),
+    ('508', u'TERRITORIOS VINCULADOS AL R. UNIDO'),
+    ('509', u'TERRITORIOS VINCULADOS A FRANCIA'),
+    ('510', u'TER VINCULADOS A NUEVA. ZELANDA'),
+    ('511', u'TER. VINCULADOS A ESTADOS UNIDOS'),
+    ('512', u'FIJI, ISLAS'),
+    ('513', u'PAPUA NUEVA GUINEA'),
+    ('514', u'KIRIBATI, ISLAS'),
+    ('515', u'MICRONESIA,EST.FEDER'),
+    ('516', u'PALAU'),
+    ('517', u'TUVALU'),
+    ('518', u'SALOMON,ISLAS'),
+    ('519', u'TONGA'),
+    ('520', u'MARSHALL,ISLAS'),
+    ('521', u'MARIANAS,ISLAS'),
+    ('597', u'RESTO OCEANIA'),
+    ('598', u'INDET.(OCEANIA)'),
+    ('997', u'RESTO CONTINENTE'),
+    ('998', u'INDET.(CONTINENTE)'),
+]
+
 
 class AfipWSTransaction(ModelSQL, ModelView):
     'AFIP WS Transaction'
@@ -249,13 +489,14 @@ class Invoice:
        states={
             'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
             'readonly': Eval('state') != 'draft',
-            'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
             }, depends=['state', 'type']
        )
     pyafipws_incoterms = fields.Selection(
         INCOTERMS,
         'Incoterms',
     )
+    pyafipws_licenses = fields.One2Many('account.invoice.export.license',
+       'invoice', 'Export Licenses')
 
     @classmethod
     def __setup__(cls):
@@ -339,9 +580,9 @@ class Invoice:
         PosSequence = Pool().get('account.pos.sequence')
 
         if not self.pos:
-            return {'invoice_type': None}
+            self.invoice_type = None
+            return
 
-        res = {}
         client_iva = company_iva = None
         if self.party:
             client_iva = self.party.iva_condition
@@ -363,6 +604,8 @@ class Invoice:
                 kind = 'E'
         else:
             kind = 'C'
+            if self.party.vat_country != 'AR':
+                kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
             (self.type, kind)
@@ -376,12 +619,62 @@ class Invoice:
         elif len(sequences) > 1:
             self.raise_user_error('too_many_sequences', invoice_type_desc)
         else:
+            self.invoice_type = sequences[0].id
+
+    def _credit(self):
+        pool = Pool()
+        PosSequence = pool.get('account.pos.sequence')
+        Party = pool.get('party.party')
+        Company = pool.get('company.company')
+
+        res = super(Invoice, self)._credit()
+
+        res['pos'] = getattr(self, 'pos').id
+
+        party = Party(res['party'])
+        company = Company(res['company'])
+
+        client_iva = company_iva = None
+        client_iva = party.iva_condition
+        company_iva = company.party.iva_condition
+
+        if company_iva == 'responsable_inscripto':
+            if client_iva is None:
+                return res
+            if client_iva == 'responsable_inscripto':
+                kind = 'A'
+            elif client_iva == 'consumidor_final':
+                kind = 'B'
+            elif party.vat_country is None:
+                self.raise_user_error('unknown_country')
+            elif party.vat_country == u'AR':
+                kind = 'B'
+            else:
+                kind = 'E'
+        else:
+            kind = 'C'
+
+        invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
+            (res['type'], kind)
+            ]
+        sequences = PosSequence.search([
+            ('pos', '=', res['pos']),
+            ('invoice_type', '=', invoice_type)
+            ])
+        if len(sequences) == 0:
+            self.raise_user_error('missing_sequence', invoice_type_desc)
+        elif len(sequences) > 1:
+            self.raise_user_error('too_many_sequences', invoice_type_desc)
+        else:
             res['invoice_type'] = sequences[0].id
 
         return res
 
     def set_number(self):
         super(Invoice, self).set_number()
+
+        if self.number:
+            return
 
         if self.type == 'out_invoice' or self.type == 'out_credit_note':
             vals = {}
@@ -563,13 +856,17 @@ class Invoice:
         imp_subtotal = imp_neto  # TODO: not allways the case!
         imp_trib = "0.00"
         imp_op_ex = "0.00"
+        if self.company.currency.rate == Decimal('1'):
+            ctz = 1 / self.currency.rate
+        else:
+            ctz = self.company.currency.rate / self.currency.rate
+
         if self.currency.code == 'ARS':
             moneda_id = "PES"
-            moneda_ctz = 1
         else:
-            moneda_id = {'USD':'DOL'}[self.currency.code]
-            ctz = 1 / self.currency.rate
-            moneda_ctz =  str("%.2f" % ctz)
+            moneda_id = {'USD':'DOL', 'EUR':'060'}[self.currency.code]
+
+        moneda_ctz =  str("%.2f" % ctz)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
@@ -713,6 +1010,11 @@ class Invoice:
                     ws.AgregarItem(codigo, ds, qty, umed, precio, importe_total,
                                    bonif)
 
+            if service == 'wsfex':
+                for export_license in self.pyafipws_licenses:
+                    ws.AgregarPermiso(
+                        export_license.license_id, export_license.country)
+
         # Request the authorization! (call the AFIP webservice method)
         try:
             if service == 'wsfe':
@@ -795,34 +1097,49 @@ class Invoice:
         return str(digito)
 
 
+class InvoiceExportLicense(ModelSQL, ModelView):
+    'Invoice Export License'
+    __name__ = 'account.invoice.export.license'
 
-class InvoiceReport(Report):
+    invoice = fields.Many2One('account.invoice', 'Invoice', ondelete='CASCADE')
+    license_id = fields.Char('License Id', required=True)
+    country = fields.Selection(PAIS_DESTINO, 'Country', required=True)
+
+
+class InvoiceReport:
     __name__ = 'account.invoice'
 
     @classmethod
-    def parse(cls, report, records, data, localcontext):
+    def get_context(cls, records, data):
         pool = Pool()
         User = pool.get('res.user')
         Invoice = pool.get('account.invoice')
 
+        report_context = super(InvoiceReport, cls).get_context(records, data)
         invoice = records[0]
 
         user = User(Transaction().user)
-        localcontext['company'] = user.company
-        localcontext['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice, invoice)
-        localcontext['condicion_iva'] = cls._get_condicion_iva(user.company)
-        localcontext['iibb_type'] = cls._get_iibb_type(user.company)
-        localcontext['vat_number'] = cls._get_vat_number(user.company)
-        localcontext['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice, invoice)
-        localcontext['nombre_comprobante'] = cls._get_nombre_comprobante(Invoice, invoice)
-        localcontext['codigo_comprobante'] = cls._get_codigo_comprobante(Invoice, invoice)
-        localcontext['condicion_iva_cliente'] = cls._get_condicion_iva_cliente(Invoice, invoice)
-        localcontext['vat_number_cliente'] = cls._get_vat_number_cliente(Invoice, invoice)
-        localcontext['invoice_impuestos'] = cls._get_invoice_impuestos(Invoice, invoice)
-        localcontext['show_tax'] = cls._show_tax(Invoice, invoice)
-        localcontext['get_line_amount'] = cls.get_line_amount
-        return super(InvoiceReport, cls).parse(report, records, data,
-                localcontext=localcontext)
+        report_context['company'] = user.company
+        report_context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
+            invoice)
+        report_context['condicion_iva'] = cls._get_condicion_iva(user.company)
+        report_context['iibb_type'] = cls._get_iibb_type(user.company)
+        report_context['vat_number'] = cls._get_vat_number(user.company)
+        report_context['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice,
+            invoice)
+        report_context['nombre_comprobante'] = cls._get_nombre_comprobante(
+            Invoice, invoice)
+        report_context['codigo_comprobante'] = cls._get_codigo_comprobante(
+            Invoice, invoice)
+        report_context['condicion_iva_cliente'] = \
+            cls._get_condicion_iva_cliente(Invoice, invoice)
+        report_context['vat_number_cliente'] = cls._get_vat_number_cliente(
+            Invoice, invoice)
+        report_context['invoice_impuestos'] = cls._get_invoice_impuestos(
+            Invoice, invoice)
+        report_context['show_tax'] = cls._show_tax(Invoice, invoice)
+        report_context['get_line_amount'] = cls.get_line_amount
+        return report_context
 
     @classmethod
     def get_line_amount(self,tipo_comprobante, line_amount, line_taxes):
@@ -917,16 +1234,3 @@ class InvoiceReport(Report):
         image = buffer(output.getvalue())
         output.close()
         return image
-
-class ActionReport:
-    "Action report"
-    __name__ = 'ir.action.report'
-
-    @classmethod
-    def check_xml_record(cls, records, values):
-        "check_xml_record. If model == account.invoice, return True"
-
-        for record in records:
-            if record.report_name == 'account.invoice':
-                print "check_xml_record. account.invoice"
-                return True

@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<tree string="AFIP Vat Country">
+    <field name="vat_country" />
+    <field name="vat_number" />
+    <field name="type_code" />
+</tree>
