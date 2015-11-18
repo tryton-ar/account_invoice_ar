@@ -591,7 +591,7 @@ class Invoice:
 
         if company_iva == 'responsable_inscripto':
             if client_iva is None:
-                return res
+                return
             if client_iva == 'responsable_inscripto':
                 kind = 'A'
             elif client_iva == 'consumidor_final':

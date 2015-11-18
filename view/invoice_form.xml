@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <data>
     <xpath expr="/form/notebook/page[@id='payment']" position="after">
-        <page string="Factura Electronica Argentina" id="electronic_invoice">
+        <page string="Factura Electronica Argentina" id="electronic_invoice"
+            states="{'invisible': Eval('type').in_(['in_invoice', 'in_credit_note'])}"
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
             <newline/>
@@ -20,7 +21,8 @@
         </page>
     </xpath>
     <xpath expr="/form/notebook/page[@id='electronic_invoice']" position="after">
-        <page string="Factura Electronica Incoterms" id="electronic_invoice_incoterms">
+        <page string="Factura Electronica Incoterms" id="electronic_invoice_incoterms"
+            states="{'invisible': Eval('type').in_(['in_invoice', 'in_credit_note'])}"
             <label name="pyafipws_incoterms"/>
             <field name="pyafipws_incoterms"/>
             <field name="pyafipws_licenses" colspan="4"/>

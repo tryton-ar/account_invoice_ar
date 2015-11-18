@@ -1,16 +1,20 @@
 #! -*- coding: utf8 -*-
+import stdnum.ar.cuit as cuit
+import stdnum.eu.vat as vat
+import stdnum.exceptions
+
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pyson import Bool, Eval, Equal, Not, And
 from trytond.pool   import Pool, PoolMeta
-from trytond.report import Report
 from trytond.transaction import Transaction
 from urllib2 import urlopen
 from json import loads, dumps
 
 from actividades import CODES
 
-__all__ = ['Party', 'AFIPVatCountry', 'GetAFIPData', 'GetAFIPDataStart']
+__all__ = ['Party', 'PartyIdentifier', 'AFIPVatCountry', 'GetAFIPData',
+    'GetAFIPDataStart']
 __metaclass__ = PoolMeta
 
 
@@ -54,6 +58,7 @@ TIPO_DOCUMENTO = [
 ('30', u'Certificado de Migración'),
 ('88', u'Usado por Anses para Padrón'),
 ]
+VAT_COUNTRIES = [('', '')]
 
 
 class Party:
@@ -156,14 +161,15 @@ class Party:
                 },
             depends=['active'],
             )
+    vat_number = fields.Function(fields.Char('CUIT'), 'get_vat_number',
+            searcher='search_vat_number')
+    vat_number_afip_foreign = fields.Function(fields.Char('CUIT AFIP Foreign'),
+            'get_vat_number_afip_foreign', searcher='search_vat_number_afip_foreign')
+
 
     @staticmethod
     def default_tipo_documento():
         return '80'
-
-    @staticmethod
-    def default_vat_country():
-        return 'AR'
 
     @classmethod
     def __setup__(cls):
@@ -171,13 +177,64 @@ class Party:
         cls._buttons.update({
             'get_afip_data': {},
         })
+
+    @classmethod
+    def _vat_types(cls):
+        vat_types = super(PartyIdentifier, cls)._vat_types()
+        vat_types.append('ar_cuit')
+        vat_types.append('ar_foreign')
+        return vat_types
+
+    def get_vat_number(self, name):
+        for identifier in self.identifiers:
+            if identifier.type == 'ar_cuit':
+                return identifier.code
+
+    @classmethod
+    def search_vat_number(cls, name, clause):
+        return [
+            ('identifiers.code',) + tuple(clause[1:]),
+            ('identifiers.type', '=', 'ar_cuit'),
+            ]
+
+    def get_vat_number_afip_foreign(self, name):
+        for identifier in self.identifiers:
+            if identifier.type == 'ar_foreign':
+                return identifier.code
+
+    @classmethod
+    def search_vat_number_afip_foreign(cls, name, clause):
+        return [
+            ('identifiers.code',) + tuple(clause[1:]),
+            ('identifiers.type', '=', 'ar_foreign'),
+            ]
+
+    # Button de AFIP
+    @classmethod
+    @ModelView.button_action('account_invoice_ar.wizard_get_afip_data')
+    def get_afip_data(cls, parties):
+        pass
+
+
+class PartyIdentifier:
+    __name__ = 'party.identifier'
+
+    vat_country = fields.Selection(VAT_COUNTRIES, 'VAT Country', states={
+        'invisible': ~Eval('type', 'ar_foreign'),
+        },
+        depends=['type'], translate=False)
+
+    @staticmethod
+    def default_vat_country():
+        return ''
+
+    @classmethod
+    def __setup__(cls):
+        super(PartyIdentifier, cls).__setup__()
         cls._error_messages.update({
-            'unique_vat_number': 'The VAT number must be unique in each country.',
+            'unique_vat_number': 'The VAT number must be unique in each Country.',
             'vat_number_not_found': 'El CUIT no ha sido encontrado',
-        })
-
-        cls.vat_number.states['required'] = And(Bool(Eval('vat_country')), Not(Equal(Eval('iva_condition'), 'consumidor_final')))
-
+            })
         VAT_COUNTRIES = []
         Country = Pool().get('country.country')
         countries = Country.search([])
@@ -186,20 +243,44 @@ class Party:
         cls.vat_country.selection = VAT_COUNTRIES
 
     @classmethod
-    def validate(cls, parties):
-        for party in parties:
-            if party.vat_country == 'AR':
-                if party.iva_condition != u'consumidor_final' and bool(party.vat_number):
-                    party.check_vat()
-            else:
-                party.check_foreign_vat()
+    def get_types(cls):
+        types = super(PartyIdentifier, cls).get_types()
+        types.append(('ar_cuit', 'CUIT'))
+        types.append(('ar_foreign', 'CUIT AFIP Foreign'))
+        return types
 
-            if bool(party.vat_number) and bool(party.vat_country):
-                data = cls.search([('vat_number','=', party.vat_number),
-                                   ('vat_country','=', party.vat_country),
-                                   ])
+    @fields.depends('type', 'code')
+    def on_change_with_code(self):
+        code = super(PartyIdentifier, self).on_change_with_code()
+        if self.type == 'ar_cuit':
+            try:
+                return cuit.compact(code)
+            except stdnum.exceptions.ValidationError:
+                pass
+        return code
+
+    @classmethod
+    def validate(cls, identifiers):
+        super(PartyIdentifier, cls).validate(identifiers)
+        for identifier in identifiers:
+            identifier.check_code()
+            if bool(identifier.code):
+                data = cls.search([
+                    ('code','=', identifier.code),
+                    ])
                 if len(data) != 1:
                     cls.raise_user_error('unique_vat_number')
+
+    def check_code(self):
+        super(PartyIdentifier, self).check_code()
+        if self.type == 'ar_cuit':
+            if not cuit.is_valid(self.code):
+                self.raise_user_error('invalid_vat', {
+                        'code': self.code,
+                        'party': self.party.rec_name,
+                        })
+        elif self.type == 'ar_foreign':
+            self.check_foreign_vat()
 
     def check_foreign_vat(self):
         AFIPVatCountry = Pool().get('party.afip.vat.country')
@@ -211,18 +292,12 @@ class Party:
             ('vat_country.code', '=', self.vat_country),
             ('vat_number', '=', self.vat_number),
             ])
-        
+
         if not vat_numbers:
             self.raise_user_error('invalid_vat', {
-                    'vat': self.vat_number,
-                    'party': self.rec_name,
-                    })
-
-    # Button de AFIP
-    @classmethod
-    @ModelView.button_action('account_invoice_ar.wizard_get_afip_data')
-    def get_afip_data(cls, parties):
-        pass
+                'vat': self.vat_number,
+                'party': self.rec_name,
+                })
 
 
 class AFIPVatCountry(ModelSQL, ModelView):
