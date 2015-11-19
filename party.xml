@@ -10,7 +10,7 @@ this repository contains the full copyright notices and license terms. -->
         </record>
         <record model="ir.ui.view" id="identifier_form">
             <field name="model">party.identifier</field>
-            <field name="type">form</field>
+            <field name="inherit" ref="party.identifier_form"/>
             <field name="name">identifier_form</field>
         </record>
         <record model="ir.ui.view" id="identifier_list">

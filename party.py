@@ -227,9 +227,9 @@ class PartyIdentifier:
             'unique_vat_number': 'The VAT number must be unique in each Country.',
             'vat_number_not_found': 'El CUIT no ha sido encontrado',
             })
-        VAT_COUNTRIES = []
+        VAT_COUNTRIES = [('', '')]
         Country = Pool().get('country.country')
-        countries = Country.search([])
+        countries = Country.search([('code', '!=', 'AR')])
         for country in countries:
             VAT_COUNTRIES.append((country.code, country.name))
         cls.vat_country.selection = VAT_COUNTRIES
@@ -256,7 +256,7 @@ class PartyIdentifier:
         super(PartyIdentifier, cls).validate(identifiers)
         for identifier in identifiers:
             identifier.check_code()
-            if bool(identifier.code):
+            if bool(identifier.code) and bool(identifier.vat_country) == False:
                 data = cls.search([
                     ('code','=', identifier.code),
                     ])
@@ -281,14 +281,14 @@ class PartyIdentifier:
             return
 
         vat_numbers = AFIPVatCountry.search([
-            ('vat_country.code', '=', self.vat_country),
-            ('vat_number', '=', self.vat_number),
+            ('vat_country', '=', self.vat_country),
+            ('vat_number', '=', self.code),
             ])
 
         if not vat_numbers:
             self.raise_user_error('invalid_vat', {
-                'vat': self.vat_number,
-                'party': self.rec_name,
+                'code': self.code,
+                'party': self.party.rec_name,
                 })
 
 
