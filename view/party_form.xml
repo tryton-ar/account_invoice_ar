@@ -17,7 +17,7 @@
         <label name="iva_condition"/>
         <field name="iva_condition"/>
         <label name="vat_number_afip_foreign"/>
-        <field name="vat_number_afip_foreing"/>
+        <field name="vat_number_afip_foreign"/>
     </xpath>
 
     <!-- otros campos adicionales en General -->

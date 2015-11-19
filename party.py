@@ -1,6 +1,5 @@
 #! -*- coding: utf8 -*-
 import stdnum.ar.cuit as cuit
-import stdnum.eu.vat as vat
 import stdnum.exceptions
 
 from trytond.model import ModelView, ModelSQL, fields
@@ -76,7 +75,7 @@ class Party:
             'Condicion ante el IVA',
             states={
                 'readonly': ~Eval('active', True),
-                'required': Equal(Eval('vat_country'), 'AR'),
+                #'required': Equal(Eval('vat_country'), 'AR'),
                 },
             depends=['active'],
             )
@@ -178,13 +177,6 @@ class Party:
             'get_afip_data': {},
         })
 
-    @classmethod
-    def _vat_types(cls):
-        vat_types = super(PartyIdentifier, cls)._vat_types()
-        vat_types.append('ar_cuit')
-        vat_types.append('ar_foreign')
-        return vat_types
-
     def get_vat_number(self, name):
         for identifier in self.identifiers:
             if identifier.type == 'ar_cuit':
@@ -220,7 +212,7 @@ class PartyIdentifier:
     __name__ = 'party.identifier'
 
     vat_country = fields.Selection(VAT_COUNTRIES, 'VAT Country', states={
-        'invisible': ~Eval('type', 'ar_foreign'),
+        'invisible': ~Equal(Eval('type'), 'ar_foreign'),
         },
         depends=['type'], translate=False)
 
