@@ -83,7 +83,7 @@ class Party:
             'Condicion ante el IVA',
             states={
                 'readonly': ~Eval('active', True),
-                #'required': Equal(Eval('vat_country'), 'AR'),
+                'required': Bool(Eval('vat_number')),
                 },
             depends=['active'],
             )
@@ -168,10 +168,14 @@ class Party:
                 },
             depends=['active'],
             )
-    vat_number = fields.Function(fields.Char('CUIT'), 'get_vat_number',
-            setter='set_vat_number', searcher='search_vat_number')
+    vat_number = fields.Function(fields.Char('CUIT', states={
+        'readonly': ~Eval('active', True),
+        'required': ~Equal(Eval('iva_condition'), 'consumidor_final'),
+        }, depends=['active', 'iva_condition']),
+        'get_vat_number', setter='set_vat_number', searcher='search_vat_number')
     vat_number_afip_foreign = fields.Function(fields.Char('CUIT AFIP Foreign'),
-            'get_vat_number_afip_foreign', searcher='search_vat_number_afip_foreign')
+            'get_vat_number_afip_foreign',
+            searcher='search_vat_number_afip_foreign')
 
 
     @staticmethod
