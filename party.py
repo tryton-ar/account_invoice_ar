@@ -1,16 +1,15 @@
 #! -*- coding: utf8 -*-
 import stdnum.ar.cuit as cuit
 import stdnum.exceptions
+from urllib2 import urlopen
+from json import loads, dumps
+from actividades import CODES
 
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.wizard import Wizard, StateView, StateTransition, Button
-from trytond.pyson import Bool, Eval, Equal, Not, And
-from trytond.pool   import Pool, PoolMeta
+from trytond.pyson import Bool, Eval, Equal, Not, And, In
+from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
-from urllib2 import urlopen
-from json import loads, dumps
-
-from actividades import CODES
 
 __all__ = ['Party', 'PartyIdentifier', 'AFIPVatCountry', 'GetAFIPData',
     'GetAFIPDataStart']
@@ -170,13 +169,12 @@ class Party:
             )
     vat_number = fields.Function(fields.Char('CUIT', states={
         'readonly': ~Eval('active', True),
-        'required': ~Equal(Eval('iva_condition'), 'consumidor_final'),
+        'required': ~In(Eval('iva_condition'), ['consumidor_final', 'no_alcanzado']),
         }, depends=['active', 'iva_condition']),
         'get_vat_number', setter='set_vat_number', searcher='search_vat_number')
     vat_number_afip_foreign = fields.Function(fields.Char('CUIT AFIP Foreign'),
             'get_vat_number_afip_foreign',
             searcher='search_vat_number_afip_foreign')
-
 
     @staticmethod
     def default_tipo_documento():
@@ -367,7 +365,7 @@ class GetAFIPData(Wizard):
             afip_json = self.get_json(party.vat_number)
             afip_dict = loads(afip_json)
             print "   >>> got json:\n" + dumps(afip_dict)
-            if afip_dict['success'] == True:
+            if afip_dict['success'] is True:
                 afip_dict = afip_dict['data']
             else:
                 self.raise_user_error('vat_number_not_found')
@@ -428,7 +426,7 @@ class GetAFIPData(Wizard):
             self._update_direccion(direccion, party, self.start)
 
         afip_dict = loads(self.start.afip_data)['data']
-        mt = afip_dict.get('categoriasMonotributo',{})
+        mt = afip_dict.get('categoriasMonotributo', {})
         impuestos = afip_dict.get("impuestos", [])
 
         if 32 in impuestos:
