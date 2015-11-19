@@ -3,18 +3,21 @@
 this repository contains the full copyright notices and license terms. -->
 <tryton>
     <data>
-
-        <!--    <record model="ir.ui.view" id="party_view_tree">
-            <field name="model">party.party</field>
-            <field name="inherit" ref="party.party_view_tree"/>
-            <field name="name">party_tree</field>
-        </record> -->
         <record model="ir.ui.view" id="party_view_form">
             <field name="model">party.party</field>
             <field name="inherit" ref="party.party_view_form"/>
             <field name="name">party_form</field>
         </record>
-
+        <record model="ir.ui.view" id="identifier_form">
+            <field name="model">party.identifier</field>
+            <field name="inherit" ref="party.identifier_form"/>
+            <field name="name">identifier_form</field>
+        </record>
+        <record model="ir.ui.view" id="identifier_list">
+            <field name="model">party.identifier</field>
+            <field name="type">tree</field>
+            <field name="name">identifier_list</field>
+        </record>
         <record model="ir.ui.view" id="party_afip_vat_country_view_form">
             <field name="model">party.afip.vat.country</field>
             <field name="type">form</field>
@@ -29,6 +32,17 @@ this repository contains the full copyright notices and license terms. -->
             <field name="name">AFIP Vat Countries</field>
             <field name="res_model">party.afip.vat.country</field>
         </record>
+        <!-- wizard datos AFIP -->
+        <record model="ir.action.wizard" id="wizard_get_afip_data">
+            <field name="name">Get AFIP Data</field>
+            <field name="wiz_name">party.get_afip_data</field>
+            <field name="model">party.party</field>
+        </record>
+        <record model="ir.ui.view" id="get_afip_data_start_view">
+            <field name="model">party.get_afip_data.start</field>
+            <field name="type">form</field>
+            <field name="name">get_afip_data_start_view</field>
+        </record>
         <record model="ir.action.act_window.view" id="act_party_afip_vat_country_view1">
             <field name="sequence" eval="10"/>
             <field name="view" ref="party_afip_vat_country_view_tree"/>
@@ -42,19 +56,5 @@ this repository contains the full copyright notices and license terms. -->
         <menuitem parent="party.menu_configuration" sequence="50"
             action="act_party_afip_vat_country" 
             id="menu_party_afip_vat_country"/>
-
-
-    <!-- wizard datos AFIP -->
-    <record model="ir.action.wizard" id="wizard_get_afip_data">
-      <field name="name">Get AFIP Data</field>
-      <field name="wiz_name">party.get_afip_data</field>
-      <field name="model">party.party</field>
-    </record>
-    <record model="ir.ui.view" id="get_afip_data_start_view">
-      <field name="model">party.get_afip_data.start</field>
-      <field name="type">form</field>
-      <field name="name">get_afip_data_start_view</field>
-    </record>
-
     </data>
 </tryton>

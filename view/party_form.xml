@@ -6,15 +6,18 @@
         <button name="get_afip_data" string="AFIP" icon="tryton-connect"/>
     </xpath>
 
-    <xpath
-        expr="/form/notebook/page[@id='accounting']/field[@name='vat_number']"
-        position="after">
-        <separator string="Informacion Fiscal" colspan="4" id="informacion_fiscal"/>
+    <!-- agregar cuit y tipo al encabezado -->
+    <xpath expr="/form/group[@id='checkboxes']" position="after">
+        <newline/>
         <label name="tipo_documento"/>
         <field name="tipo_documento"/>
+        <label name="vat_number"/>
+        <field name="vat_number"/>
+        <newline/>
         <label name="iva_condition"/>
         <field name="iva_condition"/>
-        <newline/>
+        <label name="vat_number_afip_foreign"/>
+        <field name="vat_number_afip_foreign"/>
     </xpath>
 
     <!-- otros campos adicionales en General -->

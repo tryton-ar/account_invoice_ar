@@ -530,8 +530,8 @@ class Invoice:
                     '"%(party)s" is missing.'),
             'not_invoice_type':
                 u'El campo «Tipo de factura» en «Factura» es requerido.',
-            'change_sale_configuration':
-                u'Se debe cambiar la configuracion de la venta para procesar la factura de forma Manual.',
+            'missing_currency_rate':
+                u'Debe configurar la cotización de la moneda.',
             'missing_pyafipws_incoterms':
                 u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
             })
@@ -591,20 +591,18 @@ class Invoice:
 
         if company_iva == 'responsable_inscripto':
             if client_iva is None:
-                return res
+                return
             if client_iva == 'responsable_inscripto':
                 kind = 'A'
             elif client_iva == 'consumidor_final':
                 kind = 'B'
-            elif self.party.vat_country is None:
-                self.raise_user_error('unknown_country')
-            elif self.party.vat_country == u'AR':
+            elif self.party.vat_number: # CUIT Argentino
                 kind = 'B'
             else:
                 kind = 'E'
         else:
             kind = 'C'
-            if self.party.vat_country != 'AR':
+            if self.party.vat_number_afip_foreign: # Identificador AFIP Foraneo
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
@@ -645,14 +643,14 @@ class Invoice:
                 kind = 'A'
             elif client_iva == 'consumidor_final':
                 kind = 'B'
-            elif party.vat_country is None:
-                self.raise_user_error('unknown_country')
-            elif party.vat_country == u'AR':
+            elif party.vat_number:
                 kind = 'B'
             else:
                 kind = 'E'
         else:
             kind = 'C'
+            if self.party.vat_number_afip_foreign: # Identificador AFIP Foraneo
+                kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
             (res['type'], kind)
@@ -856,7 +854,12 @@ class Invoice:
         imp_subtotal = imp_neto  # TODO: not allways the case!
         imp_trib = "0.00"
         imp_op_ex = "0.00"
-        if self.company.currency.rate == Decimal('1'):
+        if self.company.currency.rate == Decimal('0'):
+            if self.party.vat_number_afip_foreign:
+                self.raise_user_error('missing_currency_rate')
+            else:
+                ctz = 1
+        elif self.company.currency.rate == Decimal('1'):
             ctz = 1 / self.currency.rate
         else:
             ctz = self.company.currency.rate / self.currency.rate
@@ -893,15 +896,14 @@ class Invoice:
         # customer data (foreign trade):
         nombre_cliente = self.party.name
         if self.party.vat_number:
-            if self.party.vat_country == "AR":
-                # use the Argentina AFIP's global CUIT for the country:
-                cuit_pais_cliente = self.party.vat_number
-                id_impositivo = None
-            else:
+            # Si tenemos vat_number, entonces tenemos CUIT Argentino
+            # use the Argentina AFIP's global CUIT for the country:
+            cuit_pais_cliente = self.party.vat_number
+            id_impositivo = None
+        elif self.party.vat_number_afip_foreign:
                 # use the VAT number directly
-                id_impositivo = self.party.vat_number
-                # TODO: the prefix could be used to map the customer country
-                cuit_pais_cliente = None
+                id_impositivo = None
+                cuit_pais_cliente = self.party.vat_number_afip_foreign
         else:
             cuit_pais_cliente = id_impositivo = None
         if self.invoice_address:
@@ -915,18 +917,38 @@ class Invoice:
                                 ])
         else:
             domicilio_cliente = ""
-        if self.invoice_address.country:
-            # map ISO country code to AFIP destination country code:
-            pais_dst_cmp = {
-                'ar': 200, 'bo': 202, 'br': 203, 'ca': 204, 'co': 205,
-                'cu': 207, 'cl': 208, 'ec': 210, 'us': 212, 'mx': 218,
-                'py': 221, 'pe': 222, 'uy': 225, 've': 226, 'cn': 310,
-                'tw': 313, 'in': 315, 'il': 319, 'jp': 320, 'at': 405,
-                'be': 406, 'dk': 409, 'es': 410, 'fr': 412, 'gr': 413,
-                'it': 417, 'nl': 423, 'pt': 620, 'uk': 426, 'sz': 430,
-                'de': 438, 'ru': 444, 'eu': 497, 'cr': '206'
-                }[self.invoice_address.country.code.lower()]
-
+        if self.party.vat_number_afip_foreign:
+            for identifier in self.party.identifiers:
+                if identifier.type == 'ar_foreign':
+                    # map ISO country code to AFIP destination country code:
+                    pais_dst_cmp = {
+                    'gt': 213, 'gr': 413, 'gq': 119, 'gy': 214, 'ge': 351,
+                    'gb': 426, 'gn': 118, 'gm': 116, 'gh': 117, 'tv': 517,
+                    'tt': 224, 'lk': 307, 'li': 418, 'lv': 441, 'to': 519,
+                    'lt': 442, 'lu': 419, 'lr': 122, 'tg': 140, 'td': 111,
+                    'ly': 123, 'do': 209, 'dm': 233, 'dk': 409, 'uy': 225,
+                    'qa': 322, 'zm': 144, 'ee': 440, 'eg': 113, 'ec': 210,
+                    'es': 410, 'er': 160, 'rs': 454, 'bd': 345, 'bg': 407,
+                    'bb': 201, 'bh': 303, 'bi': 104, 'jm': 217, 'jo': 321,
+                    'br': 203, 'bs': 239, 'by': 439, 'bz': 236, 'ua': 445,
+                    'ch': 430, 'co': 205, 'cn': 310, 'cl': 208, 'cg': 108,
+                    'cy': 435, 'cr': 206, 'cv': 150, 'cu': 207, 'pr': 223,
+                    'tn': 141, 'pw': 516, 'pt': 425, 'py': 221, 'pk': 332,
+                    'ph': 312, 'pl': 424, 'hr': 447, 'it': 417, 'hk': 341,
+                    'hn': 216, 'vn': 337, 'me': 453, 'mg': 124, 'ma': 127,
+                    'ml': 126, 'mo': 344, 'mn': 329, 'us': 212, 'mt': 420,
+                    'mw': 125, 'mr': 129, 'ug': 142, 'my': 326, 'mz': 151,
+                    'vc': 235, 'ad': 404, 'ag': 237, 'iq': 317, 'is': 416,
+                    'am': 349, 'al': 401, 'ao': 149, 'au': 501, 'at': 405,
+                    'in': 315, 'ie': 415, 'id': 316, 'ni': 219, 'no': 422,
+                    'il': 319, 'na': 158, 'ne': 130, 'ng': 131, 'np': 330,
+                    'so': 136, 'nr': 503, 'fr': 412, 'fi': 411, 'sz': 137,
+                    'sv': 211, 'sk': 448, 'si': 449, 'kw': 323, 'sn': 134,
+                    'sm': 428, 'sl': 135, 'sc': 152, 'sg': 333, 'se': 429,
+                    'uk': 426, 'bo': 202, 'ca': 204, 'mx': 218, 'pe': 222,
+                    've': 226, 'tw': 313, 'jp': 320, 'be': 406, 'nl': 423,
+                    'de': 438, 'ru': 444,
+                    }[identifier.vat_country.lower()]
 
         # create the invoice internally in the helper
         if service == 'wsfe':
