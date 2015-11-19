@@ -1,8 +1,0 @@
- import importlib
-
- rut = importlib.import_module(util.get_vat_module('cl').__name__)
-
-In [80]: util.get_vat_module('cl').__name__
-Out[80]: 'stdnum.cl.rut'
-
-
