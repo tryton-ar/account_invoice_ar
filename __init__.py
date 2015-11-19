@@ -15,6 +15,7 @@ def register():
         Company,
         AfipWSTransaction,
         Party,
+        PartyIdentifier,
         AFIPVatCountry,
         Address,
         GetAFIPDataStart,
