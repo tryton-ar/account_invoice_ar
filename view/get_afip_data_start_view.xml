@@ -20,4 +20,6 @@
   <field name="primary_activity_code" />
   <label name="secondary_activity_code"/>
   <field name="secondary_activity_code" />
+  <field name="afip_data" invisible="1"/>
+  <field name="subdivision_code" invisible="1"/>
 </form>

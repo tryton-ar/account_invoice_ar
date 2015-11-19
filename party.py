@@ -57,7 +57,15 @@ TIPO_DOCUMENTO = [
 ('30', u'Certificado de Migración'),
 ('88', u'Usado por Anses para Padrón'),
 ]
+
 VAT_COUNTRIES = [('', '')]
+
+PROVINCIAS = {0: u'Ciudad Autónoma de Buenos Aires', 1: u'Buenos Aires',
+2: u'Catamarca', 3: 'Cordoba', 4: 'Corrientes', 5: 'Entre Rios', 6: 'Jujuy',
+7: 'Mendoza', 8: 'La Rioja', 9: 'Salta', 10: 'San Juan', 11: 'San Luis',
+12: 'Santa Fe', 13: 'Santiago del Estero', 14: 'Tucuman', 16: 'Chaco',
+17: 'Chubut', 18: 'Formosa', 19: 'Misiones', 20: 'Neuquen', 21: 'La Pampa',
+22: 'Rio Negro', 23: 'Santa Cruz', 24: 'Tierra del Fuego'}
 
 
 class Party:
@@ -330,6 +338,7 @@ class GetAFIPDataStart(ModelView):
     direccion = fields.Char('Direccion', readonly=True)
     codigo_postal = fields.Char('Codigo Postal', readonly=True)
     fecha_inscripcion = fields.Char('Fecha de Inscripcion', readonly=True)
+    subdivision_code = fields.Integer('Subdivision', readonly=True)
     primary_activity_code = fields.Selection(CODES, 'Actividad primaria', readonly=True)
     secondary_activity_code = fields.Selection(CODES, 'Actividad secundaria', readonly=True)
     estado = fields.Char('Estado', readonly=True)
@@ -351,7 +360,14 @@ class GetAFIPData(Wizard):
         res = {}
         party = Party(Transaction().context['active_id'])
         if party:
-            afip_dict = self.get_json(party.vat_number)
+            afip_json = self.get_json(party.vat_number)
+            afip_dict = loads(afip_json)
+            print "   >>> got json:\n" + dumps(afip_dict)
+            if afip_dict['success'] == True:
+                afip_dict = afip_dict['data']
+            else:
+                self.raise_user_error('vat_number_not_found')
+
             activ  = afip_dict['actividades']
             activ1 = str(activ[0]) if len(activ) >= 1 else ''
             activ2 = str(activ[1]) if len(activ) >= 2 else ''
@@ -366,7 +382,9 @@ class GetAFIPData(Wizard):
                 'fecha_inscripcion': afip_dict['fechaInscripcion'],
                 'primary_activity_code': activ1,
                 'secondary_activity_code': activ2,
-                'estado': afip_dict['estadoClave']
+                'estado': afip_dict['estadoClave'],
+                'subdivision_code': afip_dict['domicilioFiscal']['idProvincia'],
+                'afip_data': afip_json,
             }
 
         return res
@@ -405,6 +423,18 @@ class GetAFIPData(Wizard):
             direccion = Address()
             self._update_direccion(direccion, party, self.start)
 
+        afip_dict = loads(self.start.afip_data)['data']
+        mt = afip_dict.get('categoriasMonotributo',{})
+        impuestos = afip_dict.get("impuestos", [])
+
+        if 32 in impuestos:
+            party.iva_condition = 'exento'
+        else:
+            if mt:
+                party.iva_condition = 'monotributo'
+            else:
+                party.iva_condition = 'responsable_inscripto'
+
         party.save()
         return 'end'
 
@@ -414,6 +444,8 @@ class GetAFIPData(Wizard):
         direccion.name = start.nombre
         direccion.street = start.direccion
         direccion.zip = start.codigo_postal
+        direccion.subdivision = self.get_subdivision(start.subdivision_code)
+        direccion.country = self.get_country()
         direccion.party = party
         direccion.save()
 
@@ -423,8 +455,26 @@ class GetAFIPData(Wizard):
             afip_url    = 'https://soa.afip.gob.ar/sr-padron/v2/persona/%s' % vat_number
             afip_stream = urlopen(afip_url)
             afip_json   = afip_stream.read()
-            afip_dict   = loads(afip_json)
-            print "   >>> got json:\n" + dumps(afip_dict)
-            return afip_dict['data']
+            return afip_json
         except Exception:
             self.raise_user_error('vat_number_not_found')
+
+    @classmethod
+    def get_subdivision(self, subdivision_code):
+        Subdivision = Pool().get('country.subdivision')
+        subdivision = PROVINCIAS[subdivision_code]
+        subdivision = Subdivision().search(
+            ['name', '=', subdivision]
+        )
+        if len(subdivision) > 0:
+            return subdivision[0]
+        else:
+            return ''
+
+    @classmethod
+    def get_country(self):
+        Country = Pool().get('country.country')
+        country = Country().search(
+            ['code', '=', 'AR']
+        )[0]
+        return country
