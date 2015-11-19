@@ -161,7 +161,7 @@ class Party:
             depends=['active'],
             )
     vat_number = fields.Function(fields.Char('CUIT'), 'get_vat_number',
-            searcher='search_vat_number')
+            setter='set_vat_number', searcher='search_vat_number')
     vat_number_afip_foreign = fields.Function(fields.Char('CUIT AFIP Foreign'),
             'get_vat_number_afip_foreign', searcher='search_vat_number_afip_foreign')
 
@@ -181,6 +181,23 @@ class Party:
         for identifier in self.identifiers:
             if identifier.type == 'ar_cuit':
                 return identifier.code
+
+    @classmethod
+    def set_vat_number(cls, partys, name, value):
+        party_id = partys[0].id
+        PartyIdentifier = Pool().get('party.identifier')
+        identifiers = PartyIdentifier.search([
+            ('party', 'in', partys),
+            ('type', '=', 'ar_cuit'),
+            ])
+        PartyIdentifier.delete(identifiers)
+        if not value:
+            return
+        PartyIdentifier.create([{
+            'code': value,
+            'type': 'ar_cuit',
+            'party': party_id,
+            }])
 
     @classmethod
     def search_vat_number(cls, name, clause):
