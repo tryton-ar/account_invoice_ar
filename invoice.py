@@ -13,7 +13,7 @@ from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 
 
-__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceReport', 'ActionReport']
+__all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceReport']
 __metaclass__ = PoolMeta
 
 _STATES = {
@@ -917,16 +917,3 @@ class InvoiceReport(Report):
         image = buffer(output.getvalue())
         output.close()
         return image
-
-class ActionReport:
-    "Action report"
-    __name__ = 'ir.action.report'
-
-    @classmethod
-    def check_xml_record(cls, records, values):
-        "check_xml_record. If model == account.invoice, return True"
-
-        for record in records:
-            if record.report_name == 'account.invoice':
-                print "check_xml_record. account.invoice"
-                return True
