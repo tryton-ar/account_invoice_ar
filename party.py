@@ -262,10 +262,52 @@ class PartyIdentifier:
         cls.vat_country.selection = VAT_COUNTRIES
 
     @classmethod
+    def __register__(cls, module_name):
+        pool = Pool()
+        Country = pool.get('party.party')
+        PartyAddress = pool.get('party.address')
+        party_address = PartyAddress.__table__()
+        country = Country.__table__()
+        sql_table = cls.__table__()
+        cursor = Transaction().cursor
+        super(PartyIdentifier, cls).__register__(module_name)
+
+        identifiers = []
+        cursor.execute(*sql_table.select(
+                sql_table.id, sql_table.party, sql_table.code, sql_table.type))
+        for identifier_id, party_id, code_country, type in cursor.fetchall():
+            if not code_country or type is not None:
+                continue
+            type = None
+            code = None
+            vat_country = ''
+            if code_country.startswith('AR'):
+                code = code_country[2:]
+                if len(code) < 11:
+                    type = 'ar_dni'
+                elif cuit.is_valid(code):
+                    type = 'ar_cuit'
+            else:
+                code = code_country
+                type = 'ar_foreign'
+                cursor_pa = Transaction().cursor
+                cursor_pa.execute(*party_address.join(country, 'INNER',
+                        condition=party_address.country == country.id
+                        ).select(country.code,
+                        where=(party_address.party == party_id)))
+                row = cursor_pa.fetchone()
+                if row:
+                    vat_country = row.code
+            identifiers.append(
+                cls(id=identifier_id, code=code, type=type, vat_country=vat_country))
+        cls.save(identifiers)
+
+    @classmethod
     def get_types(cls):
         types = super(PartyIdentifier, cls).get_types()
         types.append(('ar_cuit', 'CUIT'))
         types.append(('ar_foreign', 'CUIT AFIP Foreign'))
+        types.append(('ar_dni', 'DNI'))
         return types
 
     @fields.depends('type', 'code')
