@@ -272,8 +272,10 @@ class PartyIdentifier:
     @classmethod
     def __register__(cls, module_name):
         pool = Pool()
-        Country = pool.get('party.party')
+        Country = pool.get('country.country')
         PartyAddress = pool.get('party.address')
+        PartyAFIPVatCountry = pool.get('party.afip.vat.country')
+        party_afip_vat_country = PartyAFIPVatCountry.__table__()
         party_address = PartyAddress.__table__()
         country = Country.__table__()
         sql_table = cls.__table__()
@@ -299,13 +301,25 @@ class PartyIdentifier:
                 code = code_country
                 type = 'ar_foreign'
                 cursor_pa = Transaction().cursor
-                cursor_pa.execute(*party_address.join(country, 'INNER',
+                cursor_pa.execute(*party_address.join(country,
                         condition=party_address.country == country.id
                         ).select(country.code,
                         where=(party_address.party == party_id)))
-                row = cursor_pa.fetchone()
+                row = cursor_pa.dictfetchone()
                 if row:
-                    vat_country = row.code
+                    vat_country = row['code']
+                    country, = Country.search([('code','=',vat_country)])
+                    cursor_pa = Transaction().cursor
+                    cursor_pa.execute(*party_afip_vat_country.select(
+                        party_afip_vat_country.vat_country,
+                        where=(party_afip_vat_country.vat_number == code)))
+                    afip_vat_country = cursor_pa.dictfetchone()
+                    if afip_vat_country is None:
+                        afip_vat_countrys = []
+                        country, = Country.search([('code','=',vat_country)])
+                        afip_vat_countrys.append(
+                                PartyAFIPVatCountry(type_code='0', vat_country=country, vat_number=code))
+                        PartyAFIPVatCountry.save(afip_vat_countrys)
             identifiers.append(
                 cls(id=identifier_id, code=code, type=type, vat_country=vat_country))
         cls.save(identifiers)
