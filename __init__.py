@@ -8,6 +8,7 @@ from .address import *
 
 def register():
     Pool.register(
+        AFIPVatCountry,
         Pos,
         PosSequence,
         Invoice,
@@ -16,7 +17,6 @@ def register():
         AfipWSTransaction,
         Party,
         PartyIdentifier,
-        AFIPVatCountry,
         Address,
         GetAFIPDataStart,
         module='account_invoice_ar', type_='model')
