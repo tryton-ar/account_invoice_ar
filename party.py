@@ -176,10 +176,6 @@ class Party:
             'get_vat_number_afip_foreign',
             searcher='search_vat_number_afip_foreign')
 
-    @staticmethod
-    def default_tipo_documento():
-        return '80'
-
     @classmethod
     def __setup__(cls):
         super(Party, cls).__setup__()
@@ -187,10 +183,22 @@ class Party:
             'get_afip_data': {},
         })
 
+    @staticmethod
+    def default_tipo_documento():
+        return '80'
+
     def get_vat_number(self, name):
         for identifier in self.identifiers:
             if identifier.type == 'ar_cuit':
                 return identifier.code
+
+    @classmethod
+    def _vat_types(cls):
+        vat_types = super(Party, cls)._vat_types()
+        vat_types.append('ar_cuit')
+        vat_types.append('ar_dni')
+        vat_types.append('ar_foreign')
+        return vat_types
 
     @classmethod
     def set_vat_number(cls, partys, name, value):
