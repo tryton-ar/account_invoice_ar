@@ -176,10 +176,6 @@ class Party:
             'get_vat_number_afip_foreign',
             searcher='search_vat_number_afip_foreign')
 
-    @staticmethod
-    def default_tipo_documento():
-        return '80'
-
     @classmethod
     def __setup__(cls):
         super(Party, cls).__setup__()
@@ -187,10 +183,22 @@ class Party:
             'get_afip_data': {},
         })
 
+    @staticmethod
+    def default_tipo_documento():
+        return '80'
+
     def get_vat_number(self, name):
         for identifier in self.identifiers:
             if identifier.type == 'ar_cuit':
                 return identifier.code
+
+    @classmethod
+    def _vat_types(cls):
+        vat_types = super(Party, cls)._vat_types()
+        vat_types.append('ar_cuit')
+        vat_types.append('ar_dni')
+        vat_types.append('ar_foreign')
+        return vat_types
 
     @classmethod
     def set_vat_number(cls, partys, name, value):
@@ -262,10 +270,66 @@ class PartyIdentifier:
         cls.vat_country.selection = VAT_COUNTRIES
 
     @classmethod
+    def __register__(cls, module_name):
+        pool = Pool()
+        Country = pool.get('country.country')
+        PartyAddress = pool.get('party.address')
+        PartyAFIPVatCountry = pool.get('party.afip.vat.country')
+        party_afip_vat_country = PartyAFIPVatCountry.__table__()
+        party_address = PartyAddress.__table__()
+        country = Country.__table__()
+        sql_table = cls.__table__()
+        cursor = Transaction().cursor
+        super(PartyIdentifier, cls).__register__(module_name)
+
+        identifiers = []
+        cursor.execute(*sql_table.select(
+                sql_table.id, sql_table.party, sql_table.code, sql_table.type))
+        for identifier_id, party_id, code_country, type in cursor.fetchall():
+            if not code_country or type is not None:
+                continue
+            type = None
+            code = None
+            vat_country = ''
+            if code_country.startswith('AR'):
+                code = code_country[2:]
+                if len(code) < 11:
+                    type = 'ar_dni'
+                elif cuit.is_valid(code):
+                    type = 'ar_cuit'
+            else:
+                code = code_country
+                type = 'ar_foreign'
+                cursor_pa = Transaction().cursor
+                cursor_pa.execute(*party_address.join(country,
+                        condition=party_address.country == country.id
+                        ).select(country.code,
+                        where=(party_address.party == party_id)))
+                row = cursor_pa.dictfetchone()
+                if row:
+                    vat_country = row['code']
+                    country, = Country.search([('code','=',vat_country)])
+                    cursor_pa = Transaction().cursor
+                    cursor_pa.execute(*party_afip_vat_country.select(
+                        party_afip_vat_country.vat_country,
+                        where=(party_afip_vat_country.vat_number == code)))
+                    afip_vat_country = cursor_pa.dictfetchone()
+                    if afip_vat_country is None:
+                        afip_vat_countrys = []
+                        country, = Country.search([('code','=',vat_country)])
+                        afip_vat_countrys.append(
+                                PartyAFIPVatCountry(type_code='0', vat_country=country, vat_number=code))
+                        PartyAFIPVatCountry.save(afip_vat_countrys)
+            identifiers.append(
+                cls(id=identifier_id, code=code, type=type, vat_country=vat_country))
+        cls.save(identifiers)
+
+    @classmethod
     def get_types(cls):
         types = super(PartyIdentifier, cls).get_types()
         types.append(('ar_cuit', 'CUIT'))
         types.append(('ar_foreign', 'CUIT AFIP Foreign'))
+        types.append(('ar_dni', 'DNI'))
         return types
 
     @fields.depends('type', 'code')
