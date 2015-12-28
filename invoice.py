@@ -895,7 +895,7 @@ class InvoiceReport(Report):
     @classmethod
     def _get_iibb_type(cls, company):
         if company.party.iibb_type and company.party.iibb_number:
-            return company.party.iibb_type.upper()+' '+company.party.iibb_number
+            return company.party.iibb_type.upper()+' '+company.party.iibb_number[:3]+'-'+company.party.vat_number
         else:
             return ''
 
