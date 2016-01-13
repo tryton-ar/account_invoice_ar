@@ -278,6 +278,20 @@ class GetAFIPData(Wizard):
             direccion = Address()
             self._update_direccion(direccion, party, self.start)
 
+        afip_dict = loads(self.start.afip_data)['data']
+        mt = afip_dict.get('categoriasMonotributo', {})
+        impuestos = afip_dict.get("impuestos", [])
+
+        if 32 in impuestos:
+            party.iva_condition = 'exento'
+        else:
+            if mt:
+                party.iva_condition = 'monotributo'
+            elif 30 in impuestos:
+                party.iva_condition = 'responsable_inscripto'
+            else:
+                party.iva_condition = 'consumidor_final'
+
         party.save()
         return 'end'
 
