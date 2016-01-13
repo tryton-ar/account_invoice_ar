@@ -506,8 +506,10 @@ class GetAFIPData(Wizard):
         else:
             if mt:
                 party.iva_condition = 'monotributo'
-            else:
+            elif 30 in impuestos:
                 party.iva_condition = 'responsable_inscripto'
+            else:
+                party.iva_condition = 'consumidor_final'
 
         party.save()
         return 'end'
