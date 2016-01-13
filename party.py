@@ -2,6 +2,7 @@
 import stdnum.ar.cuit as cuit
 import stdnum.exceptions
 from urllib2 import urlopen
+import ssl
 from json import loads, dumps
 from actividades import CODES
 
@@ -12,7 +13,7 @@ from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
 
 __all__ = ['Party', 'PartyIdentifier', 'AFIPVatCountry', 'GetAFIPData',
-    'GetAFIPDataStart']
+           'GetAFIPDataStart']
 __metaclass__ = PoolMeta
 
 
@@ -413,6 +414,13 @@ class GetAFIPData(Wizard):
     'Get AFIP Data'
     __name__ = 'party.get_afip_data'
 
+    @classmethod
+    def __setup__(cls):
+        super(GetAFIPData, cls).__setup__()
+        cls._error_messages.update({
+            'vat_number_not_found': 'El CUIT no ha sido encontrado',
+        })
+
     start = StateView(
         'party.get_afip_data.start',
         'account_invoice_ar.get_afip_data_start_view', [
@@ -518,9 +526,11 @@ class GetAFIPData(Wizard):
     @classmethod
     def get_json(self, vat_number):
         try:
-            afip_url    = 'https://soa.afip.gob.ar/sr-padron/v2/persona/%s' % vat_number
-            afip_stream = urlopen(afip_url)
-            afip_json   = afip_stream.read()
+            afip_url = 'https://soa.afip.gob.ar/sr-padron/v2/persona/%s' \
+                % vat_number
+            context = ssl._create_unverified_context()
+            afip_stream = urlopen(afip_url, context=context)
+            afip_json = afip_stream.read()
             return afip_json
         except Exception:
             self.raise_user_error('vat_number_not_found')
