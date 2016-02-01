@@ -249,7 +249,6 @@ class Invoice:
        states={
             'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
             'readonly': Eval('state') != 'draft',
-            'required': Eval('type').in_(['in_invoice', 'in_credit_note']),
             }, depends=['state', 'type']
        )
     pyafipws_incoterms = fields.Selection(
