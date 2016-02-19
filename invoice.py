@@ -671,8 +671,8 @@ class Invoice:
     def set_number(self):
         super(Invoice, self).set_number()
 
-        if self.number:
-            return
+        #if self.number:
+        #    return
 
         if self.type == 'out_invoice' or self.type == 'out_credit_note':
             vals = {}
@@ -712,10 +712,10 @@ class Invoice:
                             invoice.raise_user_error('not_cae')
             invoice.set_number()
             moves.append(invoice.create_move())
-        cls.write(invoices, {
+        cls.write([i for i in invoices if i.state != 'posted'], {
                 'state': 'posted',
                 })
-        Move.post(moves)
+        Move.post([m for m in moves if m.state != 'posted'])
         #Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
         #for invoice in invoices:
         #    if invoice.type in ('out_invoice', 'out_credit_note'):
