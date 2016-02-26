@@ -7,6 +7,8 @@ from trytond.report import Report
 from trytond.transaction import Transaction
 from urllib2 import urlopen
 from json import loads, dumps
+import ssl
+import sys
 
 from actividades import CODES
 
@@ -54,6 +56,12 @@ TIPO_DOCUMENTO = [
 ('88', u'Usado por Anses para Padrón'),
 ]
 
+PROVINCIAS = {0: u'Ciudad Autónoma de Buenos Aires', 1: u'Buenos Aires',
+2: u'Catamarca', 3: 'Cordoba', 4: 'Corrientes', 5: 'Entre Rios', 6: 'Jujuy',
+7: 'Mendoza', 8: 'La Rioja', 9: 'Salta', 10: 'San Juan', 11: 'San Luis',
+12: 'Santa Fe', 13: 'Santiago del Estero', 14: 'Tucuman', 16: 'Chaco',
+17: 'Chubut', 18: 'Formosa', 19: 'Misiones', 20: 'Neuquen', 21: 'La Pampa',
+22: 'Rio Negro', 23: 'Santa Cruz', 24: 'Tierra del Fuego'}
 
 class Party(ModelSQL, ModelView):
     """Pary module, extended for account_invoice_ar"""
@@ -207,6 +215,7 @@ class GetAFIPDataStart(ModelView):
     direccion = fields.Char('Direccion', readonly=True)
     codigo_postal = fields.Char('Codigo Postal', readonly=True)
     fecha_inscripcion = fields.Char('Fecha de Inscripcion', readonly=True)
+    subdivision_code = fields.Integer('Subdivision', readonly=True)
     primary_activity_code = fields.Selection(CODES, 'Actividad primaria', readonly=True)
     secondary_activity_code = fields.Selection(CODES, 'Actividad secundaria', readonly=True)
     estado = fields.Char('Estado', readonly=True)
@@ -228,10 +237,22 @@ class GetAFIPData(Wizard):
         res = {}
         party = Party(Transaction().context['active_id'])
         if party:
-            afip_dict = self.get_json(party.vat_number)
-            activ  = afip_dict['actividades']
+            afip_json = self.get_json(party.vat_number)
+            afip_dict = loads(afip_json)
+            print "   >>> got json:\n" + dumps(afip_dict)
+            if afip_dict['success'] is True:
+                afip_dict = afip_dict['data']
+            else:
+                self.raise_user_error('vat_number_not_found')
+
+            activ = afip_dict.get('actividades', {})
+            domicilioFiscal = afip_dict.get('domicilioFiscal', {})
             activ1 = str(activ[0]) if len(activ) >= 1 else ''
             activ2 = str(activ[1]) if len(activ) >= 2 else ''
+            if activ1:
+                activ1 = activ1.rjust(6, '0')
+            if activ2:
+                activ2 = activ2.rjust(6, '0')
             res = {
                 'nombre': afip_dict['nombre'],
                 'direccion': afip_dict['domicilioFiscal']['direccion'],
@@ -239,7 +260,9 @@ class GetAFIPData(Wizard):
                 'fecha_inscripcion': afip_dict['fechaInscripcion'],
                 'primary_activity_code': activ1,
                 'secondary_activity_code': activ2,
-                'estado': afip_dict['estadoClave']
+                'estado': afip_dict['estadoClave'],
+                'subdivision_code': domicilioFiscal.get('idProvincia', 0),
+                'afip_data': afip_json,
             }
 
         return res
@@ -301,17 +324,42 @@ class GetAFIPData(Wizard):
         direccion.name = start.nombre
         direccion.street = start.direccion
         direccion.zip = start.codigo_postal
+        direccion.subdivision = self.get_subdivision(start.subdivision_code)
+        direccion.country = self.get_country()
         direccion.party = party
         direccion.save()
 
     @classmethod
     def get_json(self, vat_number):
         try:
-            afip_url    = 'https://soa.afip.gob.ar/sr-padron/v2/persona/%s' % vat_number
-            afip_stream = urlopen(afip_url)
-            afip_json   = afip_stream.read()
-            afip_dict   = loads(afip_json)
-            print "   >>> got json:\n" + dumps(afip_dict)
-            return afip_dict['data']
+            afip_url = 'https://soa.afip.gob.ar/sr-padron/v2/persona/%s' \
+                % vat_number
+            if sys.version_info >= (2, 7, 9):
+                context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+                afip_stream = urlopen(afip_url, context=context)
+            else:
+                afip_stream = urlopen(afip_url)
+            afip_json = afip_stream.read()
+            return afip_json
         except Exception:
             self.raise_user_error('vat_number_not_found')
+
+    @classmethod
+    def get_subdivision(self, subdivision_code):
+        Subdivision = Pool().get('country.subdivision')
+        subdivision = PROVINCIAS[subdivision_code]
+        subdivision = Subdivision().search(
+            ['name', '=', subdivision]
+        )
+        if len(subdivision) > 0:
+            return subdivision[0]
+        else:
+            return ''
+
+    @classmethod
+    def get_country(self):
+        Country = Pool().get('country.country')
+        country = Country().search(
+            ['code', '=', 'AR']
+        )[0]
+        return country
