@@ -5,6 +5,7 @@
 import collections
 import logging
 from decimal import Decimal
+import datetime
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.report import Report
@@ -816,7 +817,10 @@ class Invoice:
         if int(concepto) != 1:
 
             payments = self.payment_term.compute(self.total_amount, self.currency)
-            last_payment = max(payments, key=lambda x:x[0])[0]
+            if payments == []:
+                last_payment = datetime.date.today()
+            else:
+                last_payment = max(payments, key=lambda x:x[0])[0]
             fecha_venc_pago = last_payment.strftime("%Y-%m-%d")
             if service != 'wsmtxca':
                     fecha_venc_pago = fecha_venc_pago.replace("-", "")
@@ -977,10 +981,10 @@ class Invoice:
                 tax = tax_line.tax
                 if tax.group.name == "IVA":
                     iva_id = IVA_AFIP_CODE[tax.rate]
-                    base_imp = ("%.2f" % abs(tax_line.base))
-                    importe = ("%.2f" % abs(tax_line.amount))
-                    # add the vat detail in the helper
-                    ws.AgregarIva(iva_id, base_imp, importe)
+                    if iva_id != 3:  # 0%
+                        base_imp = ("%.2f" % abs(tax_line.base))
+                        importe = ("%.2f" % abs(tax_line.amount))
+                        ws.AgregarIva(iva_id, base_imp, importe)
                 else:
                     if 'impuesto' in tax_line.tax.name.lower():
                         tributo_id = 1  # nacional
