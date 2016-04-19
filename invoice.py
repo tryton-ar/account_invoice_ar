@@ -535,6 +535,8 @@ class Invoice:
                 u'Debe configurar la cotización de la moneda.',
             'missing_pyafipws_incoterms':
                 u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
+            'reference_unique':
+                u'El numero de factura ya ha sido ingresado en el sistema.',
             })
 
     @classmethod
@@ -554,7 +556,6 @@ class Invoice:
         cursor.execute("UPDATE account_invoice SET tipo_comprobante = '111' \
                         WHERE tipo_comprobante='tkc';")
 
-
     @classmethod
     @ModelView.button
     @Workflow.transition('validated')
@@ -562,6 +563,8 @@ class Invoice:
         for invoice in invoices:
             if invoice.type in ('out_invoice', 'out_credit_note'):
                 invoice.check_invoice_type()
+            elif invoice.type in ['in_invoice', 'in_credit_note']:
+                invoice.check_unique_reference()
         super(Invoice, cls).validate_invoice(invoices)
 
     def check_invoice_type(self):
@@ -575,6 +578,24 @@ class Invoice:
                     })
         if not self.invoice_type:
             self.raise_user_error('not_invoice_type')
+
+    def check_unique_reference(self):
+        if self.type in ['in_invoice', 'in_credit_note']:
+            invoice = self.search([
+                ('id', '!=', self.id),
+                ('type', '=', self.type),
+                ('party', '=', self.party.id),
+                ('tipo_comprobante', '=', self.tipo_comprobante),
+                ('reference', '=', self.reference),
+            ])
+            if len(invoice) > 0:
+                self.raise_user_error('reference_unique')
+
+    @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
+    def on_change_reference(self):
+        print "on_change_reference"
+        if self.type in ['in_invoice', 'in_credit_note']:
+            self.check_unique_reference()
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
