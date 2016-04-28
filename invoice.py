@@ -1000,7 +1000,7 @@ class Invoice:
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
                 tax = tax_line.tax
-                if tax.group.name == "IVA":
+                if tax.group.code.lower() == "iva":
                     iva_id = IVA_AFIP_CODE[tax.rate]
                     if iva_id != 3:  # 0%
                         base_imp = ("%.2f" % abs(tax_line.base))
