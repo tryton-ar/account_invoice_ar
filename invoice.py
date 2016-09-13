@@ -12,6 +12,9 @@ from trytond.report import Report
 from trytond.pyson import Eval, And, Equal
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
+import afip_auth
+import logging
+logger = logging.getLogger(__name__)
 
 
 __all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
@@ -744,7 +747,6 @@ class Invoice:
         #        invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
-        logger = logging.getLogger('pyafipws')
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
@@ -797,7 +799,8 @@ class Invoice:
 
         # connect to the webservice and call to the test method
         ws.LanzarExcepciones = True
-        ws.Conectar(wsdl=WSDL)
+        cache_dir = afip_auth.get_cache_dir()
+        ws.Conectar(wsdl=WSDL, cache=cache_dir)
         # set AFIP webservice credentials:
         ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
@@ -1000,7 +1003,7 @@ class Invoice:
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
                 tax = tax_line.tax
-                if tax.group.code.lower() == "iva":
+                if 'iva' in tax.group.code.lower():
                     iva_id = IVA_AFIP_CODE[tax.rate]
                     if iva_id != 3:  # 0%
                         base_imp = ("%.2f" % abs(tax_line.base))
