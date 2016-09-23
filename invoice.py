@@ -690,27 +690,6 @@ class Invoice:
             return res
 
         res['pos'] = self.pos.id
-
-        client_iva = self.company_iva = None
-        client_iva = self.party.iva_condition
-        company_iva = self.company.party.iva_condition
-
-        if company_iva == 'responsable_inscripto':
-            if client_iva is None:
-                return res
-            if client_iva == 'responsable_inscripto':
-                kind = 'A'
-            elif client_iva == 'consumidor_final':
-                kind = 'B'
-            elif self.party.vat_number:
-                kind = 'B'
-            else:
-                kind = 'E'
-        else:
-            kind = 'C'
-            if self.party.vat_number_afip_foreign: # Identificador AFIP Foraneo
-                kind = 'E'
-
         invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
             (self.invoice_type.invoice_type)
             ]
