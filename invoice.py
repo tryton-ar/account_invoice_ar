@@ -34,8 +34,8 @@ _BILLING_STATES.update({
 
 _POS_STATES = _STATES.copy()
 _POS_STATES.update({
-        'required': And(Eval('type').in_(['out_invoice', 'out_credit_note']), ~Eval('state').in_(['draft'])),
-        'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
+        'required': And(Eval('type').in_(['out']), ~Eval('state').in_(['draft'])),
+        'invisible': Eval('type').in_(['in']),
             })
 
 IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
@@ -47,14 +47,24 @@ IVA_AFIP_CODE.update({
     })
 
 INVOICE_TYPE_AFIP_CODE = {
-        ('out_invoice', 'A'): ('1', u'01-Factura A'),
-        ('out_invoice', 'B'): ('6', u'06-Factura B'),
-        ('out_invoice', 'C'): ('11', u'11-Factura C'),
-        ('out_invoice', 'E'): ('19', u'19-Factura E'),
-        ('out_credit_note', 'A'): ('3', u'03-Nota de Crédito A'),
-        ('out_credit_note', 'B'): ('8', u'08-Nota de Crédito B'),
-        ('out_credit_note', 'C'): ('13', u'13-Nota de Crédito C'),
-        ('out_credit_note', 'E'): ('21', u'21-Nota de Crédito E'),
+        ('out', 'A'): ('1', u'01-Factura A'),
+        ('out', 'B'): ('6', u'06-Factura B'),
+        ('out', 'C'): ('11', u'11-Factura C'),
+        ('out', 'E'): ('19', u'19-Factura E'),
+        }
+INVOICE_CREDIT_AFIP_CODE = {
+        '1': ('3', u'03-Nota de Crédito A'),
+        '2': ('3', u'03-Nota de Crédito A'),
+        '3': ('2', u'02-Nota de Débito A'),
+        '6': ('8', u'08-Nota de Crédito B'),
+        '7': ('8', u'08-Nota de Crédito B'),
+        '8': ('7', u'07-Nota de Débito B'),
+        '11': ('13', u'13-Nota de Crédito C'),
+        '12': ('13', u'13-Nota de Crédito C'),
+        '13': ('12', u'12-Nota de Débito C'),
+        '19': ('21', u'21-Nota de Crédito E'),
+        '20': ('21', u'21-Nota de Crédito E'),
+        '21': ('20', u'20-Nota de Débito E'),
         }
 
 INCOTERMS = [
@@ -491,7 +501,7 @@ class Invoice:
     tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
        select=True,
        states={
-            'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
+            'invisible': Eval('type').in_(['out']),
             'readonly': Eval('state') != 'draft',
             }, depends=['state', 'type']
        )
@@ -545,7 +555,7 @@ class Invoice:
     @classmethod
     def __register__(cls, module_name):
         super(Invoice, cls).__register__(module_name)
-        cursor = Transaction().cursor
+        cursor = Transaction().connection.cursor()
         cursor.execute("UPDATE account_invoice SET tipo_comprobante = '001' \
                         WHERE tipo_comprobante='fca';")
         cursor.execute("UPDATE account_invoice SET tipo_comprobante = '006' \
@@ -560,13 +570,41 @@ class Invoice:
                         WHERE tipo_comprobante='tkc';")
 
     @classmethod
+    def copy(cls, invoices, default=None):
+        if default is None:
+            default = {}
+        else:
+            default = default.copy()
+        default['transactions'] = None
+        default['pyafipws_concept'] = None
+        default['pyafipws_billing_start_date'] = None
+        default['pyafipws_billing_end_date'] = None
+        default['pyafipws_cae'] = None
+        default['pyafipws_cae_due_date'] = None
+        default['pyafipws_barcode'] = None
+        default['pyafipws_number'] = None
+        return super(Invoice, cls).copy(invoices, default=default)
+
+    @classmethod
+    def view_attributes(cls):
+        return super(Invoice, cls).view_attributes() + [
+            ('/form/notebook/page[@id="electronic_invoice"]', 'states', {
+                    'invisible': Eval('type') == 'in',
+                    }),
+            ('/form/notebook/page[@id="electronic_invoice_incoterms"]',
+                'states', {
+                    'invisible': Eval('type') == 'in',
+                    }),
+            ]
+
+    @classmethod
     @ModelView.button
     @Workflow.transition('validated')
     def validate_invoice(cls, invoices):
         for invoice in invoices:
-            if invoice.type in ('out_invoice', 'out_credit_note'):
+            if invoice.type in ('out'):
                 invoice.check_invoice_type()
-            elif invoice.type in ['in_invoice', 'in_credit_note']:
+            elif invoice.type in ['in']:
                 invoice.check_unique_reference()
         super(Invoice, cls).validate_invoice(invoices)
 
@@ -583,21 +621,20 @@ class Invoice:
             self.raise_user_error('not_invoice_type')
 
     def check_unique_reference(self):
-        if self.type in ['in_invoice', 'in_credit_note']:
-            invoice = self.search([
-                ('id', '!=', self.id),
-                ('type', '=', self.type),
-                ('party', '=', self.party.id),
-                ('tipo_comprobante', '=', self.tipo_comprobante),
-                ('reference', '=', self.reference),
-            ])
-            if len(invoice) > 0:
-                self.raise_user_error('reference_unique')
+        invoice = self.search([
+            ('id', '!=', self.id),
+            ('type', '=', self.type),
+            ('party', '=', self.party.id),
+            ('tipo_comprobante', '=', self.tipo_comprobante),
+            ('reference', '=', self.reference),
+        ])
+        if len(invoice) > 0:
+            self.raise_user_error('reference_unique')
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
     def on_change_reference(self):
         print "on_change_reference"
-        if self.type in ['in_invoice', 'in_credit_note']:
+        if self.type in ['in']:
             self.check_unique_reference()
 
     @fields.depends('pos', 'party', 'type', 'company')
@@ -647,19 +684,16 @@ class Invoice:
     def _credit(self):
         pool = Pool()
         PosSequence = pool.get('account.pos.sequence')
-        Party = pool.get('party.party')
-        Company = pool.get('company.company')
 
         res = super(Invoice, self)._credit()
+        if self.type == 'in':
+            return res
 
-        res['pos'] = getattr(self, 'pos').id
+        res['pos'] = self.pos.id
 
-        party = Party(res['party'])
-        company = Company(res['company'])
-
-        client_iva = company_iva = None
-        client_iva = party.iva_condition
-        company_iva = company.party.iva_condition
+        client_iva = self.company_iva = None
+        client_iva = self.party.iva_condition
+        company_iva = self.company.party.iva_condition
 
         if company_iva == 'responsable_inscripto':
             if client_iva is None:
@@ -668,7 +702,7 @@ class Invoice:
                 kind = 'A'
             elif client_iva == 'consumidor_final':
                 kind = 'B'
-            elif party.vat_number:
+            elif self.party.vat_number:
                 kind = 'B'
             else:
                 kind = 'E'
@@ -677,8 +711,8 @@ class Invoice:
             if self.party.vat_number_afip_foreign: # Identificador AFIP Foraneo
                 kind = 'E'
 
-        invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
-            (res['type'], kind)
+        invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
+            (self.invoice_type.invoice_type)
             ]
         sequences = PosSequence.search([
             ('pos', '=', res['pos']),
@@ -691,21 +725,54 @@ class Invoice:
         else:
             res['invoice_type'] = sequences[0].id
 
+        if self.pos.pos_type == 'electronic':
+            res['pyafipws_concept'] = self.pyafipws_concept
+            res['pyafipws_billing_start_date'] = \
+                self.pyafipws_billing_start_date
+            res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
+
         return res
 
     def set_number(self):
-        super(Invoice, self).set_number()
+        pool = Pool()
+        Period = pool.get('account.period')
+        SequenceStrict = pool.get('ir.sequence.strict')
+        Sequence = Pool().get('ir.sequence')
+        Date = pool.get('ir.date')
 
-        #if self.number:
-        #    return
+        if self.number:
+            return
 
-        if self.type == 'out_invoice' or self.type == 'out_credit_note':
-            vals = {}
-            Sequence = Pool().get('ir.sequence')
+        test_state = True
+        if self.type == 'out':
+            test_state = False
 
-            number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-            vals['number'] = '%04d-%08d' % (self.pos.number, int(number))
-            self.write([self], vals)
+        accounting_date = self.accounting_date or self.invoice_date
+        period_id = Period.find(self.company.id,
+            date=accounting_date, test_state=test_state)
+        period = Period(period_id)
+        invoice_type = self.type
+        if all(l.amount <= 0 for l in self.lines):
+            invoice_type += '_credit_note'
+        else:
+            invoice_type += '_invoice'
+        sequence = period.get_invoice_sequence(invoice_type)
+        if not sequence:
+            self.raise_user_error('no_invoice_sequence', {
+                    'invoice': self.rec_name,
+                    'period': period.rec_name,
+                    })
+        with Transaction().set_context(
+                date=self.invoice_date or Date.today()):
+            if self.type == 'out':
+                number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
+                vals = {'number': '%04d-%08d' % (self.pos.number, int(number))}
+                if not self.invoice_date:
+                    vals['invoice_date'] = Transaction().context['date']
+            else:
+                number = SequenceStrict.get_id(sequence.id)
+                vals = {'number': number}
+        self.write([self], vals)
 
     def _get_move_line(self, date, amount):
         res = super(Invoice, self)._get_move_line(date, amount)
@@ -728,7 +795,7 @@ class Invoice:
 
         moves = []
         for invoice in invoices:
-            if invoice.type == u'out_invoice' or invoice.type == u'out_credit_note':
+            if invoice.type == u'out':
                 invoice.check_invoice_type()
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
@@ -737,7 +804,7 @@ class Invoice:
                             invoice.raise_user_error('not_cae')
             invoice.set_number()
             moves.append(invoice.create_move())
-        cls.write([i for i in invoices if i.state != 'posted'], {
+        cls.write(invoices, {
                 'state': 'posted',
                 })
         Move.post([m for m in moves if m.state != 'posted'])
@@ -1105,14 +1172,12 @@ class Invoice:
             bars = ""
 
         AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
-        with Transaction().new_cursor():
-            AFIP_Transaction.create([{'invoice': self,
-                                'pyafipws_result': ws.Resultado,
-                                'pyafipws_message': msg,
-                                'pyafipws_xml_request': ws.XmlRequest,
-                                'pyafipws_xml_response': ws.XmlResponse,
-                                }])
-            Transaction().cursor.commit()
+        AFIP_Transaction.create([{'invoice': self,
+                            'pyafipws_result': ws.Resultado,
+                            'pyafipws_message': msg,
+                            'pyafipws_xml_request': ws.XmlRequest,
+                            'pyafipws_xml_response': ws.XmlResponse,
+                            }])
 
         if ws.CAE:
 

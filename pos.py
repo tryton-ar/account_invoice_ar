@@ -11,6 +11,7 @@ class Pos(ModelSQL, ModelView):
     'Point of Sale'
     __name__ = 'account.pos'
 
+    #name = fields.Function(fields.Char('Name'), 'get_name')
     number = fields.Integer('Punto de Venta AFIP', required=True,
         help=u"Prefijo de emisión habilitado en AFIP")
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
@@ -45,6 +46,15 @@ class Pos(ModelSQL, ModelView):
     def search_rec_name(cls, name, clause):
         return [('pos_type',) + tuple(clause[1:])]
 
+    #@classmethod
+    #def get_name(cls, account_pos, name):
+    #    res = {}
+    #    for pos in cls.browse(account_pos):
+    #        res[pos.id] = str(pos.number)+ ' - '+\
+    #        dict(pos.fields_get(fields_names=['pos_type'])\
+    #        ['pos_type']['selection'])[pos.pos_type]
+    #    return res
+
 
 class PosSequence(ModelSQL, ModelView):
     'Point of Sale Sequences'
@@ -72,6 +82,7 @@ class PosSequence(ModelSQL, ModelView):
             ('21', u'21-Nota de Crédito E'),
             ], 'Tipo Comprobante AFIP', required=True,
         help="Tipo de Comprobante AFIP")
+    invoice_type_string = invoice_type.translated('invoice_type')
     invoice_sequence = fields.Property(fields.Many2One('ir.sequence',
             'Sequence', required=True,
             domain=[('code', '=', 'account.invoice')],
