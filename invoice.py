@@ -5,12 +5,16 @@
 import collections
 import logging
 from decimal import Decimal
+import datetime
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.report import Report
 from trytond.pyson import Eval, And, Equal
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
+import afip_auth
+import logging
+logger = logging.getLogger(__name__)
 
 
 __all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
@@ -534,6 +538,8 @@ class Invoice:
                 u'Debe configurar la cotización de la moneda.',
             'missing_pyafipws_incoterms':
                 u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
+            'reference_unique':
+                u'El numero de factura ya ha sido ingresado en el sistema.',
             })
 
     @classmethod
@@ -553,7 +559,6 @@ class Invoice:
         cursor.execute("UPDATE account_invoice SET tipo_comprobante = '111' \
                         WHERE tipo_comprobante='tkc';")
 
-
     @classmethod
     @ModelView.button
     @Workflow.transition('validated')
@@ -561,6 +566,8 @@ class Invoice:
         for invoice in invoices:
             if invoice.type in ('out_invoice', 'out_credit_note'):
                 invoice.check_invoice_type()
+            elif invoice.type in ['in_invoice', 'in_credit_note']:
+                invoice.check_unique_reference()
         super(Invoice, cls).validate_invoice(invoices)
 
     def check_invoice_type(self):
@@ -574,6 +581,24 @@ class Invoice:
                     })
         if not self.invoice_type:
             self.raise_user_error('not_invoice_type')
+
+    def check_unique_reference(self):
+        if self.type in ['in_invoice', 'in_credit_note']:
+            invoice = self.search([
+                ('id', '!=', self.id),
+                ('type', '=', self.type),
+                ('party', '=', self.party.id),
+                ('tipo_comprobante', '=', self.tipo_comprobante),
+                ('reference', '=', self.reference),
+            ])
+            if len(invoice) > 0:
+                self.raise_user_error('reference_unique')
+
+    @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
+    def on_change_reference(self):
+        print "on_change_reference"
+        if self.type in ['in_invoice', 'in_credit_note']:
+            self.check_unique_reference()
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
@@ -671,8 +696,8 @@ class Invoice:
     def set_number(self):
         super(Invoice, self).set_number()
 
-        if self.number:
-            return
+        #if self.number:
+        #    return
 
         if self.type == 'out_invoice' or self.type == 'out_credit_note':
             vals = {}
@@ -712,17 +737,16 @@ class Invoice:
                             invoice.raise_user_error('not_cae')
             invoice.set_number()
             moves.append(invoice.create_move())
-        cls.write(invoices, {
+        cls.write([i for i in invoices if i.state != 'posted'], {
                 'state': 'posted',
                 })
-        Move.post(moves)
+        Move.post([m for m in moves if m.state != 'posted'])
         #Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
         #for invoice in invoices:
         #    if invoice.type in ('out_invoice', 'out_credit_note'):
         #        invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
-        logger = logging.getLogger('pyafipws')
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
@@ -775,7 +799,8 @@ class Invoice:
 
         # connect to the webservice and call to the test method
         ws.LanzarExcepciones = True
-        ws.Conectar(wsdl=WSDL)
+        cache_dir = afip_auth.get_cache_dir()
+        ws.Conectar(wsdl=WSDL, cache=cache_dir)
         # set AFIP webservice credentials:
         ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
@@ -816,7 +841,10 @@ class Invoice:
         if int(concepto) != 1:
 
             payments = self.payment_term.compute(self.total_amount, self.currency)
-            last_payment = max(payments, key=lambda x:x[0])[0]
+            if payments == []:
+                last_payment = datetime.date.today()
+            else:
+                last_payment = max(payments, key=lambda x:x[0])[0]
             fecha_venc_pago = last_payment.strftime("%Y-%m-%d")
             if service != 'wsmtxca':
                     fecha_venc_pago = fecha_venc_pago.replace("-", "")
@@ -975,19 +1003,21 @@ class Invoice:
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
                 tax = tax_line.tax
-                if tax.group.name == "IVA":
+                if 'iva' in tax.group.code.lower():
                     iva_id = IVA_AFIP_CODE[tax.rate]
-                    base_imp = ("%.2f" % abs(tax_line.base))
-                    importe = ("%.2f" % abs(tax_line.amount))
-                    # add the vat detail in the helper
-                    ws.AgregarIva(iva_id, base_imp, importe)
+                    if iva_id != 3:  # 0%
+                        base_imp = ("%.2f" % abs(tax_line.base))
+                        importe = ("%.2f" % abs(tax_line.amount))
+                        ws.AgregarIva(iva_id, base_imp, importe)
                 else:
-                    if 'impuesto' in tax_line.tax.name.lower():
+                    if 'nacional' in tax_line.tax.name.lower():
                         tributo_id = 1  # nacional
                     elif 'iibbb' in tax_line.tax.name.lower():
-                        tributo_id = 3  # provincial
-                    elif 'tasa' in tax_line.tax.name.lower():
-                        tributo_id = 4  # municipal
+                        tributo_id = 2  # provincial
+                    elif 'municipal' in tax_line.tax.name.lower():
+                        tributo_id = 3  # municipal
+                    elif 'interno' in tax_line.tax.name.lower():
+                        tributo_id = 3  # municipal
                     else:
                         tributo_id = 99
                     desc = tax_line.name
@@ -1234,7 +1264,7 @@ class InvoiceReport:
     @classmethod
     def _get_iibb_type(cls, company):
         if company.party.iibb_type and company.party.iibb_number:
-            return company.party.iibb_type.upper()+' '+company.party.iibb_number
+            return company.party.iibb_type.upper()+' '+company.party.iibb_number[:3]+'-'+company.party.vat_number
         else:
             return ''
 

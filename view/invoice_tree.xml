@@ -4,5 +4,6 @@ this repository contains the full copyright notices and license terms. -->
 <data>
     <xpath expr="/tree/field[@name='type']" position="after">
         <field name="invoice_type"/>
+        <field name="tipo_comprobante"/>
     </xpath>
 </data>

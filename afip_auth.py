@@ -53,7 +53,7 @@ def authenticate(service, certificate, private_key, force=False,
     if cache:
         fn = os.path.join(cache, fn)
     else:
-        fn = os.path.join(wsaa.InstallDir, "cache", fn)
+        fn = os.path.join(get_cache_dir(), fn)
 
     try:
         # read the access ticket (if already authenticated)
@@ -93,9 +93,9 @@ def authenticate(service, certificate, private_key, force=False,
         # analyze the access ticket xml and extract the relevant fields
         wsaa.AnalizarXml(xml=ta)
         token = wsaa.ObtenerTagXml("token")
-        print "token", token
+        #print "token", token
         sign = wsaa.ObtenerTagXml("sign")
-        print "sign", sign
+        #print "sign", sign
         err_msg = None
     except:
         token = sign = None
@@ -110,6 +110,12 @@ def authenticate(service, certificate, private_key, force=False,
             raise
     return {'token': token, 'sign': sign, 'err_msg': err_msg}
 
+def get_account_invoice_install_dir():
+    basepath = __file__
+    return os.path.dirname(os.path.abspath(basepath))
+
+def get_cache_dir():
+    return os.path.join(get_account_invoice_install_dir(), "cache")
 
 if __name__ == '__main__':
     # basic tests:
