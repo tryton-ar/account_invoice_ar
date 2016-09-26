@@ -1022,7 +1022,7 @@ class Invoice:
                     'uk': 426, 'bo': 202, 'ca': 204, 'mx': 218, 'pe': 222,
                     've': 226, 'tw': 313, 'jp': 320, 'be': 406, 'nl': 423,
                     'de': 438, 'ru': 444,
-                    }[identifier.vat_country.lower()]
+                    }[identifier.country.code.lower()]
 
         # create the invoice internally in the helper
         if service == 'wsfe':
