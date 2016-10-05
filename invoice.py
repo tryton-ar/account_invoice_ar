@@ -576,6 +576,18 @@ class Invoice:
         return super(Invoice, cls).copy(invoices, default=default)
 
     @classmethod
+    def view_attributes(cls):
+        return super(Invoice, cls).view_attributes() + [
+            ('/form/notebook/page[@id="electronic_invoice"]', 'states', {
+                    'invisible': Eval('type') in ['in_invoice', 'in_credit_note'],
+                    }),
+            ('/form/notebook/page[@id="electronic_invoice_incoterms"]',
+                'states', {
+                    'invisible': Eval('type') in ['in_invoice', 'in_credit_note'],
+                    }),
+            ]
+
+    @classmethod
     @ModelView.button
     @Workflow.transition('validated')
     def validate_invoice(cls, invoices):
