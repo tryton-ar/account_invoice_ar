@@ -706,9 +706,10 @@ class Invoice:
 
         if self.pos.pos_type == 'electronic':
             res['pyafipws_concept'] = self.pyafipws_concept
-            res['pyafipws_billing_start_date'] = \
-                self.pyafipws_billing_start_date
-            res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
+            if self.pyafipws_concept in ['2', '3']:
+                res['pyafipws_billing_start_date'] = \
+                    self.pyafipws_billing_start_date
+                res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
 
         return res
 
