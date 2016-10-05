@@ -691,6 +691,13 @@ class Invoice:
         else:
             res['invoice_type'] = sequences[0].id
 
+        if self.pos.pos_type == 'electronic':
+            res['pyafipws_concept'] = self.pyafipws_concept
+            if self.pyafipws_concept in ['2', '3']:
+                res['pyafipws_billing_start_date'] = \
+                    self.pyafipws_billing_start_date
+                res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
+
         return res
 
     def set_number(self):
