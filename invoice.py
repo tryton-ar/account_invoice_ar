@@ -560,6 +560,22 @@ class Invoice:
                         WHERE tipo_comprobante='tkc';")
 
     @classmethod
+    def copy(cls, invoices, default=None):
+        if default is None:
+            default = {}
+        else:
+            default = default.copy()
+        default['transactions'] = None
+        default['pyafipws_concept'] = None
+        default['pyafipws_billing_start_date'] = None
+        default['pyafipws_billing_end_date'] = None
+        default['pyafipws_cae'] = None
+        default['pyafipws_cae_due_date'] = None
+        default['pyafipws_barcode'] = None
+        default['pyafipws_number'] = None
+        return super(Invoice, cls).copy(invoices, default=default)
+
+    @classmethod
     @ModelView.button
     @Workflow.transition('validated')
     def validate_invoice(cls, invoices):
