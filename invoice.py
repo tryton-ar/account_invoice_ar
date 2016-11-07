@@ -1057,17 +1057,17 @@ class Invoice:
                         importe = ("%.2f" % abs(tax_line.amount))
                         ws.AgregarIva(iva_id, base_imp, importe)
                 else:
-                    if 'nacional' in tax_line.tax.name.lower():
+                    if 'nacional' in tax.group.code.lower():
                         tributo_id = 1  # nacional
-                    elif 'iibbb' in tax_line.tax.name.lower():
+                    elif 'iibb' in tax.group.code.lower():
                         tributo_id = 2  # provincial
-                    elif 'municipal' in tax_line.tax.name.lower():
+                    elif 'municipal' in tax.group.code.lower():
                         tributo_id = 3  # municipal
-                    elif 'interno' in tax_line.tax.name.lower():
+                    elif 'interno' in tax.group.code.lower():
                         tributo_id = 3  # municipal
                     else:
                         tributo_id = 99
-                    desc = tax_line.name
+                    desc = tax.name
                     base_imp = ("%.2f" % abs(tax_line.base))
                     importe = ("%.2f" % abs(tax_line.amount))
                     alic = "%.2f" % tax_line.base
