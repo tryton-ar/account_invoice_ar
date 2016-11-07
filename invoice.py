@@ -1152,12 +1152,15 @@ class Invoice:
             bars = ""
 
         AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
-        AFIP_Transaction.create([{'invoice': self,
-                            'pyafipws_result': ws.Resultado,
-                            'pyafipws_message': msg,
-                            'pyafipws_xml_request': ws.XmlRequest,
-                            'pyafipws_xml_response': ws.XmlResponse,
-                            }])
+        with Transaction().new_transaction() as transaction:
+            AFIP_Transaction.create([{'invoice': self,
+                                'pyafipws_result': ws.Resultado,
+                                'pyafipws_message': msg,
+                                'pyafipws_xml_request': ws.XmlRequest,
+                                'pyafipws_xml_response': ws.XmlResponse,
+                                }])
+            if ws.CAE is None:
+                 transaction.commit()
 
         if ws.CAE:
 
