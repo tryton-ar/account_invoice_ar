@@ -540,6 +540,9 @@ class Invoice:
                 u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
             'reference_unique':
                 u'El numero de factura ya ha sido ingresado en el sistema.',
+            'tax_without_group':
+                u'El impuesto (%s) debe tener un grupo asignado ' \
+                u'(iibb, municipal, iva).',
             })
 
     @classmethod
@@ -913,9 +916,8 @@ class Invoice:
         imp_total = str("%.2f" % abs(self.total_amount))
         imp_tot_conc = "0.00"
         imp_neto = str("%.2f" % abs(self.untaxed_amount))
-        imp_iva = str("%.2f" % abs(self.tax_amount))
+        imp_iva, imp_trib = self._get_imp_total_iva_and_trib(service)
         imp_subtotal = imp_neto  # TODO: not allways the case!
-        imp_trib = "0.00"
         imp_op_ex = "0.00"
         if self.company.currency.rate == Decimal('0'):
             if self.party.vat_number_afip_foreign:
@@ -1038,6 +1040,10 @@ class Invoice:
         if service in ('wsfe', 'wsmtxca'):
             for tax_line in self.taxes:
                 tax = tax_line.tax
+                if tax.group is None:
+                    self.raise_user_error('tax_without_group', {
+                            'tax': tax.name,
+                            })
                 if 'iva' in tax.group.code.lower():
                     iva_id = IVA_AFIP_CODE[tax.rate]
                     if iva_id != 3:  # 0%
@@ -1058,7 +1064,7 @@ class Invoice:
                     desc = tax.name
                     base_imp = ("%.2f" % abs(tax_line.base))
                     importe = ("%.2f" % abs(tax_line.amount))
-                    alic = "%.2f" % tax_line.base
+                    alic = "%.2f" % abs(tax.rate * 100)
                     # add the other tax detail in the helper
                     ws.AgregarTributo(tributo_id, desc, base_imp, alic, importe)
 
@@ -1182,6 +1188,23 @@ class Invoice:
         if digito == 10:
             digito = 0
         return str(digito)
+
+    # @return (imp_iva, imp_trib)
+    def _get_imp_total_iva_and_trib(self, service):
+        # analyze VAT (IVA) and other taxes (tributo):
+        imp_iva = Decimal('0')
+        imp_trib = Decimal('0')
+        if service in ('wsfe', 'wsmtxca'):
+            for tax_line in self.taxes:
+                tax = tax_line.tax
+                if 'iva' in tax.group.code.lower():
+                    iva_id = IVA_AFIP_CODE[tax.rate]
+                    if iva_id != 3:  # 0%
+                        imp_iva += tax_line.amount
+                else:
+                    imp_trib += tax_line.amount
+
+        return ("%.2f" % abs(imp_iva), "%.2f" % abs(imp_trib))
 
 
 class InvoiceExportLicense(ModelSQL, ModelView):
