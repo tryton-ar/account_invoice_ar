@@ -44,6 +44,8 @@ IVA_AFIP_CODE.update({
     Decimal('0.105'): 4,
     Decimal('0.21'): 5,
     Decimal('0.27'): 6,
+    Decimal('0.05'): 8,
+    Decimal('0.025'): 9,
     })
 
 INVOICE_TYPE_AFIP_CODE = {
