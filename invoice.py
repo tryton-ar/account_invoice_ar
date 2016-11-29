@@ -916,15 +916,18 @@ class Invoice:
             fecha_venc_pago = fecha_serv_desde = fecha_serv_hasta = None
 
         # customer tax number:
+        nro_doc = None
         if self.party.vat_number:
             nro_doc = self.party.vat_number
-            if len(nro_doc) < 11:
-                tipo_doc = 96           # DNI
-            else:
-                tipo_doc = 80           # CUIT
+            tipo_doc = 80           # CUIT
         else:
-            nro_doc = "0"           # only "consumidor final"
-            tipo_doc = 99           # consumidor final
+            for identifier in self.party.identifiers:
+                if identifier.type == 'ar_dni':
+                    nro_doc = identifier.code
+                    tipo_doc = 96
+            if nro_doc is None:
+                nro_doc = "0"           # only "consumidor final"
+                tipo_doc = 99           # consumidor final
 
         # invoice amount totals:
         imp_total = str("%.2f" % abs(self.total_amount))
