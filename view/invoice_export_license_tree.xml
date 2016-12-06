@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<tree string="Export Licenses">
+<tree>
     <field name="license_id" />
     <field name="country" />
 </tree>

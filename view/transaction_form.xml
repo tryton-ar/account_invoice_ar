@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<form string="Transaction">
+<form>
     <label name="pyafipws_result" />
     <field name="pyafipws_result" />
     <notebook colspan="4">
