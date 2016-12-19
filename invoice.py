@@ -545,6 +545,8 @@ class Invoice:
             'tax_without_group':
                 u'El impuesto (%s) debe tener un grupo asignado ' \
                 u'(iibb, municipal, iva).',
+            'in_invoice_validate_failed':
+                u'Los campos *Referencia* y *Comprobante* son requeridos.',
             })
 
     @classmethod
@@ -600,7 +602,9 @@ class Invoice:
             if invoice.type in ('out_invoice', 'out_credit_note'):
                 invoice.check_invoice_type()
             elif invoice.type in ['in_invoice', 'in_credit_note']:
+                invoice.pre_validate_fields()
                 invoice.check_unique_reference()
+
         super(Invoice, cls).validate_invoice(invoices)
 
     def check_invoice_type(self):
@@ -626,6 +630,12 @@ class Invoice:
             ])
             if len(invoice) > 0:
                 self.raise_user_error('reference_unique')
+
+    def pre_validate_fields(self):
+        if self.type in ['in_invoice', 'in_credit_note']:
+            if self.tipo_comprobante is None or self.tipo_comprobante == '' \
+                or self.reference == '':
+                self.raise_user_error('in_invoice_validate_failed')
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
     def on_change_reference(self):
