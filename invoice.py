@@ -744,18 +744,44 @@ class Invoice:
         return res
 
     def set_number(self):
-        super(Invoice, self).set_number()
+        '''
+        Set number to the invoice
+        '''
+        pool = Pool()
+        Period = pool.get('account.period')
+        SequenceStrict = pool.get('ir.sequence.strict')
+        Sequence = pool.get('ir.sequence')
+        Date = pool.get('ir.date')
 
-        #if self.number:
-        #    return
+        if self.number:
+            return
 
-        if self.type == 'out_invoice' or self.type == 'out_credit_note':
-            vals = {}
-            Sequence = Pool().get('ir.sequence')
+        test_state = True
+        if self.type in ('in_invoice', 'in_credit_note'):
+            test_state = False
 
-            number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-            vals['number'] = '%04d-%08d' % (self.pos.number, int(number))
-            self.write([self], vals)
+        accounting_date = self.accounting_date or self.invoice_date
+        period_id = Period.find(self.company.id,
+            date=accounting_date, test_state=test_state)
+        period = Period(period_id)
+        sequence = period.get_invoice_sequence(self.type)
+        if not sequence:
+            self.raise_user_error('no_invoice_sequence', {
+                    'invoice': self.rec_name,
+                    'period': period.rec_name,
+                    })
+        with Transaction().set_context(
+                date=self.invoice_date or Date.today()):
+            if self.type in ('out_invoice', 'out_credit_note'):
+                number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
+                vals = {'number': '%04d-%08d' % (self.pos.number, int(number))}
+                if (not self.invoice_date
+                        and self.type in ('out_invoice', 'out_credit_note')):
+                    vals['invoice_date'] = Transaction().context['date']
+            else:
+                number = SequenceStrict.get_id(sequence.id)
+                vals = {'number': number}
+        self.write([self], vals)
 
     def _get_move_line(self, date, amount):
         res = super(Invoice, self)._get_move_line(date, amount)
