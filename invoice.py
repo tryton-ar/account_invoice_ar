@@ -529,8 +529,8 @@ class Invoice:
                 u'El número de la factura (%d), no coincide con el que espera ' \
                 u'la AFIP (%d). Modifique la secuencia del diario',
             'not_cae':
-                u'No fue posible obtener el CAE. Revise las Transacciones ' \
-                u'para mas información',
+                u'No fue posible obtener el CAE de la factura "%(invoice)s" para la entidad "%(party)s".' \
+                u' Mensaje: "%(msg)s"',
             'invalid_journal':
                 u'Este diario (%s) no tiene establecido los datos necesaios para ' \
                 u'facturar electrónicamente',
@@ -696,12 +696,18 @@ class Invoice:
     def _credit(self):
         pool = Pool()
         PosSequence = pool.get('account.pos.sequence')
+        Date = pool.get('ir.date')
 
         res = super(Invoice, self)._credit()
         if self.type == 'in':
             return res
 
+        to_create = [tax._credit() for tax in self.taxes if not tax.manual]
+        if to_create:
+            res['taxes'].append(('create', to_create))
+
         res['pos'] = self.pos.id
+        res['invoice_date'] = Date.today()
         invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
             (self.invoice_type.invoice_type)
             ]
@@ -792,8 +798,6 @@ class Invoice:
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
                         invoice.do_pyafipws_request_cae()
-                        if not invoice.pyafipws_cae:
-                            invoice.raise_user_error('not_cae')
             invoice.set_number()
             moves.append(invoice.create_move())
         cls.write(invoices, {
@@ -1170,18 +1174,14 @@ class Invoice:
             bars = ""
 
         AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
-        with Transaction().new_transaction() as transaction:
-            AFIP_Transaction.create([{'invoice': self,
-                                'pyafipws_result': ws.Resultado,
-                                'pyafipws_message': msg,
-                                'pyafipws_xml_request': ws.XmlRequest,
-                                'pyafipws_xml_response': ws.XmlResponse,
-                                }])
-            if ws.CAE is None:
-                 transaction.commit()
+        AFIP_Transaction.create([{'invoice': self,
+                            'pyafipws_result': ws.Resultado,
+                            'pyafipws_message': msg,
+                            'pyafipws_xml_request': ws.XmlRequest,
+                            'pyafipws_xml_response': ws.XmlResponse,
+                            }])
 
         if ws.CAE:
-
             # store the results
             vals = {'pyafipws_cae': ws.CAE,
                    'pyafipws_cae_due_date': vto or None,
@@ -1192,6 +1192,14 @@ class Invoice:
                 vals['pyafipws_cae_due_date'] = '-'.join([fe[:4],fe[4:6],fe[6:8]])
 
             self.write([self], vals)
+        else:
+            logger.error(u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n' \
+                'XmlResponse: %s\n', repr(msg.encode('ascii', 'ignore').strip()), self.id, self.type, self.party.rec_name, repr(ws.XmlRequest),
+                repr(ws.XmlResponse))
+            self.raise_user_error('not_cae', {
+                    'invoice': self.id, 'msg': msg.encode('ascii', 'ignore').strip(),
+                    'party': self.party.rec_name,
+                    })
 
 
     def pyafipws_verification_digit_modulo10(self, codigo):
