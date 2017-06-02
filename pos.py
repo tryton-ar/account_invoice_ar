@@ -66,7 +66,7 @@ class PosSequence(ModelSQL, ModelView):
             ('11', u'11-Factura C'),
             ('12', u'12-Nota de Débito C'),
             ('13', u'13-Nota de Crédito C'),
-            ('15', u'Recibo C'),
+            ('15', u'15-Recibo C'),
             ('19', u'19-Factura E'),
             ('20', u'20-Nota de Débito E'),
             ('21', u'21-Nota de Crédito E'),
