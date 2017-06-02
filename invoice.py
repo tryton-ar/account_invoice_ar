@@ -731,6 +731,11 @@ class Invoice:
                     self.pyafipws_billing_start_date
                 res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
 
+        if self.type[:3] == 'out':
+            res['description'] = u'Ref. Nro. ' + self.number
+        else:
+            res['description'] = u'Ref. Nro. ' + self.reference
+
         return res
 
     def set_number(self):
