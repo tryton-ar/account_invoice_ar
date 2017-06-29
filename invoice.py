@@ -1202,7 +1202,7 @@ class Invoice:
                 'XmlResponse: %s\n', repr(msg.encode('ascii', 'ignore').strip()), self.id, self.type, self.party.rec_name, repr(ws.XmlRequest),
                 repr(ws.XmlResponse))
             self.raise_user_error('not_cae', {
-                    'invoice': self.id, 'msg': msg.encode('ascii', 'ignore').strip(),
+                    'invoice': cbte_nro_next, 'msg': msg.encode('ascii', 'ignore').strip(),
                     'party': self.party.rec_name,
                     })
 
