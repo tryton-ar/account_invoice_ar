@@ -1,3 +1,7 @@
+Version 4.2.1 - 2017-07-26
+* Bug fixes (see git logs for details)
+
+Version 3.8.2 - 2016-02-01
 * Remove party integration. Move to party_ar module.
 
 Version 2.8.0 - 2013-05-23
