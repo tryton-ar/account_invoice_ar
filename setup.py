@@ -1,12 +1,14 @@
 #!/usr/bin/env python
-#This file is part of the account_coop_ar module for Tryton.
-#The COPYRIGHT file at the top level of this repository contains
-#the full copyright notices and license terms.
+# -*- coding: utf-8 -*-
+# This file is part of the account_invoice_ar module for Tryton.
+# The COPYRIGHT file at the top level of this repository contains
+# the full copyright notices and license terms.
 
 from setuptools import setup
 import re
 import os
 import ConfigParser
+
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -45,7 +47,8 @@ requires.append('suds>=0.4')
 
 setup(name='trytonar_account_invoice_ar',
     version=info.get('version', '0.0.1'),
-    description='Tryton module to add account invoice (electronic/manual) localizacion for Argentina (AFIP)',
+    description=('Tryton module to add account invoice (electronic/manual) '
+        'localizacion for Argentina (AFIP)'),
     author='tryton-ar',
     long_description=read('README.md'),
     url='https://github.com/tryton-ar/account_invoice_ar',
@@ -54,7 +57,7 @@ setup(name='trytonar_account_invoice_ar',
         'trytond.modules.account_invoice_ar',
     ],
     package_data={
-        'trytond.modules.account_invoice_ar': (info.get('xml', []) \
+        'trytond.modules.account_invoice_ar': (info.get('xml', [])
                 + ['tryton.cfg', 'view/*xml', 'locale/*.po', '*.odt',
                     'icons/*.svg']),
     },
