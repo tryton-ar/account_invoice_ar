@@ -1,42 +1,38 @@
-#! -*- coding: utf8 -*-
-#This file is part of Tryton.  The COPYRIGHT file at the top level of
-#this repository contains the full copyright notices and license terms.
-
+# -*- coding: utf-8 -*-
+# This file is part of the account_invoice_ar module for Tryton.
+# The COPYRIGHT file at the top level of this repository contains
+# the full copyright notices and license terms.
 import collections
 import logging
 from decimal import Decimal
 import datetime
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
-from trytond.report import Report
-from trytond.pyson import Eval, And, Equal
+from trytond.pyson import Eval, And
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 import afip_auth
-import logging
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 __all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
     'InvoiceReport']
-__metaclass__ = PoolMeta
 
 _STATES = {
     'readonly': Eval('state') != 'draft',
-}
+    }
 _DEPENDS = ['state']
 
 _BILLING_STATES = _STATES.copy()
 _BILLING_STATES.update({
-        'required': (Eval('pyafipws_concept') == '2')
-                    | (Eval('pyafipws_concept') == '3')
+    'required': Eval('pyafipws_concept').in_(['2', '3']),
     })
 
 _POS_STATES = _STATES.copy()
 _POS_STATES.update({
-        'required': And(Eval('type').in_(['out']), ~Eval('state').in_(['draft'])),
-        'invisible': Eval('type').in_(['in']),
-            })
+    'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
+    'invisible': Eval('type') == 'in',
+    })
 
 IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
 IVA_AFIP_CODE.update({
@@ -84,7 +80,7 @@ INCOTERMS = [
         ('DAT', 'Delivered At Terminal'),
         ('DAP', 'Delivered At Place'),
         ('DDP', 'Delivered Duty Paid'),
-]
+        ]
 
 TIPO_COMPROBANTE = [
     ('', ''),
@@ -110,9 +106,11 @@ TIPO_COMPROBANTE = [
     ('021', u'NOTAS DE CREDITO POR OPERACIONES CON EL EXTERIOR'),
     ('022', u'FACTURAS - PERMISO EXPORTACION SIMPLIFICADO - DTO. 855/97'),
     ('023', u'COMPROBANTES A DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
-    ('024', u'COMPROBANTES A DE CONSIGNACION PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('024', u'COMPROBANTES A DE CONSIGNACION PRIMARIA SECTOR PESQUERO '
+        'MARITIMO'),
     ('025', u'COMPROBANTES B DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
-    ('026', u'COMPROBANTES B DE CONSIGNACION PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('026', u'COMPROBANTES B DE CONSIGNACION PRIMARIA SECTOR PESQUERO '
+        'MARITIMO'),
     ('027', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
     ('028', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
     ('029', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
@@ -134,7 +132,8 @@ TIPO_COMPROBANTE = [
     ('046', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
     ('047', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
     ('048', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
-    ('049', u'COMPROBANTES DE COMPRA DE BIENES NO REGISTRABLES A CONSUMIDORES FINALES'),
+    ('049', u'COMPROBANTES DE COMPRA DE BIENES NO REGISTRABLES A CONSUMIDORES '
+        'FINALES'),
     ('050', u'RECIBO FACTURA A  REGIMEN DE FACTURA DE CREDITO'),
     ('051', u'FACTURAS M'),
     ('052', u'NOTAS DE DEBITO M'),
@@ -160,7 +159,8 @@ TIPO_COMPROBANTE = [
     ('089', u'RESUMEN DE DATOS'),
     ('090', u'OTROS COMPROBANTES - DOCUMENTOS EXCEPTUADOS - NOTAS DE CREDITO'),
     ('091', u'REMITOS R'),
-    ('099', u'OTROS COMPROBANTES QUE NO CUMPLEN O ESTÁN EXCEPTUADOS DE LA R.G. 1415 Y SUS MODIF'),
+    ('099', u'OTROS COMPROBANTES QUE NO CUMPLEN O ESTÁN EXCEPTUADOS DE LA '
+        'R.G. 1415 Y SUS MODIF'),
     ('110', u'TIQUE NOTA DE CREDITO'),
     ('111', u'TIQUE FACTURA C'),
     ('112', u'TIQUE NOTA DE CREDITO A'),
@@ -174,7 +174,7 @@ TIPO_COMPROBANTE = [
     ('120', u'TIQUE NOTA DE DEBITO M'),
     ('331', u'LIQUIDACION SECUNDARIA DE GRANOS'),
     ('332', u'CERTIFICACION ELECTRONICA (GRANOS)'),
-]
+    ]
 
 PAIS_DESTINO = [
     ('101', u'BURKINA FASO'),
@@ -432,7 +432,7 @@ PAIS_DESTINO = [
     ('598', u'INDET.(OCEANIA)'),
     ('997', u'RESTO CONTINENTE'),
     ('998', u'INDET.(CONTINENTE)'),
-]
+    ]
 
 
 class AfipWSTransaction(ModelSQL, ModelView):
@@ -440,139 +440,122 @@ class AfipWSTransaction(ModelSQL, ModelView):
     __name__ = 'account_invoice_ar.afip_transaction'
 
     pyafipws_result = fields.Selection([
-           ('', 'n/a'),
-           ('A', 'Aceptado'),
-           ('R', 'Rechazado'),
-           ('O', 'Observado'),
-       ], 'Resultado', readonly=True,
-       help=u"Resultado procesamiento de la Solicitud, devuelto por AFIP")
-
+        ('', 'n/a'),
+        ('A', 'Aceptado'),
+        ('R', 'Rechazado'),
+        ('O', 'Observado'),
+        ], 'Resultado', readonly=True,
+        help=u'Resultado procesamiento de la Solicitud, devuelto por AFIP')
     pyafipws_message = fields.Text('Mensaje', readonly=True,
-       help=u"Mensaje de error u observación, devuelto por AFIP")
+        help=u'Mensaje de error u observación, devuelto por AFIP')
     pyafipws_xml_request = fields.Text('Requerimiento XML', readonly=True,
-       help=u"Mensaje XML enviado a AFIP (depuración)")
+        help=u'Mensaje XML enviado a AFIP (depuración)')
     pyafipws_xml_response = fields.Text('Respuesta XML', readonly=True,
-       help=u"Mensaje XML recibido de AFIP (depuración)")
-
+        help=u'Mensaje XML recibido de AFIP (depuración)')
     invoice = fields.Many2One('account.invoice', 'Invoice')
 
 
 class Invoice:
-    'Invoice'
     __name__ = 'account.invoice'
+    __metaclass__ = PoolMeta
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
         states=_POS_STATES, depends=_DEPENDS)
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
-        domain=([('pos', '=', Eval('pos'))]),
-        states=_POS_STATES, depends=_DEPENDS)
-
+        domain=[('pos', '=', Eval('pos'))],
+        states=_POS_STATES, depends=_DEPENDS + ['pos'])
     pyafipws_concept = fields.Selection([
-       ('1', u'1-Productos'),
-       ('2', u'2-Servicios'),
-       ('3', u'3-Productos y Servicios (mercado interno)'),
-       ('4', u'4-Otros (exportación)'),
-       ('', ''),
-       ], 'Concepto',
-       select=True,
-       states={
-           'readonly': Eval('state') != 'draft',
-           'required': Eval('pos.pos_type') == 'electronic',
-            }, depends=['state']
-       )
+        ('1', u'1-Productos'),
+        ('2', u'2-Servicios'),
+        ('3', u'3-Productos y Servicios (mercado interno)'),
+        ('4', u'4-Otros (exportación)'),
+        ('', ''),
+        ], 'Concepto', select=True, depends=['state'], states={
+            'readonly': Eval('state') != 'draft',
+            'required': Eval('pos.pos_type') == 'electronic',
+            })
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
-       states=_BILLING_STATES, depends=_DEPENDS,
-       help=u"Seleccionar fecha de fin de servicios - Sólo servicios")
+        states=_BILLING_STATES, depends=_DEPENDS,
+        help=u'Seleccionar fecha de fin de servicios - Sólo servicios')
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
-       states=_BILLING_STATES, depends=_DEPENDS,
-       help=u"Seleccionar fecha de inicio de servicios - Sólo servicios")
+        states=_BILLING_STATES, depends=_DEPENDS,
+        help=u'Seleccionar fecha de inicio de servicios - Sólo servicios')
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
-       help=u"Código de Autorización Electrónico, devuelto por AFIP")
+        help=u'Código de Autorización Electrónico, devuelto por AFIP')
     pyafipws_cae_due_date = fields.Date('Vencimiento CAE', readonly=True,
-       help=u"Fecha tope para verificar CAE, devuelto por AFIP")
+        help=u'Fecha tope para verificar CAE, devuelto por AFIP')
     pyafipws_barcode = fields.Char(u'Codigo de Barras', size=40,
-        help=u"Código de barras para usar en la impresión", readonly=True,)
+        help=u'Código de barras para usar en la impresión', readonly=True,)
     pyafipws_number = fields.Char(u'Número', size=13, readonly=True,
-            help=u"Número de factura informado a la AFIP")
-
+        help=u'Número de factura informado a la AFIP')
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
-                                   'invoice', u"Transacciones",
-                                   readonly=True)
+        'invoice', u'Transacciones', readonly=True)
     tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
-       select=True,
-       states={
+        select=True, depends=['state', 'type'], states={
             'invisible': Eval('type').in_(['out']),
             'readonly': Eval('state') != 'draft',
-            }, depends=['state', 'type']
-       )
-    pyafipws_incoterms = fields.Selection(
-        INCOTERMS,
-        'Incoterms',
-    )
+            })
+    pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
-       'invoice', 'Export Licenses')
+        'invoice', 'Export Licenses')
 
     @classmethod
     def __setup__(cls):
         super(Invoice, cls).__setup__()
-
-        cls._buttons.update({
-            'afip_post': {
-                'invisible': ~Eval('state').in_(['draft', 'validated']),
-                },
-            })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
-                u'Debe establecer los valores "Fecha desde" y "Fecha hasta" ' \
-                u'en el Diario, correspondientes al servicio que se está facturando',
+                u'Debe establecer los valores "Fecha desde" y "Fecha hasta" '
+                u'en el Diario, correspondientes al servicio que se está '
+                u'facturando',
             'invalid_invoice_number':
-                u'El número de la factura (%d), no coincide con el que espera ' \
+                u'El número de la factura (%d), no coincide con el que espera '
                 u'la AFIP (%d). Modifique la secuencia del diario',
             'not_cae':
-                u'No fue posible obtener el CAE de la factura "%(invoice)s" para la entidad "%(party)s".' \
-                u' Mensaje: "%(msg)s"',
+                u'No fue posible obtener el CAE de la factura "%(invoice)s" '
+                u'para la entidad "%(party)s". Mensaje: "%(msg)s"',
             'invalid_journal':
-                u'Este diario (%s) no tiene establecido los datos necesaios para ' \
-                u'facturar electrónicamente',
+                u'Este diario (%s) no tiene establecido los datos necesaios '
+                u'para facturar electrónicamente',
             'missing_sequence':
                 u'No existe una secuencia para facturas del tipo: %s',
             'too_many_sequences':
                 u'Existe mas de una secuencia para facturas del tipo: %s',
-            'missing_company_iva_condition': ('The iva condition on company '
-                    '"%(company)s" is missing.'),
-            'missing_party_iva_condition': ('The iva condition on party '
-                    '"%(party)s" is missing.'),
+            'missing_company_iva_condition': 'The iva condition on company '
+                '"%(company)s" is missing.',
+            'missing_party_iva_condition': 'The iva condition on party '
+                '"%(party)s" is missing.',
             'not_invoice_type':
-                u'El campo «Tipo de factura» en «Factura» es requerido.',
+                u'El campo "Tipo de factura" en "Factura" es requerido.',
             'missing_currency_rate':
                 u'Debe configurar la cotización de la moneda.',
             'missing_pyafipws_incoterms':
-                u'Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".',
+                u'Debe establecer el valor de Incoterms si desea realizar '
+                u'un tipo de "Factura E".',
             'reference_unique':
                 u'El numero de factura ya ha sido ingresado en el sistema.',
             'tax_without_group':
-                u'El impuesto (%s) debe tener un grupo asignado ' \
+                u'El impuesto (%s) debe tener un grupo asignado '
                 u'(iibb, municipal, iva).',
             'in_invoice_validate_failed':
-                u'Los campos *Referencia* y *Comprobante* son requeridos.',
+                u'Los campos "Referencia" y "Comprobante" son requeridos.',
             })
 
     @classmethod
     def __register__(cls, module_name):
         super(Invoice, cls).__register__(module_name)
         cursor = Transaction().connection.cursor()
-        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '001' \
-                        WHERE tipo_comprobante='fca';")
-        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '006' \
-                        WHERE tipo_comprobante='fcb';")
-        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '011' \
-                        WHERE tipo_comprobante='fcc';")
-        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '081' \
-                        WHERE tipo_comprobante='tka';")
-        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '082' \
-                        WHERE tipo_comprobante='tkb';")
-        cursor.execute("UPDATE account_invoice SET tipo_comprobante = '111' \
-                        WHERE tipo_comprobante='tkc';")
+        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'001\' '
+            'WHERE tipo_comprobante = \'fca\';')
+        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'006\' '
+            'WHERE tipo_comprobante = \'fcb\';')
+        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'011\' '
+            'WHERE tipo_comprobante = \'fcc\';')
+        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'081\' '
+            'WHERE tipo_comprobante = \'tka\';')
+        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'082\' '
+            'WHERE tipo_comprobante = \'tkb\';')
+        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'111\' '
+            'WHERE tipo_comprobante = \'tkc\';')
 
     @classmethod
     def copy(cls, invoices, default=None):
@@ -612,7 +595,6 @@ class Invoice:
             elif invoice.type in ['in']:
                 invoice.pre_validate_fields()
                 invoice.check_unique_reference()
-
         super(Invoice, cls).validate_invoice(invoices)
 
     def check_invoice_type(self):
@@ -634,18 +616,17 @@ class Invoice:
             ('party', '=', self.party.id),
             ('tipo_comprobante', '=', self.tipo_comprobante),
             ('reference', '=', self.reference),
-        ])
+            ])
         if len(invoice) > 0:
             self.raise_user_error('reference_unique')
 
     def pre_validate_fields(self):
-        if self.tipo_comprobante is None or self.tipo_comprobante == '' \
-            or self.reference == '':
+        if (self.tipo_comprobante is None or self.tipo_comprobante == ''
+                or self.reference == ''):
             self.raise_user_error('in_invoice_validate_failed')
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
     def on_change_reference(self):
-        print "on_change_reference"
         if self.type in ['in']:
             self.check_unique_reference()
 
@@ -670,13 +651,13 @@ class Invoice:
                 kind = 'A'
             elif client_iva == 'consumidor_final':
                 kind = 'B'
-            elif self.party.vat_number: # CUIT Argentino
+            elif self.party.vat_number:  # CUIT Argentino
                 kind = 'B'
             else:
                 kind = 'E'
         else:
             kind = 'C'
-            if self.party.vat_number_afip_foreign: # Identificador AFIP Foraneo
+            if self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
@@ -698,21 +679,19 @@ class Invoice:
         PosSequence = pool.get('account.pos.sequence')
         Date = pool.get('ir.date')
 
-        res = super(Invoice, self)._credit()
+        credit = super(Invoice, self)._credit()
         if self.type == 'in':
-            return res
+            return credit
 
-        to_create = [tax._credit() for tax in self.taxes if not tax.manual]
-        if to_create:
-            res['taxes'].append(('create', to_create))
+        credit.taxes = [tax._credit() for tax in self.taxes]
 
-        res['pos'] = self.pos.id
-        res['invoice_date'] = Date.today()
+        credit.pos = self.pos
+        credit.invoice_date = Date.today()
         invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
             (self.invoice_type.invoice_type)
             ]
         sequences = PosSequence.search([
-            ('pos', '=', res['pos']),
+            ('pos', '=', credit.pos),
             ('invoice_type', '=', invoice_type)
             ])
         if len(sequences) == 0:
@@ -720,75 +699,90 @@ class Invoice:
         elif len(sequences) > 1:
             self.raise_user_error('too_many_sequences', invoice_type_desc)
         else:
-            res['invoice_type'] = sequences[0].id
+            credit.invoice_type = sequences[0]
 
         if self.pos.pos_type == 'electronic':
-            res['pyafipws_concept'] = self.pyafipws_concept
+            credit.pyafipws_concept = self.pyafipws_concept
             if self.pyafipws_concept in ['2', '3']:
-                res['pyafipws_billing_start_date'] = \
-                    self.pyafipws_billing_start_date
-                res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
+                credit.pyafipws_billing_start_date = (
+                    self.pyafipws_billing_start_date)
+                credit.pyafipws_billing_end_date = (
+                    self.pyafipws_billing_end_date)
 
         if self.type[:3] == 'out':
-            res['description'] = u'Ref. Nro. ' + self.number
+            credit.description = u'Ref. Nro. ' + self.number
         else:
-            res['description'] = u'Ref. Nro. ' + self.reference
+            credit.description = u'Ref. Nro. ' + self.reference
 
-        return res
+        return credit
 
-    def set_number(self):
+    @classmethod
+    def set_number(cls, invoices):
+        '''
+        Set number to the invoice
+        '''
         pool = Pool()
         Period = pool.get('account.period')
         SequenceStrict = pool.get('ir.sequence.strict')
-        Sequence = Pool().get('ir.sequence')
+        Sequence = pool.get('ir.sequence')
         Date = pool.get('ir.date')
 
-        if self.number:
-            return
+        for invoice in invoices:
+            # Posted and paid invoices are tested by check_modify so we can
+            # not modify tax_identifier nor number
+            if invoice.state in {'posted', 'paid'}:
+                continue
+            if not invoice.tax_identifier:
+                invoice.tax_identifier = invoice.get_tax_identifier()
 
-        test_state = True
-        if self.type == 'out':
-            test_state = False
+            if invoice.number:
+                continue
 
-        accounting_date = self.accounting_date or self.invoice_date
-        period_id = Period.find(self.company.id,
-            date=accounting_date, test_state=test_state)
-        period = Period(period_id)
-        invoice_type = self.type
-        if all(l.amount <= 0 for l in self.lines):
-            invoice_type += '_credit_note'
-        else:
-            invoice_type += '_invoice'
-        sequence = period.get_invoice_sequence(invoice_type)
-        if not sequence:
-            self.raise_user_error('no_invoice_sequence', {
-                    'invoice': self.rec_name,
-                    'period': period.rec_name,
-                    })
-        with Transaction().set_context(
-                date=self.invoice_date or Date.today()):
-            if self.type == 'out':
-                number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-                vals = {'number': '%04d-%08d' % (self.pos.number, int(number))}
-                if not self.invoice_date:
-                    vals['invoice_date'] = Transaction().context['date']
+            test_state = True
+            if invoice.type == 'in':
+                test_state = False
+
+            accounting_date = invoice.accounting_date or invoice.invoice_date
+            period_id = Period.find(invoice.company.id,
+                date=accounting_date, test_state=test_state)
+            period = Period(period_id)
+            invoice_type = invoice.type
+            if all(l.amount <= 0 for l in invoice.lines):
+                invoice_type += '_credit_note'
             else:
-                number = SequenceStrict.get_id(sequence.id)
-                vals = {'number': number}
-        self.write([self], vals)
+                invoice_type += '_invoice'
+            sequence = period.get_invoice_sequence(invoice_type)
+            if not sequence:
+                cls.raise_user_error('no_invoice_sequence', {
+                        'invoice': invoice.rec_name,
+                        'period': period.rec_name,
+                        })
+            with Transaction().set_context(
+                    date=invoice.invoice_date or Date.today()):
+                if invoice.type == 'out':
+                    number = Sequence.get_id(
+                        invoice.invoice_type.invoice_sequence.id)
+                    invoice.number = '%04d-%08d' % (
+                        invoice.pos.number, int(number))
+                    if not invoice.invoice_date:
+                        invoice.invoice_date = Transaction().context['date']
+                else:
+                    number = SequenceStrict.get_id(sequence.id)
+                    invoice.number = number
+        cls.save(invoices)
 
     def _get_move_line(self, date, amount):
-        res = super(Invoice, self)._get_move_line(date, amount)
+        line = super(Invoice, self)._get_move_line(date, amount)
 
         if self.type[:3] == 'out':
-            res['description'] = self.party.name + u' Nro. ' + self.number
+            line.description = self.party.name + u' Nro. ' + self.number
         else:
-            res['description'] = self.party.name + u' Nro. ' + self.reference
+            line.description = self.party.name + u' Nro. ' + self.reference
 
         if self.description:
-            res['description'] += ' / ' + self.description
+            line.description += ' / ' + self.description
 
-        return res
+        return line
 
     @classmethod
     @ModelView.button
@@ -798,28 +792,32 @@ class Invoice:
 
         moves = []
         for invoice in invoices:
-            if invoice.type == u'out':
+            if invoice.type == 'out':
                 invoice.check_invoice_type()
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
                         invoice.do_pyafipws_request_cae()
-            invoice.set_number()
-            moves.append(invoice.create_move())
-        cls.write(invoices, {
-                'state': 'posted',
-                })
-        Move.post([m for m in moves if m.state != 'posted'])
-        #Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
-        #for invoice in invoices:
-        #    if invoice.type in ('out_invoice', 'out_credit_note'):
-        #        invoice.print_invoice()
+            cls.set_number([invoice])
+            move = invoice.get_move()
+            if move != invoice.move:
+                invoice.move = move
+                moves.append(move)
+            if invoice.state != 'posted':
+                invoice.state = 'posted'
+        if moves:
+            Move.save(moves)
+        cls.save(invoices)
+        Move.post([i.move for i in invoices if i.move.state != 'posted'])
+        for invoice in invoices:
+            if invoice.type == 'out':
+                invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
-        "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
+        'Request to AFIP the invoices Authorization Electronic Code (CAE)'
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
-            logger.info(u'Se trata de obtener CAE de la factura que ya tiene. '\
-                        u'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
+            logger.info(u'Se trata de obtener CAE de la factura que ya tiene. '
+                    u'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
             return
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
@@ -838,7 +836,8 @@ class Invoice:
         # check if it is an electronic invoice sale point:
         ##TODO
         #if not tipo_cbte:
-        #    self.raise_user_error('invalid_sequence', pos.invoice_type.invoice_type)
+            #self.raise_user_error('invalid_sequence',
+                #pos.invoice_type.invoice_type)
 
         # authenticate against AFIP:
         auth_data = company.pyafipws_authenticate(service=service)
@@ -848,19 +847,21 @@ class Invoice:
             from pyafipws.wsfev1 import WSFEv1  # local market
             ws = WSFEv1()
             if company.pyafipws_mode_cert == 'homologacion':
-                WSDL = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
+                WSDL = 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL'
             elif company.pyafipws_mode_cert == 'produccion':
-                WSDL = "https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL"
+                WSDL = (
+                    'https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL')
         #elif service == 'wsmtxca':
         #    from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
         #    ws = WSMTXCA()
         elif service == 'wsfex':
-            from pyafipws.wsfexv1 import WSFEXv1 # foreign trade
+            from pyafipws.wsfexv1 import WSFEXv1  # foreign trade
             ws = WSFEXv1()
             if company.pyafipws_mode_cert == 'homologacion':
-                WSDL = "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"
+                WSDL = 'https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL'
             elif company.pyafipws_mode_cert == 'produccion':
-                WSDL = "https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL"
+                WSDL = (
+                    'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
         else:
             logger.critical(u'WS no soportado: %s', service)
             return
@@ -883,49 +884,53 @@ class Invoice:
                 self.invoice_type.invoice_sequence.id).get_number_next(''))
 
         # get the last invoice number registered in AFIP
-        if service == "wsfe" or service == "wsmtxca":
+        if service == 'wsfe' or service == 'wsmtxca':
             cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
         elif service == 'wsfex':
             cbte_nro_afip = ws.GetLastCMP(tipo_cbte, punto_vta)
         cbte_nro_next = int(cbte_nro_afip or 0) + 1
         # verify that the invoice is the next one to be registered in AFIP
         if cbte_nro != cbte_nro_next:
-            self.raise_user_error('invalid_invoice_number', (cbte_nro, cbte_nro_next))
+            self.raise_user_error('invalid_invoice_number', (cbte_nro,
+                cbte_nro_next))
 
         # invoice number range (from - to) and date:
         cbte_nro = cbt_desde = cbt_hasta = cbte_nro_next
 
         if self.invoice_date:
-            fecha_cbte = self.invoice_date.strftime("%Y-%m-%d")
+            fecha_cbte = self.invoice_date.strftime('%Y-%m-%d')
         else:
             Date = pool.get('ir.date')
-            fecha_cbte = Date.today().strftime("%Y-%m-%d")
+            fecha_cbte = Date.today().strftime('%Y-%m-%d')
 
         if service != 'wsmtxca':
-            fecha_cbte = fecha_cbte.replace("-", "")
+            fecha_cbte = fecha_cbte.replace('-', '')
 
-        # due and billing dates only for concept "services"
+        # due and billing dates only for concept 'services'
         concepto = tipo_expo = int(self.pyafipws_concept or 0)
         if int(concepto) != 1:
 
-            payments = self.payment_term.compute(self.total_amount, self.currency)
+            payments = self.payment_term.compute(self.total_amount,
+                self.currency)
             if payments == []:
                 last_payment = datetime.date.today()
             else:
-                last_payment = max(payments, key=lambda x:x[0])[0]
-            fecha_venc_pago = last_payment.strftime("%Y-%m-%d")
+                last_payment = max(payments, key=lambda x: x[0])[0]
+            fecha_venc_pago = last_payment.strftime('%Y-%m-%d')
             if service != 'wsmtxca':
-                    fecha_venc_pago = fecha_venc_pago.replace("-", "")
+                    fecha_venc_pago = fecha_venc_pago.replace('-', '')
             if self.pyafipws_billing_start_date:
-                fecha_serv_desde = self.pyafipws_billing_start_date.strftime("%Y-%m-%d")
+                fecha_serv_desde = self.pyafipws_billing_start_date.strftime(
+                    '%Y-%m-%d')
                 if service != 'wsmtxca':
-                    fecha_serv_desde = fecha_serv_desde.replace("-", "")
+                    fecha_serv_desde = fecha_serv_desde.replace('-', '')
             else:
                 fecha_serv_desde = None
-            if  self.pyafipws_billing_end_date:
-                fecha_serv_hasta = self.pyafipws_billing_end_date.strftime("%Y-%m-%d")
+            if self.pyafipws_billing_end_date:
+                fecha_serv_hasta = self.pyafipws_billing_end_date.strftime(
+                    '%Y-%m-%d')
                 if service != 'wsmtxca':
-                    fecha_serv_hasta = fecha_serv_hasta.replace("-", "")
+                    fecha_serv_hasta = fecha_serv_hasta.replace('-', '')
             else:
                 fecha_serv_hasta = None
         else:
@@ -935,23 +940,23 @@ class Invoice:
         nro_doc = None
         if self.party.vat_number:
             nro_doc = self.party.vat_number
-            tipo_doc = 80           # CUIT
+            tipo_doc = 80  # CUIT
         else:
             for identifier in self.party.identifiers:
                 if identifier.type == 'ar_dni':
                     nro_doc = identifier.code
                     tipo_doc = 96
             if nro_doc is None:
-                nro_doc = "0"           # only "consumidor final"
-                tipo_doc = 99           # consumidor final
+                nro_doc = '0'  # only 'consumidor final'
+                tipo_doc = 99  # consumidor final
 
         # invoice amount totals:
-        imp_total = str("%.2f" % abs(self.total_amount))
-        imp_tot_conc = "0.00"
-        imp_neto = str("%.2f" % abs(self.untaxed_amount))
+        imp_total = str('%.2f' % abs(self.total_amount))
+        imp_tot_conc = '0.00'
+        imp_neto = str('%.2f' % abs(self.untaxed_amount))
         imp_iva, imp_trib = self._get_imp_total_iva_and_trib(service)
         imp_subtotal = imp_neto  # TODO: not allways the case!
-        imp_op_ex = "0.00"
+        imp_op_ex = '0.00'
         if self.company.currency.rate == Decimal('0'):
             if self.party.vat_number_afip_foreign:
                 self.raise_user_error('missing_currency_rate')
@@ -963,33 +968,34 @@ class Invoice:
             ctz = self.company.currency.rate / self.currency.rate
 
         if self.currency.code == 'ARS':
-            moneda_id = "PES"
+            moneda_id = 'PES'
         else:
-            moneda_id = {'USD':'DOL', 'EUR':'060'}[self.currency.code]
+            moneda_id = {'USD': 'DOL', 'EUR': '060'}[self.currency.code]
 
-        moneda_ctz =  str("%.2f" % ctz)
+        moneda_ctz = str('%.2f' % ctz)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
             incoterms = self.pyafipws_incoterms
-            incoterms_ds = dict(self._fields['pyafipws_incoterms'].selection)[self.pyafipws_incoterms]
+            incoterms_ds = dict(self._fields['pyafipws_incoterms'].selection)[
+                self.pyafipws_incoterms]
         else:
             incoterms = incoterms_ds = None
 
-        if incoterms == None and incoterms_ds == None and service == 'wsfex':
+        if incoterms is None and incoterms_ds is None and service == 'wsfex':
             self.raise_user_error('missing_pyafipws_incoterms')
 
         if int(tipo_cbte) == 19 and tipo_expo == 1:
-            permiso_existente =  "N" or "S"     # not used now
+            permiso_existente = 'N' or 'S'  # not used now
         else:
-            permiso_existente = ""
+            permiso_existente = ''
         obs_generales = self.comment
         if self.payment_term:
             forma_pago = self.payment_term.name
             obs_comerciales = self.payment_term.name
         else:
             forma_pago = obs_comerciales = None
-        idioma_cbte = 1     # invoice language: spanish / español
+        idioma_cbte = 1  # invoice language: spanish / español
 
         # customer data (foreign trade):
         nombre_cliente = self.party.name
@@ -1006,47 +1012,46 @@ class Invoice:
             cuit_pais_cliente = id_impositivo = None
         if self.invoice_address:
             address = self.invoice_address
-            domicilio_cliente = " - ".join([
-                                        address.name or '',
-                                        address.street or '',
-                                        address.streetbis or '',
-                                        address.zip or '',
-                                        address.city or '',
-                                ])
+            domicilio_cliente = ' - '.join([
+                    address.name or '',
+                    address.street or '',
+                    address.zip or '',
+                    address.city or '',
+                    ])
         else:
-            domicilio_cliente = ""
+            domicilio_cliente = ''
         if self.party.vat_number_afip_foreign:
             for identifier in self.party.identifiers:
                 if identifier.type == 'ar_foreign':
                     # map ISO country code to AFIP destination country code:
                     pais_dst_cmp = {
-                    'gt': 213, 'gr': 413, 'gq': 119, 'gy': 214, 'ge': 351,
-                    'gb': 426, 'gn': 118, 'gm': 116, 'gh': 117, 'tv': 517,
-                    'tt': 224, 'lk': 307, 'li': 418, 'lv': 441, 'to': 519,
-                    'lt': 442, 'lu': 419, 'lr': 122, 'tg': 140, 'td': 111,
-                    'ly': 123, 'do': 209, 'dm': 233, 'dk': 409, 'uy': 225,
-                    'qa': 322, 'zm': 144, 'ee': 440, 'eg': 113, 'ec': 210,
-                    'es': 410, 'er': 160, 'rs': 454, 'bd': 345, 'bg': 407,
-                    'bb': 201, 'bh': 303, 'bi': 104, 'jm': 217, 'jo': 321,
-                    'br': 203, 'bs': 239, 'by': 439, 'bz': 236, 'ua': 445,
-                    'ch': 430, 'co': 205, 'cn': 310, 'cl': 208, 'cg': 108,
-                    'cy': 435, 'cr': 206, 'cv': 150, 'cu': 207, 'pr': 223,
-                    'tn': 141, 'pw': 516, 'pt': 425, 'py': 221, 'pk': 332,
-                    'ph': 312, 'pl': 424, 'hr': 447, 'it': 417, 'hk': 341,
-                    'hn': 216, 'vn': 337, 'me': 453, 'mg': 124, 'ma': 127,
-                    'ml': 126, 'mo': 344, 'mn': 329, 'us': 212, 'mt': 420,
-                    'mw': 125, 'mr': 129, 'ug': 142, 'my': 326, 'mz': 151,
-                    'vc': 235, 'ad': 404, 'ag': 237, 'iq': 317, 'is': 416,
-                    'am': 349, 'al': 401, 'ao': 149, 'au': 501, 'at': 405,
-                    'in': 315, 'ie': 415, 'id': 316, 'ni': 219, 'no': 422,
-                    'il': 319, 'na': 158, 'ne': 130, 'ng': 131, 'np': 330,
-                    'so': 136, 'nr': 503, 'fr': 412, 'fi': 411, 'sz': 137,
-                    'sv': 211, 'sk': 448, 'si': 449, 'kw': 323, 'sn': 134,
-                    'sm': 428, 'sl': 135, 'sc': 152, 'sg': 333, 'se': 429,
-                    'uk': 426, 'bo': 202, 'ca': 204, 'mx': 218, 'pe': 222,
-                    've': 226, 'tw': 313, 'jp': 320, 'be': 406, 'nl': 423,
-                    'de': 438, 'ru': 444,
-                    }[identifier.country.code.lower()]
+                        'gt': 213, 'gr': 413, 'gq': 119, 'gy': 214, 'ge': 351,
+                        'gb': 426, 'gn': 118, 'gm': 116, 'gh': 117, 'tv': 517,
+                        'tt': 224, 'lk': 307, 'li': 418, 'lv': 441, 'to': 519,
+                        'lt': 442, 'lu': 419, 'lr': 122, 'tg': 140, 'td': 111,
+                        'ly': 123, 'do': 209, 'dm': 233, 'dk': 409, 'uy': 225,
+                        'qa': 322, 'zm': 144, 'ee': 440, 'eg': 113, 'ec': 210,
+                        'es': 410, 'er': 160, 'rs': 454, 'bd': 345, 'bg': 407,
+                        'bb': 201, 'bh': 303, 'bi': 104, 'jm': 217, 'jo': 321,
+                        'br': 203, 'bs': 239, 'by': 439, 'bz': 236, 'ua': 445,
+                        'ch': 430, 'co': 205, 'cn': 310, 'cl': 208, 'cg': 108,
+                        'cy': 435, 'cr': 206, 'cv': 150, 'cu': 207, 'pr': 223,
+                        'tn': 141, 'pw': 516, 'pt': 425, 'py': 221, 'pk': 332,
+                        'ph': 312, 'pl': 424, 'hr': 447, 'it': 417, 'hk': 341,
+                        'hn': 216, 'vn': 337, 'me': 453, 'mg': 124, 'ma': 127,
+                        'ml': 126, 'mo': 344, 'mn': 329, 'us': 212, 'mt': 420,
+                        'mw': 125, 'mr': 129, 'ug': 142, 'my': 326, 'mz': 151,
+                        'vc': 235, 'ad': 404, 'ag': 237, 'iq': 317, 'is': 416,
+                        'am': 349, 'al': 401, 'ao': 149, 'au': 501, 'at': 405,
+                        'in': 315, 'ie': 415, 'id': 316, 'ni': 219, 'no': 422,
+                        'il': 319, 'na': 158, 'ne': 130, 'ng': 131, 'np': 330,
+                        'so': 136, 'nr': 503, 'fr': 412, 'fi': 411, 'sz': 137,
+                        'sv': 211, 'sk': 448, 'si': 449, 'kw': 323, 'sn': 134,
+                        'sm': 428, 'sl': 135, 'sc': 152, 'sg': 333, 'se': 429,
+                        'uk': 426, 'bo': 202, 'ca': 204, 'mx': 218, 'pe': 222,
+                        've': 226, 'tw': 313, 'jp': 320, 'be': 406, 'nl': 423,
+                        'de': 438, 'ru': 444,
+                        }[identifier.country.code.lower()]
 
         # create the invoice internally in the helper
         if service == 'wsfe':
@@ -1080,8 +1085,8 @@ class Invoice:
                 if 'iva' in tax.group.code.lower():
                     iva_id = IVA_AFIP_CODE[tax.rate]
                     if iva_id != 3:  # 0%
-                        base_imp = ("%.2f" % abs(tax_line.base))
-                        importe = ("%.2f" % abs(tax_line.amount))
+                        base_imp = ('%.2f' % abs(tax_line.base))
+                        importe = ('%.2f' % abs(tax_line.amount))
                         ws.AgregarIva(iva_id, base_imp, importe)
                 else:
                     if 'nacional' in tax.group.code.lower():
@@ -1095,24 +1100,26 @@ class Invoice:
                     else:
                         tributo_id = 99
                     desc = tax.name
-                    base_imp = ("%.2f" % abs(tax_line.base))
-                    importe = ("%.2f" % abs(tax_line.amount))
-                    alic = "%.2f" % abs(tax.rate * 100)
+                    base_imp = ('%.2f' % abs(tax_line.base))
+                    importe = ('%.2f' % abs(tax_line.amount))
+                    alic = '%.2f' % abs(tax.rate * 100)
                     # add the other tax detail in the helper
-                    ws.AgregarTributo(tributo_id, desc, base_imp, alic, importe)
+                    ws.AgregarTributo(tributo_id, desc, base_imp, alic,
+                        importe)
 
                 ## Agrego un item:
-                #codigo = "PRO1"
-                #ds = "Producto Tipo 1 Exportacion MERCOSUR ISO 9001"
+                #codigo = 'PRO1'
+                #ds = 'Producto Tipo 1 Exportacion MERCOSUR ISO 9001'
                 #qty = 2
-                #precio = "150.00"
+                #precio = '150.00'
                 #umed = 1 # Ver tabla de parámetros (unidades de medida)
-                #bonif = "50.00"
-                #imp_total = "250.00" # importe total final del artículo
+                #bonif = '50.00'
+                #imp_total = '250.00'  # importe total final del artículo
         # analize line items - invoice detail
         # umeds
         # Parametros. Unidades de Medida, etc.
-        # https://code.google.com/p/pyafipws/wiki/WSFEX#WSFEX/RECEX_Parameter_Tables
+        # https://code.google.com/p/pyafipws/wiki/WSFEX#WSFEX/
+        #     RECEX_Parameter_Tables
         if service in ('wsfex', 'wsmtxca'):
             for line in self.lines:
                 if line.product:
@@ -1121,20 +1128,20 @@ class Invoice:
                     codigo = 0
                 ds = line.description
                 qty = line.quantity
-                umed = 7 # FIXME: (7 - unit)
+                umed = 7  # FIXME: (7 - unit)
                 precio = str(line.unit_price)
                 importe_total = str(line.amount)
                 bonif = None  # line.discount
                 #for tax in line.taxes:
-                #    if tax.group.name == "IVA":
+                #    if tax.group.name == 'IVA':
                 #        iva_id = IVA_AFIP_CODE[tax.rate]
                 #        imp_iva = importe * tax.rate
                 #if service == 'wsmtxca':
                 #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
                 #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
                 if service == 'wsfex':
-                    ws.AgregarItem(codigo, ds, qty, umed, precio, importe_total,
-                                   bonif)
+                    ws.AgregarItem(codigo, ds, qty, umed, precio,
+                        importe_total, bonif)
 
             if service == 'wsfex':
                 for export_license in self.pyafipws_licenses:
@@ -1164,61 +1171,66 @@ class Invoice:
                 import traceback
                 import sys
                 msg = traceback.format_exception_only(sys.exc_type,
-                                                      sys.exc_value)[0]
+                    sys.exc_value)[0]
         else:
-            msg = u"\n".join([ws.Obs or "", ws.ErrMsg or ""])
+            msg = u'\n'.join([ws.Obs or '', ws.ErrMsg or ''])
         # calculate the barcode:
         if ws.CAE:
             cae_due = ''.join([c for c in str(ws.Vencimiento or '')
-                                       if c.isdigit()])
-            bars = ''.join([str(ws.Cuit), "%02d" % int(tipo_cbte),
-                              "%04d" % int(punto_vta),
-                              str(ws.CAE), cae_due])
+                    if c.isdigit()])
+            bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
+                    '%04d' % int(punto_vta), str(ws.CAE), cae_due])
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
         else:
-            bars = ""
+            bars = ''
 
         AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
         AFIP_Transaction.create([{'invoice': self,
-                            'pyafipws_result': ws.Resultado,
-                            'pyafipws_message': msg,
-                            'pyafipws_xml_request': ws.XmlRequest,
-                            'pyafipws_xml_response': ws.XmlResponse,
-                            }])
+                'pyafipws_result': ws.Resultado,
+                'pyafipws_message': msg,
+                'pyafipws_xml_request': ws.XmlRequest,
+                'pyafipws_xml_response': ws.XmlResponse,
+                }])
 
         if ws.CAE:
             # store the results
-            vals = {'pyafipws_cae': ws.CAE,
-                   'pyafipws_cae_due_date': vto or None,
-                   'pyafipws_barcode': bars,
+            vals = {
+                'pyafipws_cae': ws.CAE,
+                'pyafipws_cae_due_date': vto or None,
+                'pyafipws_barcode': bars,
                 }
             if not '-' in vals['pyafipws_cae_due_date']:
                 fe = vals['pyafipws_cae_due_date']
-                vals['pyafipws_cae_due_date'] = '-'.join([fe[:4],fe[4:6],fe[6:8]])
+                vals['pyafipws_cae_due_date'] = '-'.join([
+                        fe[:4], fe[4:6], fe[6:8]])
 
             self.write([self], vals)
         else:
-            logger.error(u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n' \
-                'XmlResponse: %s\n', repr(msg.encode('ascii', 'ignore').strip()), self.id, self.type, self.party.rec_name, repr(ws.XmlRequest),
-                repr(ws.XmlResponse))
+            logger.error(
+                u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
+                u'XmlResponse: %s\n',
+                    repr(msg.encode('ascii', 'ignore').strip()),
+                    self.id, self.type, self.party.rec_name,
+                    repr(ws.XmlRequest), repr(ws.XmlResponse))
             self.raise_user_error('not_cae', {
-                    'invoice': cbte_nro_next, 'msg': msg.encode('ascii', 'ignore').strip(),
+                    'invoice': cbte_nro_next,
+                    'msg': msg.encode('ascii', 'ignore').strip(),
                     'party': self.party.rec_name,
                     })
 
-
     def pyafipws_verification_digit_modulo10(self, codigo):
-        "Calculate the verification digit 'modulo 10'"
-        # http://www.consejo.org.ar/Bib_elect/diciembre04_CT/documentos/rafip1702.htm
+        'Calculate the verification digit "modulo 10"'
+        # http://www.consejo.org.ar/Bib_elect/diciembre04_CT/documentos/
+        #     rafip1702.htm
         # Step 1: sum all digits in odd positions, left to right
         codigo = codigo.strip()
         if not codigo or not codigo.isdigit():
             return ''
-        etapa1 = sum([int(c) for i,c in enumerate(codigo) if not i%2])
+        etapa1 = sum([int(c) for i, c in enumerate(codigo) if not i % 2])
         # Step 2: multiply the step 1 sum by 3
         etapa2 = etapa1 * 3
         # Step 3: start from the left, sum all the digits in even positions
-        etapa3 = sum([int(c) for i,c in enumerate(codigo) if i%2])
+        etapa3 = sum([int(c) for i, c in enumerate(codigo) if i % 2])
         # Step 4: sum the results of step 2 and 3
         etapa4 = etapa2 + etapa3
         # Step 5: the minimun value that summed to step 4 is a multiple of 10
@@ -1242,7 +1254,7 @@ class Invoice:
                 else:
                     imp_trib += tax_line.amount
 
-        return ("%.2f" % abs(imp_iva), "%.2f" % abs(imp_trib))
+        return ('%.2f' % abs(imp_iva), '%.2f' % abs(imp_trib))
 
 
 class InvoiceExportLicense(ModelSQL, ModelView):
@@ -1256,6 +1268,7 @@ class InvoiceExportLicense(ModelSQL, ModelView):
 
 class InvoiceReport:
     __name__ = 'account.invoice'
+    __metaclass__ = PoolMeta
 
     @classmethod
     def get_context(cls, records, data):
@@ -1279,8 +1292,8 @@ class InvoiceReport:
             Invoice, invoice)
         report_context['codigo_comprobante'] = cls._get_codigo_comprobante(
             Invoice, invoice)
-        report_context['condicion_iva_cliente'] = \
-            cls._get_condicion_iva_cliente(Invoice, invoice)
+        report_context['condicion_iva_cliente'] = (
+            cls._get_condicion_iva_cliente(Invoice, invoice))
         report_context['vat_number_cliente'] = cls._get_vat_number_cliente(
             Invoice, invoice)
         report_context['invoice_impuestos'] = cls._get_invoice_impuestos(
@@ -1290,7 +1303,7 @@ class InvoiceReport:
         return report_context
 
     @classmethod
-    def get_line_amount(self,tipo_comprobante, line_amount, line_taxes):
+    def get_line_amount(self, tipo_comprobante, line_amount, line_taxes):
         total = line_amount
         if tipo_comprobante != 'A':
             for tax in line_taxes:
@@ -1318,7 +1331,8 @@ class InvoiceReport:
 
     @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
-        return dict(invoice.party._fields['iva_condition'].selection)[invoice.party.iva_condition]
+        return dict(invoice.party._fields['iva_condition'].selection)[
+            invoice.party.iva_condition]
 
     @classmethod
     def _get_vat_number_cliente(cls, Invoice, invoice):
@@ -1329,24 +1343,30 @@ class InvoiceReport:
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type') == True:
-            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][-1]
+        if hasattr(invoice.invoice_type, 'invoice_type'):
+            return dict(invoice.invoice_type._fields[
+                'invoice_type'].selection)[
+                invoice.invoice_type.invoice_type][-1]
         else:
-           return ''
+            return ''
 
     @classmethod
     def _get_nombre_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type') == True:
-            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][3:-2]
+        if hasattr(invoice.invoice_type, 'invoice_type'):
+            return dict(invoice.invoice_type._fields[
+                'invoice_type'].selection)[
+                invoice.invoice_type.invoice_type][3:-2]
         else:
-           return ''
+            return ''
 
     @classmethod
     def _get_codigo_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type') == True:
-            return dict(invoice.invoice_type._fields['invoice_type'].selection)[invoice.invoice_type.invoice_type][:2]
+        if hasattr(invoice.invoice_type, 'invoice_type'):
+            return dict(invoice.invoice_type._fields[
+                'invoice_type'].selection)[
+                invoice.invoice_type.invoice_type][:2]
         else:
-           return ''
+            return ''
 
     @classmethod
     def _get_vat_number(cls, company):
@@ -1355,21 +1375,27 @@ class InvoiceReport:
 
     @classmethod
     def _get_condicion_iva(cls, company):
-        return dict(company.party._fields['iva_condition'].selection)[company.party.iva_condition]
+        return dict(company.party._fields['iva_condition'].selection)[
+                company.party.iva_condition]
 
     @classmethod
     def _get_iibb_type(cls, company):
         if company.party.iibb_type and company.party.iibb_number:
             if company.party.iibb_type.lower() == 'cm':
-                return company.party.iibb_type.upper()+' '+company.party.iibb_number[:3]+'-'+company.party.vat_number
+                return '%s  %s-%s' % (
+                        company.party.iibb_type.upper(),
+                        company.party.iibb_number[:3],
+                        company.party.vat_number)
             else:
-                return company.party.iibb_type.upper()+' '+company.party.iibb_number
+                return '%s %s' % (
+                        company.party.iibb_type.upper(),
+                        company.party.iibb_number)
         else:
             return ''
 
     @classmethod
     def _get_pyafipws_barcode_img(cls, Invoice, invoice):
-        "Generate the required barcode Interleaved of 7 image using PIL"
+        'Generate the required barcode Interleaved of 7 image using PIL'
         from pyafipws.pyi25 import PyI25
         from cStringIO import StringIO as StringIO
         # create the helper:
@@ -1380,8 +1406,9 @@ class InvoiceReport:
         # call the helper:
         bars = ''.join([c for c in invoice.pyafipws_barcode if c.isdigit()])
         if not bars:
-            bars = "00"
-        pyi25.GenerarImagen(bars, output, basewidth=3, width=380, height=50, extension="PNG")
+            bars = '00'
+        pyi25.GenerarImagen(bars, output, basewidth=3, width=380, height=50,
+            extension='PNG')
         image = buffer(output.getvalue())
         output.close()
         return image
