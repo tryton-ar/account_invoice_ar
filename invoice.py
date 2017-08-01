@@ -808,9 +808,10 @@ class Invoice:
             Move.save(moves)
         cls.save(invoices)
         Move.post([i.move for i in invoices if i.move.state != 'posted'])
-        for invoice in invoices:
-            if invoice.type == 'out':
-                invoice.print_invoice()
+        # Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
+        #for invoice in invoices:
+            #if invoice.type == 'out':
+                #invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
         'Request to AFIP the invoices Authorization Electronic Code (CAE)'
