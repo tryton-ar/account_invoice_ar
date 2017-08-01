@@ -681,19 +681,21 @@ class Invoice:
         PosSequence = pool.get('account.pos.sequence')
         Date = pool.get('ir.date')
 
-        credit = super(Invoice, self)._credit()
+        res = super(Invoice, self)._credit()
         if self.type == 'in':
-            return credit
+            return res
 
-        credit.taxes = [tax._credit() for tax in self.taxes]
+        to_create = [tax._credit() for tax in self.taxes if not tax.manual]
+        if to_create:
+            res['taxes'].append(('create', to_create))
 
-        credit.pos = self.pos
-        credit.invoice_date = Date.today()
+        res['pos'] = self.pos.id
+        res['invoice_date'] = Date.today()
         invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
             (self.invoice_type.invoice_type)
             ]
         sequences = PosSequence.search([
-            ('pos', '=', credit.pos),
+            ('pos', '=', res['pos']),
             ('invoice_type', '=', invoice_type)
             ])
         if len(sequences) == 0:
@@ -701,90 +703,75 @@ class Invoice:
         elif len(sequences) > 1:
             self.raise_user_error('too_many_sequences', invoice_type_desc)
         else:
-            credit.invoice_type = sequences[0]
+            res['invoice_type'] = sequences[0].id
 
         if self.pos.pos_type == 'electronic':
-            credit.pyafipws_concept = self.pyafipws_concept
+            res['pyafipws_concept'] = self.pyafipws_concept
             if self.pyafipws_concept in ['2', '3']:
-                credit.pyafipws_billing_start_date = (
-                    self.pyafipws_billing_start_date)
-                credit.pyafipws_billing_end_date = (
-                    self.pyafipws_billing_end_date)
+                res['pyafipws_billing_start_date'] = \
+                    self.pyafipws_billing_start_date
+                res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
 
         if self.type[:3] == 'out':
-            credit.description = u'Ref. Nro. ' + self.number
+            res['description'] = u'Ref. Nro. ' + self.number
         else:
-            credit.description = u'Ref. Nro. ' + self.reference
+            res['description'] = u'Ref. Nro. ' + self.reference
 
-        return credit
+        return res
 
-    @classmethod
-    def set_number(cls, invoices):
-        '''
-        Set number to the invoice
-        '''
+    def set_number(self):
         pool = Pool()
         Period = pool.get('account.period')
         SequenceStrict = pool.get('ir.sequence.strict')
         Sequence = pool.get('ir.sequence')
         Date = pool.get('ir.date')
 
-        for invoice in invoices:
-            # Posted and paid invoices are tested by check_modify so we can
-            # not modify tax_identifier nor number
-            if invoice.state in {'posted', 'paid'}:
-                continue
-            if not invoice.tax_identifier:
-                invoice.tax_identifier = invoice.get_tax_identifier()
+        if self.number:
+            return
 
-            if invoice.number:
-                continue
+        test_state = True
+        if self.type == 'out':
+            test_state = False
 
-            test_state = True
-            if invoice.type == 'in':
-                test_state = False
-
-            accounting_date = invoice.accounting_date or invoice.invoice_date
-            period_id = Period.find(invoice.company.id,
-                date=accounting_date, test_state=test_state)
-            period = Period(period_id)
-            invoice_type = invoice.type
-            if all(l.amount <= 0 for l in invoice.lines):
-                invoice_type += '_credit_note'
+        accounting_date = self.accounting_date or self.invoice_date
+        period_id = Period.find(self.company.id,
+            date=accounting_date, test_state=test_state)
+        period = Period(period_id)
+        invoice_type = self.type
+        if all(l.amount <= 0 for l in self.lines):
+            invoice_type += '_credit_note'
+        else:
+            invoice_type += '_invoice'
+        sequence = period.get_invoice_sequence(invoice_type)
+        if not sequence:
+            self.raise_user_error('no_invoice_sequence', {
+                    'invoice': self.rec_name,
+                    'period': period.rec_name,
+                    })
+        with Transaction().set_context(
+                date=self.invoice_date or Date.today()):
+            if self.type == 'out':
+                number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
+                vals = {'number': '%04d-%08d' % (self.pos.number, int(number))}
+                if not self.invoice_date:
+                    vals['invoice_date'] = Transaction().context['date']
             else:
-                invoice_type += '_invoice'
-            sequence = period.get_invoice_sequence(invoice_type)
-            if not sequence:
-                cls.raise_user_error('no_invoice_sequence', {
-                        'invoice': invoice.rec_name,
-                        'period': period.rec_name,
-                        })
-            with Transaction().set_context(
-                    date=invoice.invoice_date or Date.today()):
-                if invoice.type == 'out':
-                    number = Sequence.get_id(
-                        invoice.invoice_type.invoice_sequence.id)
-                    invoice.number = '%04d-%08d' % (
-                        invoice.pos.number, int(number))
-                    if not invoice.invoice_date:
-                        invoice.invoice_date = Transaction().context['date']
-                else:
-                    number = SequenceStrict.get_id(sequence.id)
-                    invoice.number = number
-        cls.save(invoices)
+                number = SequenceStrict.get_id(sequence.id)
+                vals = {'number': number}
+        self.write([self], vals)
 
     def _get_move_line(self, date, amount):
-        line = super(Invoice, self)._get_move_line(date, amount)
+        res = super(Invoice, self)._get_move_line(date, amount)
 
         if self.type[:3] == 'out':
-            line.description = self.party.name + u' Nro. ' + self.number
+            res['description'] = self.party.name + u' Nro. ' + self.number
         else:
-            line.description = self.party.name + u' Nro. ' + self.reference
+            res['description'] = self.party.name + u' Nro. ' + self.reference
 
         if self.description:
-            line.description += ' / ' + self.description
+            res['description'] += ' / ' + self.description
 
-        return line
+        return res
 
     @classmethod
     @ModelView.button
@@ -799,20 +786,16 @@ class Invoice:
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
                         invoice.do_pyafipws_request_cae()
-            cls.set_number([invoice])
-            move = invoice.get_move()
-            if move != invoice.move:
-                invoice.move = move
-                moves.append(move)
-            if invoice.state != 'posted':
-                invoice.state = 'posted'
-        if moves:
-            Move.save(moves)
-        cls.save(invoices)
-        Move.post([i.move for i in invoices if i.move.state != 'posted'])
-        for invoice in invoices:
-            if invoice.type == 'out':
-                invoice.print_invoice()
+            invoice.set_number()
+            moves.append(invoice.create_move())
+        cls.write(invoices, {
+                'state': 'posted',
+                })
+        Move.post([m for m in moves if m.state != 'posted'])
+        #Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
+        #for invoice in invoices:
+        #    if invoice.type in ('out_invoice', 'out_credit_note'):
+        #        invoice.print_invoice()
 
     def do_pyafipws_request_cae(self):
         'Request to AFIP the invoices Authorization Electronic Code (CAE)'
