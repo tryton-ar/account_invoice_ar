@@ -1026,7 +1026,7 @@ class Invoice:
             for identifier in self.party.identifiers:
                 if identifier.type == 'ar_foreign':
                     # map ISO country code to AFIP destination country code:
-                pais_dst_cmp = {
+                    pais_dst_cmp = {
                         'gt': 213, 'gr': 413, 'gq': 119, 'gy': 214, 'ge': 351,
                         'gb': 426, 'gn': 118, 'gm': 116, 'gh': 117, 'tv': 517,
                         'tt': 224, 'lk': 307, 'li': 418, 'lv': 441, 'to': 519,
