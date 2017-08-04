@@ -1021,38 +1021,71 @@ class InvoiceReport:
             cls._get_condicion_iva_cliente(Invoice, invoice))
         report_context['vat_number_cliente'] = cls._get_vat_number_cliente(
             Invoice, invoice)
-        report_context['invoice_impuestos'] = cls._get_invoice_impuestos(
-            Invoice, invoice)
-        report_context['show_tax'] = cls._show_tax(Invoice, invoice)
+        report_context['get_impuestos'] = cls.get_impuestos
         report_context['get_line_amount'] = cls.get_line_amount
+        report_context['get_taxes'] = cls.get_taxes
+        report_context['get_subtotal'] = cls.get_subtotal
         return report_context
 
     @classmethod
-    def get_line_amount(self, tipo_comprobante, line_amount, line_taxes):
+    def get_line_amount(cls, line_amount, line_taxes):
         total = line_amount
-        if tipo_comprobante != 'A':
-            for tax in line_taxes:
-                if tax.tax.rate:
-                    total = total + (line_amount * tax.tax.rate)
-                elif tax.tax.amount:
-                    total = total + tax.tax.amount
+        taxes = cls.get_line_taxes(line_taxes)
+        for tax in taxes:
+            if tax.tax.rate:
+                total = total + (line_amount * tax.tax.rate)
+            elif tax.tax.amount:
+                total = total + tax.tax.amount
         return total
 
     @classmethod
-    def _show_tax(cls, Invoice, invoice):
-        tipo_comprobante = cls._get_tipo_comprobante(Invoice, invoice)
-        if tipo_comprobante == 'A':
-            return True
-        else:
-            return False
+    def get_subtotal(cls, invoice):
+        subtotal = invoice.untaxed_amount
+        taxes = cls.get_line_taxes(invoice.taxes)
+        for tax in taxes:
+            subtotal += tax.amount
+        return subtotal
 
     @classmethod
-    def _get_invoice_impuestos(cls, Invoice, invoice):
-        tipo_comprobante = cls._get_tipo_comprobante(Invoice, invoice)
-        if tipo_comprobante == 'A':
-            return invoice.tax_amount
-        else:
-            return Decimal('00.00')
+    def get_impuestos(cls, invoice):
+        tax_amount = invoice.tax_amount
+        tax_amount = Decimal('0')
+        taxes = cls.get_taxes(invoice.taxes)
+        for tax in taxes:
+            tax_amount += tax.amount
+        return tax_amount
+
+    @classmethod
+    def get_line_taxes(cls, taxes):
+        logger.debug('get_line_taxes: %s' % repr(taxes))
+        res = []
+        invoice_type_string = ''
+        if len(taxes) > 0:
+            invoice_type_string = \
+                taxes[0].invoice.invoice_type.invoice_type_string[-1]
+
+        if invoice_type_string != 'A':
+            for tax in taxes:
+                if 'iva' in tax.tax.group.code.lower():
+                    res.append(tax)
+        return res
+
+    @classmethod
+    def get_taxes(cls, taxes):
+        logger.debug('get_taxes: %s' % repr(taxes))
+        res = []
+        invoice_type_string = ''
+        if len(taxes) > 0:
+            invoice_type_string = \
+                taxes[0].invoice.invoice_type.invoice_type_string[-1]
+
+        if invoice_type_string == 'A':
+            res = taxes
+        elif invoice_type_string == 'B':
+            for tax in taxes:
+                if 'iva' not in tax.tax.group.code.lower():
+                    res.append(tax)
+        return res
 
     @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
