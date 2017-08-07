@@ -1325,7 +1325,9 @@ class InvoiceReport:
 
     @classmethod
     def get_impuestos(cls, invoice):
-        tax_amount = invoice.tax_amount
+        if hasattr(invoice.invoice_type, 'invoice_type') is False:
+            return invoice.tax_amount
+
         tax_amount = Decimal('0')
         taxes = cls.get_taxes(invoice.taxes)
         for tax in taxes:
@@ -1337,7 +1339,8 @@ class InvoiceReport:
         logger.debug('get_line_taxes: %s' % repr(taxes))
         res = []
         invoice_type_string = ''
-        if len(taxes) > 0:
+        if len(taxes) > 0 and hasattr(taxes[0].invoice.invoice_type,
+                'invoice_type'):
             invoice_type_string = \
                 taxes[0].invoice.invoice_type.invoice_type_string[-1]
 
@@ -1352,7 +1355,8 @@ class InvoiceReport:
         logger.debug('get_taxes: %s' % repr(taxes))
         res = []
         invoice_type_string = ''
-        if len(taxes) > 0:
+        if len(taxes) > 0 and hasattr(taxes[0].invoice.invoice_type,
+                'invoice_type'):
             invoice_type_string = \
                 taxes[0].invoice.invoice_type.invoice_type_string[-1]
 
