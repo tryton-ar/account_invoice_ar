@@ -1319,6 +1319,59 @@ class InvoiceReport:
             return Decimal('00.00')
 
     @classmethod
+    def get_subtotal(cls, invoice):
+        subtotal = invoice.untaxed_amount
+        taxes = cls.get_line_taxes(invoice.taxes)
+        for tax in taxes:
+            subtotal += tax.amount
+        return subtotal
+
+    @classmethod
+    def get_impuestos(cls, invoice):
+        if hasattr(invoice.invoice_type, 'invoice_type') is False:
+            return invoice.tax_amount
+
+        tax_amount = Decimal('0')
+        taxes = cls.get_taxes(invoice.taxes)
+        for tax in taxes:
+            tax_amount += tax.amount
+        return tax_amount
+
+    @classmethod
+    def get_line_taxes(cls, taxes):
+        logger.debug('get_line_taxes: %s' % repr(taxes))
+        res = []
+        invoice_type_string = ''
+        if len(taxes) > 0 and hasattr(taxes[0].invoice.invoice_type,
+                'invoice_type'):
+            invoice_type_string = \
+                taxes[0].invoice.invoice_type.invoice_type_string[-1]
+
+        if invoice_type_string != 'A':
+            for tax in taxes:
+                if 'iva' in tax.tax.group.code.lower():
+                    res.append(tax)
+        return res
+
+    @classmethod
+    def get_taxes(cls, taxes):
+        logger.debug('get_taxes: %s' % repr(taxes))
+        res = []
+        invoice_type_string = ''
+        if len(taxes) > 0 and hasattr(taxes[0].invoice.invoice_type,
+                'invoice_type'):
+            invoice_type_string = \
+                taxes[0].invoice.invoice_type.invoice_type_string[-1]
+
+        if invoice_type_string == 'A':
+            res = taxes
+        elif invoice_type_string == 'B':
+            for tax in taxes:
+                if 'iva' not in tax.tax.group.code.lower():
+                    res.append(tax)
+        return res
+
+    @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
         return dict(invoice.party._fields['iva_condition'].selection)[
             invoice.party.iva_condition]
