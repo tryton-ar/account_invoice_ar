@@ -3,14 +3,15 @@
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
 
-from trytond.model import ModelView, ModelSQL, fields
+from trytond.model import fields
+from trytond.pool import PoolMeta
 
 __all__ = ['Company']
 
 
-class Company(ModelSQL, ModelView):
-    'Company'
+class Company:
     __name__ = 'company.company'
+    __metaclass__ = PoolMeta
 
     pyafipws_certificate = fields.Text('Certificado AFIP WS',
         help='Certificado (.crt) de la empresa para webservices AFIP')
