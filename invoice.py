@@ -2,6 +2,8 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
+from pyafipws.wsfev1 import WSFEv1
+from pyafipws.wsfexv1 import WSFEXv1
 import collections
 import logging
 from decimal import Decimal
@@ -282,6 +284,19 @@ class Invoice:
                 u'(iibb, municipal, iva).',
             'in_invoice_validate_failed':
                 u'Los campos "Referencia" y "Comprobante" son requeridos.',
+            'rejected_invoices':
+                'There was a problem at invoice ID "%(invoice)s".\n'
+                'Check out error message: "%(msg)s"',
+            'webservice_unknown':
+                'AFIP web service is unknown',
+            'webservice_not_supported':
+                'AFIP webservice %s is not yet supported!',
+            'company_not_defined':
+                'The company is not defined',
+            'wsaa_error':
+                'There was a problem to connect webservice WSAA: (%s)',
+            'error_caesolicitarx':
+                'Error CAESolicitarX: (%s)',
             })
 
     @classmethod
@@ -482,6 +497,10 @@ class Invoice:
                 credit.pyafipws_billing_end_date = (
                     self.pyafipws_billing_end_date)
 
+        if self.invoice_type.invoice_type in ['19', '20', '21']:
+            credit.pyafipws_incoterms = self.pyafipws_incoterms
+            credit.pyafipws_licenses = self.pyafipws_licenses
+
         if self.type[:3] == 'out':
             credit.description = 'Ref. Nro. %s' % self.number
         else:
@@ -561,15 +580,49 @@ class Invoice:
     @ModelView.button
     @Workflow.transition('posted')
     def post(cls, invoices):
-        Move = Pool().get('account.move')
-
+        pool = Pool()
+        Move = pool.get('account.move')
+        Pos = pool.get('account.pos')
         moves = []
+        invoices_wsfe = {}
+        invoices_ = []
+        point_of_sales = Pos.search([
+            ('pos_type', '=', 'electronic')
+            ])
+        for pos in point_of_sales:
+            pos_number = str(pos.number)
+            invoices_wsfe[pos_number] = {}
+            for pos_sequence in pos.pos_sequences:
+                for invoice_type in pos_sequence.invoice_type:
+                    invoices_wsfe[pos_number][invoice_type] = []
+
         for invoice in invoices:
+            if invoice.type == 'out':
+                invoice.check_invoice_type()
+                if (invoice.pos and invoice.pos.pos_type == 'electronic' and
+                    invoice.pos.pyafipws_electronic_invoice_service == 'wsfe'):
+                        # web service == wsfe invoices go throw batch.
+                        invoices_wsfe[str(invoice.pos.number)][invoice.invoice_type.invoice_type].append(invoice)
+                else:
+                    invoices_.append(invoice)
+
+        for invoice in invoices_:
             if invoice.type == 'out':
                 invoice.check_invoice_type()
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
-                        invoice.do_pyafipws_request_cae()
+                        ws = cls.get_ws_afip(invoice)
+                        (ws, error) = invoice.create_pyafipws_invoice(ws,
+                            batch=False)
+                        (ws, msg) = invoice.request_cae(ws)
+                        result = invoice.process_afip_result(ws, msg=msg)
+                        Transaction().commit()
+                        if result is False:
+                            cls.raise_user_error('rejected_invoices', {
+                                'invoice': invoice.id,
+                                'msg': invoice.transactions[-1].pyafipws_message,
+                                #'party': invoice.party.rec_name,
+                                })
             cls.set_number([invoice])
             move = invoice.get_move()
             if move != invoice.move:
@@ -580,56 +633,60 @@ class Invoice:
         if moves:
             Move.save(moves)
         cls.save(invoices)
-        Move.post([i.move for i in invoices if i.move.state != 'posted'])
+        # If no invoice has been posted, no move was created
+        if moves:
+            Move.post([i.move for i in invoices if i.move.state != 'posted'])
+
+        for pos, value_dict in invoices_wsfe.iteritems():
+            for key, invoices_by_type in value_dict.iteritems():
+                (pre_rejected_invoices, rejected_invoices) = \
+                    cls.post_wsfe(invoices_by_type)
+                Transaction().commit()
+                if pre_rejected_invoices or rejected_invoices:
+                    if rejected_invoices:
+                        first_rejected = rejected_invoices[0]
+                    else:
+                        first_rejected = pre_rejected_invoices[0]
+                    sequence = first_rejected.invoice_type.invoice_sequence
+                    tipo_cbte = first_rejected.invoice_type.invoice_type
+                    punto_vta = first_rejected.pos.number
+                    ws = cls.get_ws_afip(batch=True)
+                    cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
+                    # Set next sequence number to be the last cbte_nro_afip + 1.
+                    sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
+                    cls.raise_user_error('rejected_invoices', {
+                        'invoice': first_rejected.id,
+                        'msg': first_rejected.transactions[-1].pyafipws_message,
+                        })
+
         # Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
         #for invoice in invoices:
-            #if invoice.type == 'out':
-                #invoice.print_invoice()
+        #    if invoice.type == 'out':
+        #        invoice.print_invoice()
 
-    def do_pyafipws_request_cae(self):
-        'Request to AFIP the invoices Authorization Electronic Code (CAE)'
-        # if already authorized (electronic invoice with CAE), ignore
-        if self.pyafipws_cae:
-            logger.info(u'Se trata de obtener CAE de la factura que ya tiene. '
-                    u'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
-            return
-        # get the electronic invoice type, point of sale and service:
-        pool = Pool()
+    @classmethod
+    def get_ws_afip(cls, invoice=None, batch=False):
+        '''
+        Connect to WSAA AFIP and get webservice wsfe or wsfex
+        '''
+        if batch is False and invoice:
+            service = invoice.pos.pyafipws_electronic_invoice_service
+        elif batch is True:
+            service = 'wsfe'
+        else:
+            logger.error('AFIP web service is unknown')
+            cls.raise_user_error('webservice_unknown')
 
-        Company = pool.get('company.company')
-        company_id = Transaction().context.get('company')
-        if not company_id:
-            logger.info(u'No hay companía')
-            return
-
-        company = Company(company_id)
-
-        tipo_cbte = self.invoice_type.invoice_type
-        punto_vta = self.pos.number
-        service = self.pos.pyafipws_electronic_invoice_service
-        # check if it is an electronic invoice sale point:
-        ##TODO
-        #if not tipo_cbte:
-            #self.raise_user_error('invalid_sequence',
-                #pos.invoice_type.invoice_type)
-
-        # authenticate against AFIP:
-        auth_data = company.pyafipws_authenticate(service=service)
-
-        # import the AFIP webservice helper for electronic invoice
+        (company, auth_data) = cls.authenticate_afip(service=service)
+        # TODO: get wsdl url from DictField?
         if service == 'wsfe':
-            from pyafipws.wsfev1 import WSFEv1  # local market
             ws = WSFEv1()
             if company.pyafipws_mode_cert == 'homologacion':
                 WSDL = 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL'
             elif company.pyafipws_mode_cert == 'produccion':
                 WSDL = (
                     'https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL')
-        #elif service == 'wsmtxca':
-        #    from pyafipws.wsmtx import WSMTXCA, SoapFault   # local + detail
-        #    ws = WSMTXCA()
         elif service == 'wsfex':
-            from pyafipws.wsfexv1 import WSFEXv1  # foreign trade
             ws = WSFEXv1()
             if company.pyafipws_mode_cert == 'homologacion':
                 WSDL = 'https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL'
@@ -637,36 +694,158 @@ class Invoice:
                 WSDL = (
                     'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
         else:
-            logger.critical(u'WS no soportado: %s', service)
-            return
+            logger.critical('AFIP ws is not yet supported! %s', service)
+            cls.raise_user_error('webservice_not_supported', service)
 
-        # connect to the webservice and call to the test method
-        ws.LanzarExcepciones = True
+        ws = cls.conect_afip(ws, WSDL, company.party.vat_number, auth_data)
+        return ws
+
+    @classmethod
+    def authenticate_afip(cls, service='wsfe'):
+        '''
+        Authenticate to webservice WSAA
+        '''
+        pool = Pool()
+        Company = pool.get('company.company')
+        company_id = Transaction().context.get('company')
+        if not company_id:
+            logger.error('The company is not defined')
+            cls.raise_user_error('company_not_defined')
+        company = Company(company_id)
+        # authenticate against AFIP:
+        auth_data = company.pyafipws_authenticate(service=service)
+        return (company, auth_data)
+
+    @classmethod
+    def conect_afip(cls, ws, wsdl, vat_number, auth_data):
+        '''
+        Connect to WSAA webservice
+        '''
         cache_dir = afip_auth.get_cache_dir()
-        ws.Conectar(wsdl=WSDL, cache=cache_dir)
-        # set AFIP webservice credentials:
-        ws.Cuit = company.party.vat_number
+        ws.LanzarExcepciones = True
+        try:
+            ws.Conectar(wsdl=wsdl, cache=cache_dir)
+        except Exception as e:
+            msg = ws.Excepcion + ' ' + str(e)
+            logger.error('WSAA connecting to afip: %s' % msg)
+            cls.raise_user_error('wsaa_error', msg)
+        ws.Cuit = vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
+        return ws
 
+    @classmethod
+    def post_wsfe(cls, invoices):
+        '''
+        Post batch invoices.
+        '''
+        if invoices  == []:
+            return ([], [])
+
+        Move = Pool().get('account.move')
+        moves = []
+        ws = cls.get_ws_afip(batch=True)
+        reg_x_req = ws.CompTotXRequest()    # cant max. comprobantes
+        cant_invoices = len(invoices)
+        pre_approved_invoices = []
+        approved_invoices = []
+        pre_rejected_invoices = []
+        rejected_invoices = []
+
+        # before set_number, validate some stuff.
+        # get only invoices that pass validations.
+        # TODO: Add those validations to validate_invoice method.
+        for invoice in invoices:
+            (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
+            if error:
+                pre_rejected_invoices.append(invoice)
+            else:
+                pre_approved_invoices.append(invoice)
+
+        ws.IniciarFacturasX()
+        tmp_ = [invoices[i:i+reg_x_req] for i in range(0, len(invoices), reg_x_req)]
+        cls.set_number(pre_approved_invoices)
+        for chunk_invoices in tmp_:
+            for invoice in chunk_invoices:
+                (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
+                if error is False:
+                    ws.AgregarFacturaX()
+
+        # CAESolicitarX
+        try:
+            cant_solicitadax = ws.CAESolicitarX()
+            logger.info('wsfe batch invoices posted: %s' % cant_solicitadax)
+        except Exception as e:
+            logger.error('CAESolicitarX msg: %s' % str(e))
+            cls.raise_user_error('error_caesolicitarx', str(e))
+
+        # Process results:
+        cant = 0
+        for invoice in pre_approved_invoices:
+            ws.LeerFacturaX(cant)
+            cant += 1
+            result = invoice.process_afip_result(ws)
+            if result:
+                approved_invoices.append(invoice)
+            else:
+                invoice.number = None
+                rejected_invoices.append(invoice)
+
+        for invoice in approved_invoices:
+            move = invoice.get_move()
+            if move != invoice.move:
+                invoice.move = move
+                moves.append(move)
+            if invoice.state != 'posted':
+                invoice.state = 'posted'
+        if moves:
+            Move.save(moves)
+        cls.save(invoices)
+        if moves:
+            Move.post([i.move for i in approved_invoices if i.move.state != 'posted'])
+        return (pre_rejected_invoices, rejected_invoices)
+
+    def create_pyafipws_invoice(self, ws, batch=False):
+        '''
+        Create invoice as pyafipws requires and call to ws.CrearFactura(args).
+        '''
+        # if already authorized (electronic invoice with CAE), ignore
+        if self.pyafipws_cae:
+            logger.info(u'Se trata de obtener CAE de la factura que ya tiene. '
+                    u'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
+            return
+        # get the electronic invoice type, point of sale and service:
+        pool = Pool()
+        tipo_cbte = self.invoice_type.invoice_type
+        punto_vta = self.pos.number
+        service = self.pos.pyafipws_electronic_invoice_service
+        payments = []
         # get the last 8 digit of the invoice number
-        if self.move:
-            cbte_nro = int(self.move.number[-8:])
+        if self.number:
+            cbte_nro = int(self.number[-8:])
         else:
             Sequence = pool.get('ir.sequence')
             cbte_nro = int(Sequence(
                 self.invoice_type.invoice_sequence.id).get_number_next(''))
 
         # get the last invoice number registered in AFIP
-        if service == 'wsfe' or service == 'wsmtxca':
-            cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
-        elif service == 'wsfex':
-            cbte_nro_afip = ws.GetLastCMP(tipo_cbte, punto_vta)
-        cbte_nro_next = int(cbte_nro_afip or 0) + 1
-        # verify that the invoice is the next one to be registered in AFIP
-        if cbte_nro != cbte_nro_next:
-            self.raise_user_error('invalid_invoice_number', (cbte_nro,
-                cbte_nro_next))
+        if batch:
+            cbte_nro_next = cbte_nro
+        else:
+            if service == 'wsfe' or service == 'wsmtxca':
+                cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
+            elif service == 'wsfex':
+                cbte_nro_afip = ws.GetLastCMP(tipo_cbte, punto_vta)
+            cbte_nro_next = int(cbte_nro_afip or 0) + 1
+            # verify that the invoice is the next one to be registered in AFIP
+            if cbte_nro != cbte_nro_next:
+                if batch:
+                    logger.error('invalid_invoice_number: Invoice: %s, try to '
+                        'assign invoice number: %d when AFIP is waiting for %d' %
+                        (self.id, cbte_nro, cbte_nro_next))
+                    return (ws, True)
+                self.raise_user_error('invalid_invoice_number', (cbte_nro,
+                    cbte_nro_next))
 
         # invoice number range (from - to) and date:
         cbte_nro = cbt_desde = cbt_hasta = cbte_nro_next
@@ -684,8 +863,9 @@ class Invoice:
         concepto = tipo_expo = int(self.pyafipws_concept or 0)
         if int(concepto) != 1:
 
-            payments = self.payment_term.compute(self.total_amount,
-                self.currency)
+            if self.payment_term:
+                payments = self.payment_term.compute(self.total_amount,
+                    self.currency)
             if payments == []:
                 last_payment = datetime.date.today()
             else:
@@ -733,6 +913,10 @@ class Invoice:
         imp_op_ex = '0.00'
         if self.company.currency.rate == Decimal('0'):
             if self.party.vat_number_afip_foreign:
+                if batch:
+                    logger.error('missing_currency_rate: Invoice: %s, '
+                        'rate is not setted.' % self.id)
+                    return (ws, True)
                 self.raise_user_error('missing_currency_rate')
             else:
                 ctz = 1
@@ -757,6 +941,10 @@ class Invoice:
             incoterms = incoterms_ds = None
 
         if incoterms is None and incoterms_ds is None and service == 'wsfex':
+            if batch:
+                logger.error('missing_pyafipws_incoterms: Invoice: %s '
+                    'field is not setted.' % self.id)
+                return (ws, True)
             self.raise_user_error('missing_pyafipws_incoterms')
 
         if int(tipo_cbte) == 19 and tipo_expo == 1:
@@ -826,6 +1014,10 @@ class Invoice:
             for tax_line in self.taxes:
                 tax = tax_line.tax
                 if tax.group is None:
+                    if batch:
+                        logger.error('tax_without_group: Invoice: %s, tax: %s'
+                            % (self.id, tax.name))
+                        return (ws, True)
                     self.raise_user_error('tax_without_group', {
                             'tax': tax.name,
                             })
@@ -874,10 +1066,10 @@ class Invoice:
                 else:
                     codigo = 0
                 ds = line.description
-                qty = line.quantity
+                qty = abs(line.quantity)
                 umed = 7  # FIXME: (7 - unit)
                 precio = str(line.unit_price)
-                importe_total = str(line.amount)
+                importe_total = str(abs(line.amount))
                 bonif = None  # line.discount
                 #for tax in line.taxes:
                 #    if tax.group.name == 'IVA':
@@ -895,64 +1087,60 @@ class Invoice:
                     ws.AgregarPermiso(
                         export_license.license_id,
                         export_license.afip_country.code)
+        return (ws, False)
 
-        # Request the authorization! (call the AFIP webservice method)
+    def request_cae(self, ws):
+        '''
+        Request to AFIP the invoice Authorization Electronic Code (CAE).
+        '''
+        service = self.pos.pyafipws_electronic_invoice_service
+        msg = ''
         try:
             if service == 'wsfe':
                 ws.CAESolicitar()
-                vto = ws.Vencimiento
             elif service == 'wsmtxca':
                 ws.AutorizarComprobante()
-                vto = ws.Vencimiento
             elif service == 'wsfex':
                 ws.Authorize(self.id)
-                vto = ws.FchVencCAE
-        #except SoapFault as fault:
-        #    msg = 'Falla SOAP %s: %s' % (fault.faultcode, fault.faultstring)
-        except Exception, e:
+        except Exception as e:
             if ws.Excepcion:
-                # get the exception already parsed by the helper
-                #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
                 msg = ws.Excepcion + ' ' + str(e)
-            else:
-                # avoid encoding problem when reporting exceptions to the user:
-                import traceback
-                import sys
-                msg = traceback.format_exception_only(sys.exc_type,
-                    sys.exc_value)[0]
-        else:
-            msg = u'\n'.join([ws.Obs or '', ws.ErrMsg or ''])
-        # calculate the barcode:
+        return (ws, msg)
+
+    def process_afip_result(self, ws, msg=''):
+        '''
+        Process CAE and store results
+        '''
+        AFIP_Transaction = Pool().get('account_invoice_ar.afip_transaction')
+        tipo_cbte = self.invoice_type.invoice_type
+        punto_vta = self.pos.number
+        bars = ''
+        vto = ''
+        msg = u'\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
+        msg = msg.encode('ascii', 'ignore').strip()
+        AFIP_Transaction.create([{'invoice': self,
+            'pyafipws_result': ws.Resultado,
+            'pyafipws_message': msg,
+            'pyafipws_xml_request': ws.XmlRequest,
+            'pyafipws_xml_response': ws.XmlResponse,
+            }])
         if ws.CAE:
-            cae_due = ''.join([c for c in str(ws.Vencimiento or '')
+            if isinstance(ws, WSFEv1):
+                vto = ws.Vencimiento
+            elif isinstance(ws, WSFEXv1):
+                vto = ws.FchVencCAE
+            cae_due = ''.join([c for c in str(vto)
                     if c.isdigit()])
             bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
                     '%04d' % int(punto_vta), str(ws.CAE), cae_due])
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
-        else:
-            bars = ''
-
-        AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
-        AFIP_Transaction.create([{'invoice': self,
-                'pyafipws_result': ws.Resultado,
-                'pyafipws_message': msg,
-                'pyafipws_xml_request': ws.XmlRequest,
-                'pyafipws_xml_response': ws.XmlResponse,
-                }])
-
-        if ws.CAE:
-            # store the results
-            vals = {
-                'pyafipws_cae': ws.CAE,
-                'pyafipws_cae_due_date': vto or None,
-                'pyafipws_barcode': bars,
-                }
-            if not '-' in vals['pyafipws_cae_due_date']:
-                fe = vals['pyafipws_cae_due_date']
-                vals['pyafipws_cae_due_date'] = '-'.join([
-                        fe[:4], fe[4:6], fe[6:8]])
-
-            self.write([self], vals)
+            pyafipws_cae_due_date = vto or None
+            if not '-' in vto:
+                pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
+            self.pyafipws_cae = ws.CAE
+            self.pyafipws_barcode = bars
+            self.pyafipws_cae_due_date = pyafipws_cae_due_date
+            return True
         else:
             logger.error(
                 u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
@@ -960,11 +1148,7 @@ class Invoice:
                     repr(msg.encode('ascii', 'ignore').strip()),
                     self.id, self.type, self.party.rec_name,
                     repr(ws.XmlRequest), repr(ws.XmlResponse))
-            self.raise_user_error('not_cae', {
-                    'invoice': cbte_nro_next,
-                    'msg': msg.encode('ascii', 'ignore').strip(),
-                    'party': self.party.rec_name,
-                    })
+            return False
 
     def pyafipws_verification_digit_modulo10(self, codigo):
         'Calculate the verification digit "modulo 10"'
