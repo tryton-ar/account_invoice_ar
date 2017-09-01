@@ -2,6 +2,6 @@
 <form>
     <label name="license_id"/>
     <field name="license_id"/>
-    <label name="country" />
-    <field name="country" />
+    <label name="afip_country" />
+    <field name="afip_country" />
 </form>
