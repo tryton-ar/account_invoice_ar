@@ -627,9 +627,9 @@ class Invoice:
         res = super(Invoice, self)._get_move_line(date, amount)
 
         if self.type[:3] == 'out':
-            res['description'] = self.party.name + u' Nro. ' + self.number
+            res['description'] = '%s Nro. %s' % (self.party.name, self.number)
         else:
-            res['description'] = self.party.name + u' Nro. ' + self.reference
+            res['description'] = '%s Nro. %s' % (self.party.name, self.reference)
 
         if self.description:
             res['description'] += ' / ' + self.description
