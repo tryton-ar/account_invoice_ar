@@ -376,13 +376,22 @@ class Invoice:
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
-        PosSequence = Pool().get('account.pos.sequence')
-
         if not self.pos:
             self.invoice_type = None
             return
+        self._set_invoice_type_sequence()
 
+    def _set_invoice_type_sequence(self):
+        '''
+        Set invoice type field.
+        require: pos field must be set first.
+        '''
+        if not self.pos:
+            return
+
+        PosSequence = Pool().get('account.pos.sequence')
         client_iva = company_iva = None
+
         if self.party:
             client_iva = self.party.iva_condition
         if self.company:
@@ -408,7 +417,7 @@ class Invoice:
             (self.type, kind)
             ]
         sequences = PosSequence.search([
-            ('pos', '=', self.pos.id),
+            ('pos', '=', self.pos),
             ('invoice_type', '=', invoice_type)
             ])
         if len(sequences) == 0:
@@ -416,7 +425,27 @@ class Invoice:
         elif len(sequences) > 1:
             self.raise_user_error('too_many_sequences', invoice_type_desc)
         else:
-            self.invoice_type = sequences[0].id
+            self.invoice_type = sequences[0]
+
+    def set_pyafipws_concept(self):
+        '''
+        set pyafipws_concept researching the product lines.
+        '''
+        products = {'1': 0, '2': 0}
+        self.pyafipws_concept = ''
+        for line in self.lines:
+            if line.product:
+                if line.product.type == 'goods':
+                    products['1'] += 1
+                if line.product.type == 'service':
+                    products['2'] += 1
+
+        if products['1'] != 0 and products['2'] != 0:
+            self.pyafipws_concept = '3'
+        elif products['1'] != 0:
+            self.pyafipws_concept = '1'
+        elif products['2'] != 0:
+            self.pyafipws_concept = '2'
 
     def _credit(self):
         pool = Pool()
