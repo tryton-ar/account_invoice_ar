@@ -5,7 +5,8 @@
 import collections
 import logging
 from decimal import Decimal
-import datetime
+from datetime import date
+from calendar import monthrange
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
@@ -488,6 +489,16 @@ class Invoice:
         elif products['2'] != 0:
             self.pyafipws_concept = '2'
 
+    def set_pyafipws_billing_dates(self):
+        '''
+        set pyafipws_billing_dates by invoice_date.
+        '''
+        year = int(self.invoice_date.strftime("%Y"))
+        month = int(self.invoice_date.strftime("%m"))
+        self.pyafipws_billing_start_date = date(year, month, 1)
+        self.pyafipws_billing_end_date = date(year, month,
+            monthrange(year, month)[1])
+
     def _credit(self):
         pool = Pool()
         PosSequence = pool.get('account.pos.sequence')
@@ -720,7 +731,7 @@ class Invoice:
             payments = self.payment_term.compute(self.total_amount,
                 self.currency)
             if payments == []:
-                last_payment = datetime.date.today()
+                last_payment = date.today()
             else:
                 last_payment = max(payments, key=lambda x: x[0])[0]
             fecha_venc_pago = last_payment.strftime('%Y-%m-%d')
