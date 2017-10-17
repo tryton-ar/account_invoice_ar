@@ -5,6 +5,7 @@
 
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.pyson import Eval
+from trytond.transaction import Transaction
 
 __all__ = ['Pos', 'PosSequence']
 
@@ -13,11 +14,12 @@ class Pos(ModelSQL, ModelView):
     'Point of Sale'
     __name__ = 'account.pos'
 
-    #name = fields.Function(fields.Char('Name'), 'get_name')
+    company = fields.Many2One('company.company', 'Company', required=True)
     number = fields.Integer('Punto de Venta AFIP', required=True,
         help=u'Prefijo de emisión habilitado en AFIP')
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
-        'Point of Sale')
+        'Point of Sale', context={'company': Eval('company', -1)},
+        depends=['company'])
     pos_type = fields.Selection([
         ('manual', u'Manual'),
         ('electronic', u'Electronic'),
@@ -36,32 +38,28 @@ class Pos(ModelSQL, ModelView):
         help=u'Habilita la facturación electrónica por webservices AFIP')
 
     @staticmethod
+    def default_company():
+        return Transaction().context.get('company')
+
+    @staticmethod
     def default_pos_type():
         return 'manual'
 
     def get_rec_name(self, name):
         if self.pos_type and self.number:
-            return '[' + str(self.number) + '] ' + self.pos_type
+            return '[%s] %s' % (str(self.number), self.pos_type_string)
 
     @classmethod
     def search_rec_name(cls, name, clause):
         return [('pos_type',) + tuple(clause[1:])]
-
-    #@classmethod
-    #def get_name(cls, account_pos, name):
-    #    res = {}
-    #    for pos in cls.browse(account_pos):
-    #        res[pos.id] = str(pos.number)+ ' - '+\
-    #        dict(pos.fields_get(fields_names=['pos_type'])\
-    #        ['pos_type']['selection'])[pos.pos_type]
-    #    return res
 
 
 class PosSequence(ModelSQL, ModelView):
     'Point of Sale Sequences'
     __name__ = 'account.pos.sequence'
 
-    pos = fields.Many2One('account.pos', 'Point of Sale')
+    pos = fields.Many2One('account.pos', 'Point of Sale',
+        ondelete='CASCADE', select=True, required=True)
     invoice_type = fields.Selection([
         ('', ''),
         ('1', u'01-Factura A'),
@@ -81,12 +79,18 @@ class PosSequence(ModelSQL, ModelView):
         ('19', u'19-Factura E'),
         ('20', u'20-Nota de Débito E'),
         ('21', u'21-Nota de Crédito E'),
-        ], 'Tipo Comprobante AFIP', required=True,
+        ], 'Tipo Comprobante AFIP', select=True, required=True,
         help='Tipo de Comprobante AFIP')
     invoice_type_string = invoice_type.translated('invoice_type')
     invoice_sequence = fields.Property(fields.Many2One('ir.sequence',
         'Sequence', required=True,
-        domain=[('code', '=', 'account.invoice')],
+        domain=[
+            ('code', '=', 'account.invoice'),
+            ['OR',
+                ('company', '=', Eval('context', {}).get('company', -1)),
+                ('company', '=', None),
+                ],
+            ],
         context={'code': 'account.invoice'}))
 
     def get_rec_name(self, name):

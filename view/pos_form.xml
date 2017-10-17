@@ -6,7 +6,9 @@ this repository contains the full copyright notices and license terms. -->
     <field name="number"/>
     <label name="pos_type"/>
     <field name="pos_type"/>
+    <label name="company"/>
+    <field name="company"/>
     <label name="pyafipws_electronic_invoice_service"/>
-    <field name="pyafipws_electronic_invoice_service" colspan="3"/>
+    <field name="pyafipws_electronic_invoice_service"/>
     <field name="pos_sequences" colspan="4"/>
 </form>

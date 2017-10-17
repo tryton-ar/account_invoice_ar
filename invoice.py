@@ -186,6 +186,8 @@ class AfipWSTransaction(ModelSQL, ModelView):
     'AFIP WS Transaction'
     __name__ = 'account_invoice_ar.afip_transaction'
 
+    invoice = fields.Many2One('account.invoice', 'Invoice',
+        ondelete='CASCADE', select=True, required=True)
     pyafipws_result = fields.Selection([
         ('', 'n/a'),
         ('A', 'Aceptado'),
@@ -199,7 +201,6 @@ class AfipWSTransaction(ModelSQL, ModelView):
         help=u'Mensaje XML enviado a AFIP (depuración)')
     pyafipws_xml_response = fields.Text('Respuesta XML', readonly=True,
         help=u'Mensaje XML recibido de AFIP (depuración)')
-    invoice = fields.Many2One('account.invoice', 'Invoice')
 
 
 class Invoice:
@@ -207,7 +208,8 @@ class Invoice:
     __metaclass__ = PoolMeta
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
-        states=_POS_STATES, depends=_DEPENDS)
+        domain=[('company', '=', Eval('company'))],
+        states=_POS_STATES, depends=_DEPENDS + ['company'])
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
         domain=[('pos', '=', Eval('pos'))],
         states=_POS_STATES, depends=_DEPENDS + ['pos'])
@@ -1204,7 +1206,8 @@ class InvoiceExportLicense(ModelSQL, ModelView):
     'Invoice Export License'
     __name__ = 'account.invoice.export.license'
 
-    invoice = fields.Many2One('account.invoice', 'Invoice', ondelete='CASCADE')
+    invoice = fields.Many2One('account.invoice', 'Invoice',
+        ondelete='CASCADE', select=True, required=True)
     license_id = fields.Char('License Id', required=True)
     afip_country = fields.Many2One('afip.country', 'Country', required=True)
 
