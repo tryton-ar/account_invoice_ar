@@ -484,11 +484,8 @@ class Invoice:
                 credit.pyafipws_billing_end_date = (
                     self.pyafipws_billing_end_date)
 
-        if self.type[:3] == 'out':
-            credit.description = 'Ref. Nro. %s' % self.number
-        else:
-            credit.description = 'Ref. Nro. %s' % self.reference
-
+        ref_number = self.number if self.type == 'out' else self.reference
+        credit.description = 'Ref. Nro. %s' % ref_number
         return credit
 
     @classmethod
@@ -548,15 +545,10 @@ class Invoice:
 
     def _get_move_line(self, date, amount):
         line = super(Invoice, self)._get_move_line(date, amount)
-
-        if self.type[:3] == 'out':
-            line.description = '%s Nro. %s' % (self.party.name, self.number)
-        else:
-            line.description = '%s Nro. %s' % (self.party.name, self.reference)
-
+        ref_number = self.number if self.type == 'out' else self.reference
+        line.description = '%s Nro. %s' % (self.party.name, ref_number)
         if self.description:
-            line.description += ' / ' + self.description
-
+            line.description += ' / %s' % self.description
         return line
 
     @classmethod
