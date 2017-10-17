@@ -561,7 +561,6 @@ class Invoice:
                 return '%04d-%08d' % (self.pos.number, int(number))
             return SequenceStrict.get_id(sequence.id)
 
-
     def _get_move_line(self, date, amount):
         line = super(Invoice, self)._get_move_line(date, amount)
         ref_number = self.number if self.type == 'out' else self.reference
@@ -594,9 +593,11 @@ class Invoice:
             if invoice.type == 'out':
                 invoice.check_invoice_type()
                 if (invoice.pos and invoice.pos.pos_type == 'electronic' and
-                    invoice.pos.pyafipws_electronic_invoice_service == 'wsfe'):
-                        # web service == wsfe invoices go throw batch.
-                        invoices_wsfe[str(invoice.pos.number)][invoice.invoice_type.invoice_type].append(invoice)
+                        invoice.pos.pyafipws_electronic_invoice_service ==
+                        'wsfe'):
+                    # web service == wsfe invoices go throw batch.
+                    invoices_wsfe[str(invoice.pos.number)][
+                        invoice.invoice_type.invoice_type].append(invoice)
                 else:
                     invoices_.append(invoice)
 
@@ -614,7 +615,8 @@ class Invoice:
                         if result is False:
                             cls.raise_user_error('rejected_invoices', {
                                 'invoice': invoice.id,
-                                'msg': invoice.transactions[-1].pyafipws_message,
+                                'msg': (
+                                    invoice.transactions[-1].pyafipws_message),
                                 #'party': invoice.party.rec_name,
                                 })
             cls.set_number([invoice])
@@ -645,12 +647,14 @@ class Invoice:
                     tipo_cbte = first_rejected.invoice_type.invoice_type
                     punto_vta = first_rejected.pos.number
                     ws = cls.get_ws_afip(batch=True)
-                    cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
-                    # Set next sequence number to be the last cbte_nro_afip + 1.
+                    cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte,
+                        punto_vta)
+                    # Set next sequence number to be the last cbte_nro_afip + 1
                     sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
                     cls.raise_user_error('rejected_invoices', {
                         'invoice': first_rejected.id,
-                        'msg': first_rejected.transactions[-1].pyafipws_message,
+                        'msg': (
+                            first_rejected.transactions[-1].pyafipws_message),
                         })
 
         # Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
@@ -733,7 +737,7 @@ class Invoice:
         '''
         Post batch invoices.
         '''
-        if invoices  == []:
+        if invoices == []:
             return ([], [])
 
         Move = Pool().get('account.move')
@@ -757,7 +761,8 @@ class Invoice:
                 pre_approved_invoices.append(invoice)
 
         ws.IniciarFacturasX()
-        tmp_ = [invoices[i:i+reg_x_req] for i in range(0, len(invoices), reg_x_req)]
+        tmp_ = [invoices[i: i + reg_x_req] for i in
+            range(0, len(invoices), reg_x_req)]
         cls.set_number(pre_approved_invoices)
         for chunk_invoices in tmp_:
             for invoice in chunk_invoices:
@@ -796,7 +801,8 @@ class Invoice:
             Move.save(moves)
         cls.save(invoices)
         if moves:
-            Move.post([i.move for i in approved_invoices if i.move.state != 'posted'])
+            Move.post([i.move for i in approved_invoices
+                if i.move.state != 'posted'])
         return (pre_rejected_invoices, rejected_invoices)
 
     def create_pyafipws_invoice(self, ws, batch=False):
@@ -835,8 +841,8 @@ class Invoice:
             if cbte_nro != cbte_nro_next:
                 if batch:
                     logger.error('invalid_invoice_number: Invoice: %s, try to '
-                        'assign invoice number: %d when AFIP is waiting for %d' %
-                        (self.id, cbte_nro, cbte_nro_next))
+                        'assign invoice number: %d when AFIP is waiting for '
+                        '%d' % (self.id, cbte_nro, cbte_nro_next))
                     return (ws, True)
                 self.raise_user_error('invalid_invoice_number', (cbte_nro,
                     cbte_nro_next))
