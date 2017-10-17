@@ -108,16 +108,39 @@ class PosSequence(ModelSQL, ModelView):
         ], 'Tipo Comprobante AFIP', select=True, required=True,
         help='Tipo de Comprobante AFIP')
     invoice_type_string = invoice_type.translated('invoice_type')
-    invoice_sequence = fields.Property(fields.Many2One('ir.sequence',
-        'Sequence', required=True,
+    invoice_sequence = fields.Many2One('ir.sequence',
+        'Sequence',
         domain=[
             ('code', '=', 'account.invoice'),
             ['OR',
                 ('company', '=', Eval('context', {}).get('company', -1)),
                 ('company', '=', None),
                 ],
-            ],
-        context={'code': 'account.invoice'}))
+            ])
+
+    @classmethod
+    def __register__(cls, module_name):
+        cursor = Transaction().connection.cursor()
+        property_table = 'ir_property'
+        pos_sequence_table = cls._table
+
+        TableHandler = backend.get('TableHandler')
+        table = TableHandler(cls, module_name)
+        exist = table.column_exist('invoice_sequence')
+
+        super(PosSequence, cls).__register__(module_name)
+
+        # Migration from 4.2: set invoice_sequence
+        if not exist and TableHandler.table_exist(property_table):
+            cursor.execute('UPDATE "' + pos_sequence_table + '" '
+                'SET invoice_sequence = ('
+                    'SELECT split_part(value, \',\', 2) '
+                    'FROM "' + property_table + '" '
+                    'WHERE split_part(res, \',\', 1) = '
+                        '\'account.pos.sequence\' '
+                        'AND split_part(res, \',\', 2)::INTEGER = '
+                        '"' + pos_sequence_table + '".id'
+                    ')::INTEGER')
 
     def get_rec_name(self, name):
         return self.invoice_type_string[3:]
