@@ -2,9 +2,12 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
+from sql import Null
 
+from trytond import backend
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.pyson import Eval
+from trytond.pool import Pool
 from trytond.transaction import Transaction
 
 __all__ = ['Pos', 'PosSequence']
@@ -37,6 +40,28 @@ class Pos(ModelSQL, ModelView):
             'required': Eval('pos_type') == 'electronic',
             },
         help=u'Habilita la facturación electrónica por webservices AFIP')
+
+    @classmethod
+    def __register__(cls, module_name):
+        cursor = Transaction().connection.cursor()
+        pool = Pool()
+        pos_table = cls.__table__()
+        company_table = pool.get('company.company').__table__()
+
+        TableHandler = backend.get('TableHandler')
+        table = TableHandler(cls, module_name)
+        exist = table.column_exist('company')
+
+        super(Pos, cls).__register__(module_name)
+
+        # Migration from 4.2: company is required
+        if not exist:
+            cursor.execute(*company_table.select(company_table.id,
+                where=company_table.parent == Null))
+            company = cursor.fetchone()
+            if company:
+                cursor.execute(*pos_table.update([pos_table.company],
+                    [company[0]]))
 
     @staticmethod
     def default_company():
