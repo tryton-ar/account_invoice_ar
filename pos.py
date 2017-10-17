@@ -25,6 +25,7 @@ class Pos(ModelSQL, ModelView):
         ('electronic', u'Electronic'),
         ('fiscal_printer', u'Fiscal Printer'),
         ], 'Pos Type', required=True)
+    pos_type_string = pos_type.translated('pos_type')
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
         ('wsfe', u'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
@@ -94,8 +95,4 @@ class PosSequence(ModelSQL, ModelView):
         context={'code': 'account.invoice'}))
 
     def get_rec_name(self, name):
-        type2name = {}
-        for type, name in self.fields_get(fields_names=['invoice_type']
-                )['invoice_type']['selection']:
-            type2name[type] = name
-        return type2name[self.invoice_type][3:]
+        return self.invoice_type_string[3:]
