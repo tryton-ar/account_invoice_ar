@@ -518,60 +518,49 @@ class Invoice:
         credit.description = 'Ref. Nro. %s' % ref_number
         return credit
 
-    @classmethod
-    def set_number(cls, invoices):
-        '''
-        Set number to the invoice
-        '''
+    def get_next_number(self, pattern=None):
         pool = Pool()
-        Period = pool.get('account.period')
         SequenceStrict = pool.get('ir.sequence.strict')
         Sequence = pool.get('ir.sequence')
-        Date = pool.get('ir.date')
+        Period = pool.get('account.period')
 
-        for invoice in invoices:
-            # Posted and paid invoices are tested by check_modify so we can
-            # not modify tax_identifier nor number
-            if invoice.state in {'posted', 'paid'}:
-                continue
-            if not invoice.tax_identifier:
-                invoice.tax_identifier = invoice.get_tax_identifier()
+        if pattern is None:
+            pattern = {}
+        else:
+            pattern = pattern.copy()
 
-            if invoice.number:
-                continue
+        period_id = Period.find(
+            self.company.id, date=self.accounting_date or self.invoice_date,
+            test_state=self.type != 'in')
 
-            test_state = True
-            if invoice.type == 'in':
-                test_state = False
+        period = Period(period_id)
+        fiscalyear = period.fiscalyear
+        pattern.setdefault('company', self.company.id)
+        pattern.setdefault('fiscalyear', fiscalyear.id)
+        pattern.setdefault('period', period.id)
+        invoice_type = self.type
+        if (all(l.amount < 0 for l in self.lines if l.product)
+                and self.total_amount < 0):
+            invoice_type += '_credit_note'
+        else:
+            invoice_type += '_invoice'
 
-            accounting_date = invoice.accounting_date or invoice.invoice_date
-            period_id = Period.find(invoice.company.id,
-                date=accounting_date, test_state=test_state)
-            period = Period(period_id)
-            invoice_type = invoice.type
-            if all(l.amount <= 0 for l in invoice.lines):
-                invoice_type += '_credit_note'
-            else:
-                invoice_type += '_invoice'
-            sequence = period.get_invoice_sequence(invoice_type)
-            if not sequence:
-                cls.raise_user_error('no_invoice_sequence', {
-                        'invoice': invoice.rec_name,
-                        'period': period.rec_name,
-                        })
-            with Transaction().set_context(
-                    date=invoice.invoice_date or Date.today()):
-                if invoice.type == 'out':
-                    number = Sequence.get_id(
-                        invoice.invoice_type.invoice_sequence.id)
-                    invoice.number = '%04d-%08d' % (
-                        invoice.pos.number, int(number))
-                    if not invoice.invoice_date:
-                        invoice.invoice_date = Transaction().context['date']
-                else:
-                    number = SequenceStrict.get_id(sequence.id)
-                    invoice.number = number
-        cls.save(invoices)
+        for invoice_sequence in fiscalyear.invoice_sequences:
+            if invoice_sequence.match(pattern):
+                sequence = getattr(
+                    invoice_sequence, '%s_sequence' % invoice_type)
+                break
+        else:
+            self.raise_user_error('no_invoice_sequence', {
+                    'invoice': self.rec_name,
+                    'fiscalyear': fiscalyear.rec_name,
+                    })
+        with Transaction().set_context(date=self.invoice_date):
+            if self.type == 'out':
+                number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
+                return '%04d-%08d' % (self.pos.number, int(number))
+            return SequenceStrict.get_id(sequence.id)
+
 
     def _get_move_line(self, date, amount):
         line = super(Invoice, self)._get_move_line(date, amount)
