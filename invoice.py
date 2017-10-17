@@ -495,12 +495,9 @@ class Invoice:
                     self.pyafipws_billing_start_date
                 res['pyafipws_billing_end_date'] = self.pyafipws_billing_end_date
 
-        if self.type[:3] == 'out':
-            res['description'] = 'Ref. Nro. %s' % self.number
-        else:
-            res['description'] = 'Ref. Nro. %s' % self.reference
-
-        return res
+        ref_number = self.number if self.type == 'out' else self.reference
+        res['description'] = 'Ref. Nro. %s' % ref_number
+        return credit
 
     def set_number(self):
         pool = Pool()
@@ -544,6 +541,7 @@ class Invoice:
         self.write([self], vals)
 
     def _get_move_line(self, date, amount):
+<<<<<<< HEAD
         res = super(Invoice, self)._get_move_line(date, amount)
 
         if self.type[:3] == 'out':
@@ -555,6 +553,14 @@ class Invoice:
             res['description'] += ' / ' + self.description
 
         return res
+=======
+        line = super(Invoice, self)._get_move_line(date, amount)
+        ref_number = self.number if self.type == 'out' else self.reference
+        line.description = '%s Nro. %s' % (self.party.name, ref_number)
+        if self.description:
+            line.description += ' / %s' % self.description
+        return line
+>>>>>>> 66dba5d... Improve text formatting
 
     @classmethod
     @ModelView.button
