@@ -238,7 +238,7 @@ class Invoice:
         'invoice', u'Transacciones', readonly=True)
     tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
         select=True, depends=['state', 'type'], states={
-            'invisible': Eval('type').in_(['out']),
+            'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
             })
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
@@ -375,9 +375,9 @@ class Invoice:
     @Workflow.transition('validated')
     def validate_invoice(cls, invoices):
         for invoice in invoices:
-            if invoice.type in ('out'):
+            if invoice.type == 'out':
                 invoice.check_invoice_type()
-            elif invoice.type in ['in']:
+            elif invoice.type == 'in':
                 invoice.pre_validate_fields()
                 invoice.check_unique_reference()
         super(Invoice, cls).validate_invoice(invoices)
@@ -412,7 +412,7 @@ class Invoice:
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
     def on_change_reference(self):
-        if self.type in ['in']:
+        if self.type == 'in':
             self.check_unique_reference()
 
     @fields.depends('pos', 'party', 'type', 'company')
