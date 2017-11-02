@@ -399,6 +399,12 @@ class Invoice:
             return
         self._set_invoice_type_sequence()
 
+    @classmethod
+    def _tax_identifier_types(cls):
+        types = super(Invoice, cls)._tax_identifier_types()
+        types.append('ar_cuit')
+        return types
+
     def _set_invoice_type_sequence(self):
         '''
         Set invoice type field.
