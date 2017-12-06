@@ -235,13 +235,13 @@ class Invoice:
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
     ref_pos_number = fields.Function(fields.Char('POS Number', size=4, states={
-        'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
-        'invisible': Eval('type') == 'out',
+        'required': And(Eval('type').in_(['in_invoice', 'in_credit_note']), Eval('state') != 'draft'),
+        'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
         }), 'get_ref_subfield', setter='set_ref_subfield')
     ref_voucher_number = fields.Function(fields.Char('Voucher Number', size=8,
         states={
-            'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
-            'invisible': Eval('type') == 'out',
+            'required': And(Eval('type').in_(['in_invoice', 'in_credit_note']), Eval('state') != 'draft'),
+            'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
         }), 'get_ref_subfield', setter='set_ref_subfield')
 
 
@@ -249,7 +249,7 @@ class Invoice:
     def __setup__(cls):
         super(Invoice, cls).__setup__()
         cls.reference.states.update({
-            'readonly': Eval('type') == 'in',
+            'readonly': Eval('type').in_(['in_invoice', 'in_credit_note']),
         })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
@@ -335,7 +335,7 @@ class Invoice:
             ]
 
     def get_ref_subfield(self, name):
-        if self.type == 'in' and self.reference and '-' in self.reference:
+        if self.type[:2] == 'in' and self.reference and '-' in self.reference:
             if name == 'ref_pos_number':
                 return self.reference.split('-')[0].lstrip('0')
             elif name == 'ref_voucher_number':
@@ -346,7 +346,7 @@ class Invoice:
     def set_ref_subfield(cls, invoices, name, value):
         reference = None
         for invoice in invoices:
-            if invoice.type == 'in':
+            if invoice.type[:2] == 'in':
                 if name == 'ref_pos_number':
                     reference = '%04d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
                 elif name == 'ref_voucher_number':
@@ -451,7 +451,7 @@ class Invoice:
         Date = pool.get('ir.date')
 
         res = super(Invoice, self)._credit()
-        if self.type[:3] == 'in':
+        if self.type[:2] == 'in':
             return res
 
         to_create = [tax._credit() for tax in self.taxes if not tax.manual]
