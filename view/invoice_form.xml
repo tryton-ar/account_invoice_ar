@@ -26,32 +26,28 @@
             <field name="pyafipws_licenses" colspan="4"/>
         </page>
     </xpath>
-
-    <xpath expr="/form/label[@name='number']" position="replace"/>
-    <xpath expr="/form/field[@name='number']" position="replace"/>
-    <xpath
-        expr="/form/field[@name='journal']"
-        position="after">
-        <newline/>
-    </xpath>
-    <xpath
-        expr="/form/label[@name='description']"
-        position="before">
-        <newline/>
+    <xpath expr="/form/label[@name='description']" position="replace"/>
+    <xpath expr="/form/field[@name='description']" position="replace"/>
+    <xpath expr="/form/field[@name='invoice_address']" position="after">
+        <label name="description"/>
+        <field name="description"/>
         <label name="pos"/>
         <field name="pos"/>
         <label name="invoice_type"/>
         <field name="invoice_type" widget="selection"/>
-        <label name="number"/>
-        <field name="number"/>
     </xpath>
-    <xpath
-        expr="/form/field[@name='reference']"
-        position="after">
-        <newline/>
+
+    <xpath expr="/form/field[@name='reference']" position="replace">
+      <group id="reference">
+        <field name="ref_pos_number"/>
+        <label name="ref_pos_number" string="-" xalign="0.0" xexpand="1" xfill="1"/>
+        <field name="ref_voucher_number"/>
+        <field name="reference"/>
+      </group>
+      <group id="tipo_comprobante_group" colspan="4">
         <label name="tipo_comprobante"/>
-        <field name="tipo_comprobante" colspan="3"/>
-        <newline/>
+        <field name="tipo_comprobante"/>
+      </group>
     </xpath>
 
 </data>
