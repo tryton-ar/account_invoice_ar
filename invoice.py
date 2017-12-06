@@ -313,6 +313,8 @@ class Invoice:
                 'There was a problem to connect webservice WSAA: (%s)',
             'error_caesolicitarx':
                 'Error CAESolicitarX: (%s)',
+            'invalid_ref_number':
+                'The value "%(ref_value)s" is not a number.'
             })
 
     @classmethod
@@ -370,6 +372,10 @@ class Invoice:
 
     @classmethod
     def set_ref_subfield(cls, invoices, name, value):
+        if value and not value.isdigit():
+            cls.raise_user_error('invalid_ref_number', {
+                    'ref_value': value,
+                })
         reference = None
         for invoice in invoices:
             if invoice.type == 'in':
