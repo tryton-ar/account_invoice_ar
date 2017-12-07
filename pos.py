@@ -40,6 +40,7 @@ class Pos(ModelSQL, ModelView):
             'required': Eval('pos_type') == 'electronic',
             },
         help=u'Habilita la facturación electrónica por webservices AFIP')
+    pos_active = fields.Boolean('POS Active')
 
     @classmethod
     def __register__(cls, module_name):
@@ -70,6 +71,10 @@ class Pos(ModelSQL, ModelView):
     @staticmethod
     def default_pos_type():
         return 'manual'
+
+    @staticmethod
+    def default_pos_active():
+        return True
 
     def get_rec_name(self, name):
         if self.pos_type and self.number:

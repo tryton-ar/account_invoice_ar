@@ -8,6 +8,8 @@ this repository contains the full copyright notices and license terms. -->
     <field name="pos_type"/>
     <label name="company"/>
     <field name="company"/>
+    <label name="pos_active"/>
+    <field name="pos_active"/>
     <label name="pyafipws_electronic_invoice_service"/>
     <field name="pyafipws_electronic_invoice_service"/>
     <field name="pos_sequences" colspan="4"/>
