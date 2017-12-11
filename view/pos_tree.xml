@@ -4,4 +4,5 @@ this repository contains the full copyright notices and license terms. -->
 <tree string="Points of Sale">
     <field name="number"/>
     <field name="pos_type"/>
+    <field name="active" tree_invisible="1"/>
 </tree>

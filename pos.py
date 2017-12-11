@@ -7,22 +7,25 @@ from trytond.model import ModelView, ModelSQL, fields
 from trytond.pyson import Eval
 
 __all__ = ['Pos', 'PosSequence']
-
+STATES = {
+    'readonly': ~Eval('active', True),
+}
+DEPENDS = ['active']
 
 class Pos(ModelSQL, ModelView):
     'Point of Sale'
     __name__ = 'account.pos'
 
-    #name = fields.Function(fields.Char('Name'), 'get_name')
     number = fields.Integer('Punto de Venta AFIP', required=True,
+        states=STATES, depends=DEPENDS,
         help=u'Prefijo de emisión habilitado en AFIP')
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
-        'Point of Sale')
+        'Point of Sale', depends=DEPENDS, states=STATES)
     pos_type = fields.Selection([
         ('manual', u'Manual'),
         ('electronic', u'Electronic'),
         ('fiscal_printer', u'Fiscal Printer'),
-        ], 'Pos Type', required=True)
+        ], 'Pos Type', required=True, states=STATES, depends=DEPENDS)
     pos_type_string = pos_type.translated('pos_type')
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
@@ -30,15 +33,21 @@ class Pos(ModelSQL, ModelView):
         #('wsmtxca', u'Mercado interno -con detalle- RG2904 (WSMTXCA)'),
         ('wsbfe', u'Bono Fiscal -con detalle- RG2557 (WSMTXCA)'),
         ('wsfex', u'Exportación -con detalle- RG2758 (WSFEXv1)'),
-        ], u'AFIP Web Service', depends=['pos_type'], states={
+        ], u'AFIP Web Service', depends=['pos_type', 'active'], states={
             'invisible': Eval('pos_type') != 'electronic',
             'required': Eval('pos_type') == 'electronic',
+            'readonly': ~Eval('active', True),
             },
         help=u'Habilita la facturación electrónica por webservices AFIP')
+    active = fields.Boolean('Active', select=True)
 
     @staticmethod
     def default_pos_type():
         return 'manual'
+
+    @staticmethod
+    def default_active():
+        return True
 
     def get_rec_name(self, name):
         if self.pos_type and self.number:
