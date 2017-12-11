@@ -208,7 +208,7 @@ class Invoice:
     __metaclass__ = PoolMeta
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
-        domain=[('company', '=', Eval('company')), ('pos_active', '=', True)],
+        domain=[('company', '=', Eval('company'))],
         states=_POS_STATES, depends=_DEPENDS + ['company'])
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
         domain=[('pos', '=', Eval('pos'))],

@@ -4,5 +4,4 @@ this repository contains the full copyright notices and license terms. -->
 <tree>
     <field name="number"/>
     <field name="pos_type"/>
-    <field name="pos_active"/>
 </tree>
