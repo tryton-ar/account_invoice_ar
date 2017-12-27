@@ -8,5 +8,9 @@ this repository contains the full copyright notices and license terms. -->
     <field name="pos_type"/>
     <label name="pyafipws_electronic_invoice_service"/>
     <field name="pyafipws_electronic_invoice_service" colspan="3"/>
+    <group string="POS Options" id="checkboxes_group" colspan="4">
+      <label name="pos_daily_report"/>
+      <field name="pos_daily_report"/>
+    </group>
     <field name="pos_sequences" colspan="4"/>
 </form>
