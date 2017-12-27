@@ -28,6 +28,12 @@ _STATES = {
     }
 _DEPENDS = ['state']
 
+_REF_NUMBERS_STATES = _STATES.copy()
+_REF_NUMBERS_STATES.update({
+    'invisible': ~Eval('pos_pos_daily_report', False),
+    'required': Eval('pos_pos_daily_report', False),
+})
+
 _BILLING_STATES = _STATES.copy()
 _BILLING_STATES.update({
     'required': Eval('pyafipws_concept').in_(['2', '3']),
@@ -256,13 +262,24 @@ class Invoice:
             'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'out',
         }), 'get_ref_subfield', setter='set_ref_subfield')
-
+    pos_pos_daily_report = fields.Function(
+        fields.Boolean('account.pos', "POS Daily Report"),
+        'on_change_with_pos_pos_daily_report')
+    ref_number_from = fields.Char('From number', size=13, states=_REF_NUMBERS_STATES,
+        depends=['pos_pos_daily_report', 'state'])
+    ref_number_to = fields.Char('To number', size=13, states=_REF_NUMBERS_STATES,
+        depends=['pos_pos_daily_report', 'state'])
 
     @classmethod
     def __setup__(cls):
         super(Invoice, cls).__setup__()
         cls.reference.states.update({
             'readonly': Eval('type') == 'in',
+        })
+        cls.number.depends = ['pos_pos_daily_report', 'state']
+        cls.number.states.update({
+            'invisible': And(Eval('pos_pos_daily_report', False) == True,
+            Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
         })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
@@ -314,7 +331,9 @@ class Invoice:
             'error_caesolicitarx':
                 'Error CAESolicitarX: (%s)',
             'invalid_ref_number':
-                'The value "%(ref_value)s" is not a number.'
+                'The value "%(ref_value)s" is not a number.',
+            'invalid_ref_from_to':
+                '"From number" must be smaller than "To number"'
             })
 
     @classmethod
@@ -334,6 +353,11 @@ class Invoice:
         cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'111\' '
             'WHERE tipo_comprobante = \'tkc\';')
 
+    @fields.depends('pos')
+    def on_change_with_pos_pos_daily_report(self, name=None):
+        if self.pos:
+            return self.pos.pos_daily_report
+
     @classmethod
     def copy(cls, invoices, default=None):
         if default is None:
@@ -349,6 +373,33 @@ class Invoice:
         default['pyafipws_barcode'] = None
         default['pyafipws_number'] = None
         return super(Invoice, cls).copy(invoices, default=default)
+
+    @classmethod
+    def validate(cls, invoices):
+        super(Invoice, cls).validate(invoices)
+        for invoice in invoices:
+            invoice.check_unique_daily_report()
+
+    def check_unique_daily_report(self):
+        if (self.type == 'out' and self.pos
+        and self.pos.pos_daily_report == True):
+            if int(self.ref_number_from) > int(self.ref_number_to):
+                self.raise_user_error('invalid_ref_from_to')
+            else:
+                invoices = self.search([
+                    ('id', '!=', self.id),
+                    ('type', '=', self.type),
+                    ('pos', '=', self.pos),
+                    ('invoice_type', '=', self.invoice_type),
+                    ('state', '!=', 'cancel'),
+                    ])
+                for invoice in invoices:
+                    if (invoice.ref_number_to != None and invoice.ref_number_from != None
+                    and (int(self.ref_number_from) >= int(invoice.ref_number_from)
+                    and int(self.ref_number_from) <= int(invoice.ref_number_to))
+                    or (int(self.ref_number_to) <= int(invoice.ref_number_to)
+                    and int(self.ref_number_to) >= int(invoice.ref_number_from))):
+                        self.raise_user_error('reference_unique')
 
     @classmethod
     def view_attributes(cls):
@@ -434,6 +485,8 @@ class Invoice:
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
+        self.ref_number_from = None
+        self.ref_number_to = None
         if not self.pos:
             self.invoice_type = None
             return
@@ -622,7 +675,7 @@ class Invoice:
         pool = Pool()
         Move = pool.get('account.move')
         Pos = pool.get('account.pos')
-
+        Date = pool.get('ir.date')
         invoices_wsfe = {}
         point_of_sales = Pos.search([
             ('pos_type', '=', 'electronic')
@@ -663,6 +716,17 @@ class Invoice:
                                     invoice.transactions[-1].pyafipws_message),
                                 #'party': invoice.party.rec_name,
                                 })
+                    elif invoice.pos.pos_type == 'fiscal_printer':
+                        if invoice.pos.pos_daily_report:
+                            if not invoice.invoice_date and invoice.type == 'out':
+                                invoice.invoice_date = Date.today()
+                            invoice.number = '%04d-%08d:%d' % \
+                                (invoice.pos.number, int(invoice.ref_number_from),
+                                 int(invoice.ref_number_to))
+                        else:
+                            #TODO: Implement fiscal printer integration
+                            cls.fiscal_printer_invoice_post()
+
             cls.set_number([invoice])
             move = invoice.get_move()
             if move != invoice.move:
@@ -703,6 +767,11 @@ class Invoice:
         #for invoice in invoices:
         #    if invoice.type == 'out':
         #        invoice.print_invoice()
+
+    @classmethod
+    def fiscal_printer_invoice_post(cls, invoice=None):
+        #TODO: Implement fiscal printer integration
+        pass
 
     @classmethod
     def get_ws_afip(cls, invoice=None, batch=False):
