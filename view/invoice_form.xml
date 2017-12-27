@@ -46,8 +46,23 @@
       </group>
       <group id="tipo_comprobante_group" colspan="4">
         <label name="tipo_comprobante"/>
-        <field name="tipo_comprobante"/>
+        <field name="tipo_comprobante" xexpand="0"/>
       </group>
     </xpath>
 
+    <xpath expr="/form/label[@name='number']" position="replace"/>
+    <xpath expr="/form/field[@name='number']" position="replace"/>
+    <xpath expr="/form/field[@name='journal']" position="after">
+      <group id="ref_numbers_group" col="2" colspan="2">
+        <group id="label_numbers_group" col="1">
+            <label name="number"/>
+            <label string="From/to #" name="ref_number_from"/>
+        </group>
+        <group id="field_numbers_group">
+            <field name="number" xexpand="1"/>
+            <field name="ref_number_from" xexpand="0"/>
+            <field name="ref_number_to" xexpand="1"/>
+        </group>
+      </group>
+    </xpath>
 </data>

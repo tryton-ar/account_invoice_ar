@@ -27,6 +27,10 @@ class Pos(ModelSQL, ModelView):
         ('fiscal_printer', u'Fiscal Printer'),
         ], 'Pos Type', required=True, states=STATES, depends=DEPENDS)
     pos_type_string = pos_type.translated('pos_type')
+    pos_daily_report = fields.Boolean('Cierre diario (ZETA)', states={
+            'invisible': Eval('pos_type') != 'fiscal_printer'
+            },
+        depends=['pos_type'])
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
         ('wsfe', u'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
