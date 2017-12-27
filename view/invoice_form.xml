@@ -29,8 +29,6 @@
     <xpath expr="/form/label[@name='description']" position="replace"/>
     <xpath expr="/form/field[@name='description']" position="replace"/>
     <xpath expr="/form/field[@name='invoice_address']" position="after">
-        <label name="description"/>
-        <field name="description"/>
         <label name="pos"/>
         <field name="pos"/>
         <label name="invoice_type"/>
@@ -47,6 +45,16 @@
       <group id="tipo_comprobante_group" colspan="4">
         <label name="tipo_comprobante"/>
         <field name="tipo_comprobante"/>
+        <label name="description"/>
+        <field name="description"/>
+      </group>
+    </xpath>
+
+    <xpath expr="/form/field[@name='invoice_address']" position="after">
+      <group id="ref_numbers_group" colspan="2">
+        <label string="From/to #" name="ref_number_from"/>
+        <field name="ref_number_from"/>
+        <field name="ref_number_to"/>
       </group>
     </xpath>
 
