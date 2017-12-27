@@ -317,8 +317,6 @@ class Invoice:
                 u'(iibb, municipal, iva).',
             'in_invoice_validate_failed':
                 u'Los campos "Referencia" y "Comprobante" son requeridos.',
-            'invalid_ref_number':
-                'The value "%(ref_value)s" is not a number.',
             'rejected_invoices':
                 'There was a problem at invoice ID "%(invoice)s".\n'
                 'Check out error message: "%(msg)s"',
@@ -332,8 +330,10 @@ class Invoice:
                 'There was a problem to connect webservice WSAA: (%s)',
             'error_caesolicitarx':
                 'Error CAESolicitarX: (%s)',
+            'invalid_ref_number':
+                'The value "%(ref_value)s" is not a number.',
             'invalid_ref_from_to':
-                '"From number" must be smaller than "To number"',
+                '"From number" must be smaller than "To number"'
             })
 
     @classmethod
