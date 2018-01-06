@@ -468,6 +468,7 @@ class Invoice:
             ('party', '=', self.party.id),
             ('tipo_comprobante', '=', self.tipo_comprobante),
             ('reference', '=', self.reference),
+            ('state', '!=', 'cancel'),
             ])
         if len(invoice) > 0:
             self.raise_user_error('reference_unique')
