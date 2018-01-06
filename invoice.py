@@ -622,9 +622,8 @@ class Invoice:
         pool = Pool()
         Move = pool.get('account.move')
         Pos = pool.get('account.pos')
-        moves = []
+
         invoices_wsfe = {}
-        invoices_ = []
         point_of_sales = Pos.search([
             ('pos_type', '=', 'electronic')
             ])
@@ -632,8 +631,7 @@ class Invoice:
             pos_number = str(pos.number)
             invoices_wsfe[pos_number] = {}
             for pos_sequence in pos.pos_sequences:
-                for invoice_type in pos_sequence.invoice_type:
-                    invoices_wsfe[pos_number][invoice_type] = []
+                invoices_wsfe[pos_number][pos_sequence.invoice_type] = []
 
         for invoice in invoices:
             if invoice.type == 'out':
@@ -644,10 +642,10 @@ class Invoice:
                     # web service == wsfe invoices go throw batch.
                     invoices_wsfe[str(invoice.pos.number)][
                         invoice.invoice_type.invoice_type].append(invoice)
-                else:
-                    invoices_.append(invoice)
+                    invoices.remove(invoice)
 
-        for invoice in invoices_:
+        moves = []
+        for invoice in invoices:
             if invoice.type == 'out':
                 invoice.check_invoice_type()
                 if invoice.pos:
@@ -675,9 +673,7 @@ class Invoice:
         if moves:
             Move.save(moves)
         cls.save(invoices)
-        # If no invoice has been posted, no move was created
-        if moves:
-            Move.post([i.move for i in invoices if i.move.state != 'posted'])
+        Move.post([i.move for i in invoices if i.move.state != 'posted'])
 
         for pos, value_dict in invoices_wsfe.iteritems():
             for key, invoices_by_type in value_dict.iteritems():
@@ -809,7 +805,6 @@ class Invoice:
         ws.IniciarFacturasX()
         tmp_ = [invoices[i: i + reg_x_req] for i in
             range(0, len(invoices), reg_x_req)]
-        cls.set_number(pre_approved_invoices)
         for chunk_invoices in tmp_:
             for invoice in chunk_invoices:
                 (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
@@ -836,6 +831,7 @@ class Invoice:
                 invoice.number = None
                 rejected_invoices.append(invoice)
 
+        cls.set_number(approved_invoices)
         for invoice in approved_invoices:
             move = invoice.get_move()
             if move != invoice.move:
@@ -845,9 +841,8 @@ class Invoice:
                 invoice.state = 'posted'
         if moves:
             Move.save(moves)
-        cls.save(invoices)
-        if moves:
-            Move.post([i.move for i in approved_invoices
+        cls.save(approved_invoices)
+        Move.post([i.move for i in approved_invoices
                 if i.move.state != 'posted'])
         return (pre_rejected_invoices, rejected_invoices)
 
