@@ -319,7 +319,7 @@ class Invoice:
                 u'Los campos "Referencia" y "Comprobante" son requeridos.',
             'rejected_invoices':
                 'There was a problem at invoice ID "%(invoice)s".\n'
-                'Check out error message: "%(msg)s"',
+                'Check out error message:\n"%(msg)s"',
             'webservice_unknown':
                 'AFIP web service is unknown',
             'webservice_not_supported':
@@ -927,15 +927,18 @@ class Invoice:
             return
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
+        Sequence = pool.get('ir.sequence')
+        Date = pool.get('ir.date')
+
+        # get the electronic invoice type, point of sale and service:
         tipo_cbte = self.invoice_type.invoice_type
         punto_vta = self.pos.number
         service = self.pos.pyafipws_electronic_invoice_service
-        payments = []
+
         # get the last 8 digit of the invoice number
         if self.number:
             cbte_nro = int(self.number[-8:])
         else:
-            Sequence = pool.get('ir.sequence')
             cbte_nro = int(Sequence(
                 self.invoice_type.invoice_sequence.id).get_number_next(''))
 
@@ -964,7 +967,6 @@ class Invoice:
         if self.invoice_date:
             fecha_cbte = self.invoice_date.strftime('%Y-%m-%d')
         else:
-            Date = pool.get('ir.date')
             fecha_cbte = Date.today().strftime('%Y-%m-%d')
 
         if service != 'wsmtxca':
@@ -974,6 +976,7 @@ class Invoice:
         concepto = tipo_expo = int(self.pyafipws_concept or 0)
         if int(concepto) != 1:
 
+            payments = []
             if self.payment_term:
                 payments = self.payment_term.compute(self.total_amount,
                     self.currency)
@@ -983,7 +986,7 @@ class Invoice:
                 last_payment = max(payments, key=lambda x: x[0])[0]
             fecha_venc_pago = last_payment.strftime('%Y-%m-%d')
             if service != 'wsmtxca':
-                    fecha_venc_pago = fecha_venc_pago.replace('-', '')
+                fecha_venc_pago = fecha_venc_pago.replace('-', '')
             if self.pyafipws_billing_start_date:
                 fecha_serv_desde = self.pyafipws_billing_start_date.strftime(
                     '%Y-%m-%d')
@@ -1215,7 +1218,15 @@ class Invoice:
                 ws.Authorize(self.id)
         except Exception as e:
             if ws.Excepcion:
+                # get the exception already parsed by the helper
+                #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
                 msg = ws.Excepcion + ' ' + str(e)
+            else:
+                # avoid encoding problem when reporting exceptions to the user:
+                import traceback
+                import sys
+                msg = traceback.format_exception_only(sys.exc_type,
+                    sys.exc_value)[0]
         return (ws, msg)
 
     def process_afip_result(self, ws, msg=''):
@@ -1223,43 +1234,46 @@ class Invoice:
         Process CAE and store results
         '''
         AFIP_Transaction = Pool().get('account_invoice_ar.afip_transaction')
-        tipo_cbte = self.invoice_type.invoice_type
-        punto_vta = self.pos.number
-        bars = ''
-        vto = ''
-        msg = u'\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
-        msg = msg.encode('ascii', 'ignore').strip()
+
+        message = u'\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
+        message = message.encode('ascii', 'ignore').strip()
         AFIP_Transaction.create([{'invoice': self,
             'pyafipws_result': ws.Resultado,
-            'pyafipws_message': msg,
+            'pyafipws_message': message,
             'pyafipws_xml_request': ws.XmlRequest,
             'pyafipws_xml_response': ws.XmlResponse,
             }])
-        if ws.CAE:
-            if isinstance(ws, WSFEv1):
-                vto = ws.Vencimiento
-            elif isinstance(ws, WSFEXv1):
-                vto = ws.FchVencCAE
-            cae_due = ''.join([c for c in str(vto)
-                    if c.isdigit()])
-            bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
-                    '%04d' % int(punto_vta), str(ws.CAE), cae_due])
-            bars = bars + self.pyafipws_verification_digit_modulo10(bars)
-            pyafipws_cae_due_date = vto or None
-            if not '-' in vto:
-                pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
-            self.pyafipws_cae = ws.CAE
-            self.pyafipws_barcode = bars
-            self.pyafipws_cae_due_date = pyafipws_cae_due_date
-            return True
-        else:
+
+        if not ws.CAE:
             logger.error(
                 u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
                 u'XmlResponse: %s\n',
-                    repr(msg.encode('ascii', 'ignore').strip()),
+                    repr(message.encode('ascii', 'ignore').strip()),
                     self.id, self.type, self.party.rec_name,
                     repr(ws.XmlRequest), repr(ws.XmlResponse))
             return False
+
+        tipo_cbte = self.invoice_type.invoice_type
+        punto_vta = self.pos.number
+
+        vto = ''
+        if isinstance(ws, WSFEv1):
+            vto = ws.Vencimiento
+        elif isinstance(ws, WSFEXv1):
+            vto = ws.FchVencCAE
+        cae_due = ''.join([c for c in str(vto)
+                if c.isdigit()])
+        bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
+                '%04d' % int(punto_vta), str(ws.CAE), cae_due])
+        bars = bars + self.pyafipws_verification_digit_modulo10(bars)
+        pyafipws_cae_due_date = vto or None
+        if not '-' in vto:
+            pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
+
+        self.pyafipws_cae = ws.CAE
+        self.pyafipws_barcode = bars
+        self.pyafipws_cae_due_date = pyafipws_cae_due_date
+        return True
 
     def pyafipws_verification_digit_modulo10(self, codigo):
         'Calculate the verification digit "modulo 10"'
