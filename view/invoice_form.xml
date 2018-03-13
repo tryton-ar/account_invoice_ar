@@ -32,7 +32,7 @@
         <label name="description"/>
         <field name="description"/>
         <label name="pos"/>
-        <field name="pos"/>
+        <field name="pos" widget="selection"/>
         <label name="invoice_type"/>
         <field name="invoice_type" widget="selection"/>
     </xpath>
