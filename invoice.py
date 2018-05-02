@@ -318,8 +318,8 @@ class Invoice:
             'in_invoice_validate_failed':
                 u'Los campos "Referencia" y "Comprobante" son requeridos.',
             'rejected_invoices':
-                'There was a problem at invoice ID "%(invoice)s".\n'
-                'Check out error message:\n"%(msg)s"',
+                'There was a problem at invoices IDs "%(invoices)s".\n'
+                'Check out error messages: "%(msg)s"',
             'webservice_unknown':
                 'AFIP web service is unknown',
             'webservice_not_supported':
@@ -723,6 +723,12 @@ class Invoice:
                         result = invoice.process_afip_result(ws, msg=msg)
                         Transaction().commit()
                         if result is False:
+                            logger.error(
+                                u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
+                                u'XmlResponse: %s\n',
+                                    repr(msg.encode('ascii', 'ignore').strip()),
+                                    invoice.id, invoice.type, invoice.party.rec_name,
+                                    repr(ws.XmlRequest), repr(ws.XmlResponse))
                             cls.raise_user_error('rejected_invoices', {
                                 'invoice': invoice.id,
                                 'msg': (
@@ -752,29 +758,22 @@ class Invoice:
         cls.save(invoices)
         Move.post([i.move for i in invoices if i.move.state != 'posted'])
 
+        error_invoices = []
         for pos, value_dict in invoices_wsfe.iteritems():
             for key, invoices_by_type in value_dict.iteritems():
-                (pre_rejected_invoices, rejected_invoices) = \
+                (pre_rejected_invoice, rejected_invoice) = \
                     cls.post_wsfe(invoices_by_type)
                 Transaction().commit()
-                if pre_rejected_invoices or rejected_invoices:
-                    if rejected_invoices:
-                        first_rejected = rejected_invoices[0]
-                    else:
-                        first_rejected = pre_rejected_invoices[0]
-                    sequence = first_rejected.invoice_type.invoice_sequence
-                    tipo_cbte = first_rejected.invoice_type.invoice_type
-                    punto_vta = first_rejected.pos.number
-                    ws = cls.get_ws_afip(batch=True)
-                    cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte,
-                        punto_vta)
-                    # Set next sequence number to be the last cbte_nro_afip + 1
-                    sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
-                    cls.raise_user_error('rejected_invoices', {
-                        'invoice': first_rejected.id,
-                        'msg': (
-                            first_rejected.transactions[-1].pyafipws_message),
-                        })
+                if rejected_invoice:
+                    error_invoices.append(rejected_invoice)
+                elif pre_rejected_invoice:
+                    error_invoices.append(pre_rejected_invoice)
+        if error_invoices:
+            cls.raise_user_error('rejected_invoices', {
+                'invoices': ','.join([str(i.id) for i in error_invoices]),
+                'msg': ','.join([i.transactions[-1].pyafipws_message for i \
+                            in error_invoices if i.transactions]),
+                })
 
         # Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
         #for invoice in invoices:
@@ -871,8 +870,8 @@ class Invoice:
         cant_invoices = len(invoices)
         pre_approved_invoices = []
         approved_invoices = []
-        pre_rejected_invoices = []
-        rejected_invoices = []
+        pre_rejected_invoice = None
+        rejected_invoice = None
 
         # before set_number, validate some stuff.
         # get only invoices that pass validations.
@@ -880,40 +879,58 @@ class Invoice:
         for invoice in invoices:
             (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
             if error:
-                pre_rejected_invoices.append(invoice)
+                if pre_rejected_invoice is None:
+                    pre_rejected_invoice = invoice
             else:
                 pre_approved_invoices.append(invoice)
 
-        ws.IniciarFacturasX()
-        tmp_ = [invoices[i: i + reg_x_req] for i in
-            range(0, len(invoices), reg_x_req)]
+        tmp_ = [pre_approved_invoices[i:i+reg_x_req] for i in
+            range(0, len(pre_approved_invoices), reg_x_req)]
         for chunk_invoices in tmp_:
+            ws.IniciarFacturasX()
+            invoices_added_to_ws = []
+            chunk_with_errors = False
+            cls.set_number(chunk_invoices)
             for invoice in chunk_invoices:
                 (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
                 if error is False:
                     ws.AgregarFacturaX()
+                    invoices_added_to_ws.append(invoice)
+            # CAESolicitarX
+            try:
+                cant_solicitadax = ws.CAESolicitarX()
+                logger.info('wsfe batch invoices posted: %s' % cant_solicitadax)
+            except Exception as e:
+                logger.error('CAESolicitarX msg: %s' % str(e))
 
-        # CAESolicitarX
-        try:
-            cant_solicitadax = ws.CAESolicitarX()
-            logger.info('wsfe batch invoices posted: %s' % cant_solicitadax)
-        except Exception as e:
-            logger.error('CAESolicitarX msg: %s' % str(e))
-            cls.raise_user_error('error_caesolicitarx', str(e))
+            # Process results:
+            cant = 0
+            for invoice in invoices_added_to_ws:
+                ws.LeerFacturaX(cant)
+                cant += 1
+                result = invoice.process_afip_result(ws)
+                if result:
+                    approved_invoices.append(invoice)
+                else:
+                    chunk_with_errors = True
+                    invoice.number = None
+                    invoice.invoice_date = None
+                    if rejected_invoice is None:
+                        rejected_invoice = invoice
+                        logger.error(
+                            u'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
+                            u'XmlResponse: %s\n', rejected_invoice.id,
+                            rejected_invoice.type, rejected_invoice.party.rec_name,
+                            repr(ws.XmlRequest), repr(ws.XmlResponse))
 
-        # Process results:
-        cant = 0
-        for invoice in pre_approved_invoices:
-            ws.LeerFacturaX(cant)
-            cant += 1
-            result = invoice.process_afip_result(ws)
-            if result:
-                approved_invoices.append(invoice)
-            else:
-                invoice.number = None
-                rejected_invoices.append(invoice)
+            if chunk_with_errors:
+                # Set next sequence number to be the last cbte_nro_afip + 1.
+                sequence = rejected_invoice.invoice_type.invoice_sequence
+                tipo_cbte = rejected_invoice.invoice_type.invoice_type
+                punto_vta = rejected_invoice.pos.number
+                cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
+                sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
 
-        cls.set_number(approved_invoices)
         for invoice in approved_invoices:
             move = invoice.get_move()
             if move != invoice.move:
@@ -923,10 +940,11 @@ class Invoice:
                 invoice.state = 'posted'
         if moves:
             Move.save(moves)
-        cls.save(approved_invoices)
-        Move.post([i.move for i in approved_invoices
+        cls.save(invoices)
+        if moves:
+            Move.post([i.move for i in approved_invoices
                 if i.move.state != 'posted'])
-        return (pre_rejected_invoices, rejected_invoices)
+        return (pre_rejected_invoice, rejected_invoice)
 
     def create_pyafipws_invoice(self, ws, batch=False):
         '''
@@ -1255,37 +1273,28 @@ class Invoice:
             'pyafipws_xml_request': ws.XmlRequest,
             'pyafipws_xml_response': ws.XmlResponse,
             }])
+        if ws.CAE:
+            tipo_cbte = self.invoice_type.invoice_type
+            punto_vta = self.pos.number
 
-        if not ws.CAE:
-            logger.error(
-                u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
-                u'XmlResponse: %s\n',
-                    repr(message.encode('ascii', 'ignore').strip()),
-                    self.id, self.type, self.party.rec_name,
-                    repr(ws.XmlRequest), repr(ws.XmlResponse))
-            return False
-
-        tipo_cbte = self.invoice_type.invoice_type
-        punto_vta = self.pos.number
-
-        vto = ''
-        if isinstance(ws, WSFEv1):
-            vto = ws.Vencimiento
-        elif isinstance(ws, WSFEXv1):
-            vto = ws.FchVencCAE
-        cae_due = ''.join([c for c in str(vto)
-                if c.isdigit()])
-        bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
-                '%04d' % int(punto_vta), str(ws.CAE), cae_due])
-        bars = bars + self.pyafipws_verification_digit_modulo10(bars)
-        pyafipws_cae_due_date = vto or None
-        if not '-' in vto:
-            pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
-
-        self.pyafipws_cae = ws.CAE
-        self.pyafipws_barcode = bars
-        self.pyafipws_cae_due_date = pyafipws_cae_due_date
-        return True
+            vto = ''
+            if isinstance(ws, WSFEv1):
+                vto = ws.Vencimiento
+            elif isinstance(ws, WSFEXv1):
+                vto = ws.FchVencCAE
+            cae_due = ''.join([c for c in str(vto)
+                    if c.isdigit()])
+            bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
+                    '%04d' % int(punto_vta), str(ws.CAE), cae_due])
+            bars = bars + self.pyafipws_verification_digit_modulo10(bars)
+            pyafipws_cae_due_date = vto or None
+            if not '-' in vto:
+                pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
+            self.pyafipws_cae = ws.CAE
+            self.pyafipws_barcode = bars
+            self.pyafipws_cae_due_date = pyafipws_cae_due_date
+            return True
+        return False
 
     def pyafipws_verification_digit_modulo10(self, codigo):
         'Calculate the verification digit "modulo 10"'
