@@ -244,10 +244,23 @@ class Invoice:
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
+    ref_pos_number = fields.Function(fields.Char('POS Number', size=4, states={
+        'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
+        'invisible': Eval('type') == 'out',
+        }), 'get_ref_subfield', setter='set_ref_subfield')
+    ref_voucher_number = fields.Function(fields.Char('Voucher Number', size=8,
+        states={
+            'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
+            'invisible': Eval('type') == 'out',
+        }), 'get_ref_subfield', setter='set_ref_subfield')
+
 
     @classmethod
     def __setup__(cls):
         super(Invoice, cls).__setup__()
+        cls.reference.states.update({
+            'readonly': Eval('type') == 'in',
+        })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
                 u'Debe establecer los valores "Fecha desde" y "Fecha hasta" '
@@ -284,6 +297,8 @@ class Invoice:
                 u'(iibb, municipal, iva).',
             'in_invoice_validate_failed':
                 u'Los campos "Referencia" y "Comprobante" son requeridos.',
+            'invalid_ref_number':
+                'The value "%(ref_value)s" is not a number.'
             })
 
     @classmethod
@@ -330,6 +345,30 @@ class Invoice:
                     'invisible': Eval('type') == 'in',
                     }),
             ]
+
+    def get_ref_subfield(self, name):
+        if self.type == 'in' and self.reference and '-' in self.reference:
+            if name == 'ref_pos_number':
+                return self.reference.split('-')[0].lstrip('0')
+            elif name == 'ref_voucher_number':
+                return self.reference.split('-')[1].lstrip('0')
+        return None
+
+    @classmethod
+    def set_ref_subfield(cls, invoices, name, value):
+        if value and not value.isdigit():
+            cls.raise_user_error('invalid_ref_number', {
+                    'ref_value': value,
+                })
+        reference = None
+        for invoice in invoices:
+            if invoice.type == 'in':
+                if name == 'ref_pos_number':
+                    reference = '%04d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
+                elif name == 'ref_voucher_number':
+                    reference = '%04d-%08d' % (int(invoice.ref_pos_number or 0), int(value or 0))
+                invoice.reference = reference
+        cls.save(invoices)
 
     @classmethod
     @ModelView.button
