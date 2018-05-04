@@ -497,7 +497,7 @@ class Invoice:
 
         ref_number = self.number if self.type == 'out' else self.reference
         res['description'] = 'Ref. Nro. %s' % ref_number
-        return credit
+        return res
 
     def set_number(self):
         pool = Pool()
@@ -541,26 +541,14 @@ class Invoice:
         self.write([self], vals)
 
     def _get_move_line(self, date, amount):
-<<<<<<< HEAD
         res = super(Invoice, self)._get_move_line(date, amount)
 
-        if self.type[:3] == 'out':
-            res['description'] = '%s Nro. %s' % (self.party.name, self.number)
-        else:
-            res['description'] = '%s Nro. %s' % (self.party.name, self.reference)
-
+        ref_number = self.number if self.type == 'out' else self.reference
+        res['description'] = '%s Nro. %s' % (self.party.name, ref_number)
         if self.description:
             res['description'] += ' / ' + self.description
 
         return res
-=======
-        line = super(Invoice, self)._get_move_line(date, amount)
-        ref_number = self.number if self.type == 'out' else self.reference
-        line.description = '%s Nro. %s' % (self.party.name, ref_number)
-        if self.description:
-            line.description += ' / %s' % self.description
-        return line
->>>>>>> 66dba5d... Improve text formatting
 
     @classmethod
     @ModelView.button
