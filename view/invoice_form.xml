@@ -30,7 +30,7 @@
     <xpath expr="/form/field[@name='description']" position="replace"/>
     <xpath expr="/form/field[@name='invoice_address']" position="after">
         <label name="pos"/>
-        <field name="pos"/>
+        <field name="pos" widget="selection"/>
         <label name="invoice_type"/>
         <field name="invoice_type" widget="selection"/>
     </xpath>
