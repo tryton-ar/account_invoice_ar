@@ -12,6 +12,7 @@ from trytond import backend
 from trytond.pyson import Eval, And
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
+from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
 import afip_auth
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,9 @@ class Invoice:
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
         domain=[('pos', '=', Eval('pos'))],
         states=_POS_STATES, depends=_DEPENDS + ['pos'])
+    invoice_type_tree = fields.Function(fields.Selection(INVOICE_TYPE_POS,
+            'Tipo comprobante'), 'get_comprobante',
+        searcher='search_comprobante')
     pyafipws_concept = fields.Selection([
         ('1', u'1-Productos'),
         ('2', u'2-Servicios'),
@@ -339,6 +343,17 @@ class Invoice:
             return self.pos.pos_daily_report
 
     @classmethod
+    def order_invoice_type_tree(cls, tables):
+        table, _ = tables[None]
+        return [table.invoice_type]
+
+    @classmethod
+    def search_comprobante(cls, name, clause):
+        return [
+            ('invoice_type.invoice_type',) + tuple(clause[1:]),
+            ]
+
+    @classmethod
     def copy(cls, invoices, default=None):
         if default is None:
             default = {}
@@ -399,6 +414,8 @@ class Invoice:
                     Eval('type').in_(['out_invoice', 'out_credit_note']),
             ('/tree/field[@name="invoice_type"]', 'tree_invisible',
                     Eval('type').in_(['in_invoice', 'in_credit_note']),
+            ('/tree/field[@name="invoice_type_tree"]', 'tree_invisible',
+                    Eval('type').in_(['in_invoice', 'in_credit_note']),
             ]
 
     @classmethod
@@ -415,6 +432,11 @@ class Invoice:
                     ])) > 0
                     break
         return lines
+
+    def get_comprobante(self, name):
+        if self.type == 'out' and self.invoice_type:
+            return self.invoice_type.invoice_type
+        return None
 
     def get_ref_subfield(self, name):
         if self.type[:2] == 'in' and self.reference and '-' in self.reference:

@@ -3,7 +3,7 @@
 this repository contains the full copyright notices and license terms. -->
 <data>
     <xpath expr="/tree/field[@name='party']" position="after">
-        <field name="invoice_type"/>
+        <field name="invoice_type_tree"/>
         <field name="tipo_comprobante"/>
     </xpath>
 </data>
