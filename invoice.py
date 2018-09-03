@@ -216,7 +216,7 @@ class Invoice:
     pos = fields.Many2One('account.pos', 'Point of Sale',
         domain=[('company', '=', Eval('company'))],
         states=_POS_STATES, depends=_DEPENDS + ['company'])
-    invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
+    invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
         domain=[('pos', '=', Eval('pos'))],
         states=_POS_STATES, depends=_DEPENDS + ['pos'])
     pyafipws_concept = fields.Selection([
@@ -411,6 +411,10 @@ class Invoice:
                 'states', {
                     'invisible': Eval('type') == 'in',
                     }),
+            ('/tree/field[@name="tipo_comprobante"]', 'tree_invisible',
+                    Eval('type') == 'out'),
+            ('/tree/field[@name="invoice_type"]', 'tree_invisible',
+                    Eval('type') == 'in'),
             ]
 
     def get_ref_subfield(self, name):
