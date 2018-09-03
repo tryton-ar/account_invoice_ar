@@ -260,11 +260,13 @@ class Invoice:
     ref_pos_number = fields.Function(fields.Char('POS Number', size=4, states={
         'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
         'invisible': Eval('type') == 'out',
+        'readonly': Eval('state') != 'draft',
         }), 'get_ref_subfield', setter='set_ref_subfield')
     ref_voucher_number = fields.Function(fields.Char('Voucher Number', size=8,
         states={
             'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'out',
+            'readonly': Eval('state') != 'draft',
         }), 'get_ref_subfield', setter='set_ref_subfield')
     pos_pos_daily_report = fields.Function(
         fields.Boolean('account.pos', "POS Daily Report"),
