@@ -12,6 +12,28 @@ STATES = {
 }
 DEPENDS = ['active']
 
+INVOICE_TYPE_POS = [
+        ('', ''),
+        ('1', u'01-Factura A'),
+        ('2', u'02-Nota de Débito A'),
+        ('3', u'03-Nota de Crédito A'),
+        ('4', u'04-Recibos A'),
+        ('5', u'05-Nota de Venta al Contado A'),
+        ('6', u'06-Factura B'),
+        ('7', u'07-Nota de Débito B'),
+        ('8', u'08-Nota de Crédito B'),
+        ('9', u'09-Recibos B'),
+        ('10', u'10-Notas de Venta al Contado B'),
+        ('11', u'11-Factura C'),
+        ('12', u'12-Nota de Débito C'),
+        ('13', u'13-Nota de Crédito C'),
+        ('15', u'15-Recibo C'),
+        ('19', u'19-Factura E'),
+        ('20', u'20-Nota de Débito E'),
+        ('21', u'21-Nota de Crédito E'),
+    ]
+
+
 class Pos(ModelSQL, ModelView):
     'Point of Sale'
     __name__ = 'account.pos'
@@ -75,27 +97,10 @@ class PosSequence(ModelSQL, ModelView):
     'Point of Sale Sequences'
     __name__ = 'account.pos.sequence'
 
-    pos = fields.Many2One('account.pos', 'Point of Sale')
-    invoice_type = fields.Selection([
-        ('', ''),
-        ('1', u'01-Factura A'),
-        ('2', u'02-Nota de Débito A'),
-        ('3', u'03-Nota de Crédito A'),
-        ('4', u'04-Recibos A'),
-        ('5', u'05-Nota de Venta al Contado A'),
-        ('6', u'06-Factura B'),
-        ('7', u'07-Nota de Débito B'),
-        ('8', u'08-Nota de Crédito B'),
-        ('9', u'09-Recibos B'),
-        ('10', u'10-Notas de Venta al Contado B'),
-        ('11', u'11-Factura C'),
-        ('12', u'12-Nota de Débito C'),
-        ('13', u'13-Nota de Crédito C'),
-        ('15', u'15-Recibo C'),
-        ('19', u'19-Factura E'),
-        ('20', u'20-Nota de Débito E'),
-        ('21', u'21-Nota de Crédito E'),
-        ], 'Tipo Comprobante AFIP', required=True,
+    pos = fields.Many2One('account.pos', 'Point of Sale',
+        ondelete='CASCADE', select=True, required=True)
+    invoice_type = fields.Selection(INVOICE_TYPE_POS,
+        'Tipo Comprobante AFIP', select=True, required=True,
         help='Tipo de Comprobante AFIP')
     invoice_type_string = invoice_type.translated('invoice_type')
     invoice_sequence = fields.Property(fields.Many2One('ir.sequence',
