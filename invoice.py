@@ -203,7 +203,7 @@ class Invoice:
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
         states=_POS_STATES, depends=_DEPENDS)
-    invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
+    invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
         domain=[('pos', '=', Eval('pos'))],
         states=_POS_STATES, depends=_DEPENDS + ['pos'])
     pyafipws_concept = fields.Selection([
@@ -395,6 +395,10 @@ class Invoice:
                 'states', {
                     'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
                     }),
+            ('/tree/field[@name="tipo_comprobante"]', 'tree_invisible',
+                    Eval('type').in_(['out_invoice', 'out_credit_note']),
+            ('/tree/field[@name="invoice_type"]', 'tree_invisible',
+                    Eval('type').in_(['in_invoice', 'in_credit_note']),
             ]
 
     @classmethod
