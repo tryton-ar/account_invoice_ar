@@ -9,7 +9,8 @@ import datetime
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
-from trytond.pyson import Eval, And
+from trytond.pyson import Eval, And, If
+from trytond.tools import cursor_dict
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
@@ -54,14 +55,28 @@ IVA_AFIP_CODE.update({
     })
 
 INVOICE_TYPE_AFIP_CODE = {
-        ('out_invoice', 'A'): ('1', u'01-Factura A'),
-        ('out_invoice', 'B'): ('6', u'06-Factura B'),
-        ('out_invoice', 'C'): ('11', u'11-Factura C'),
-        ('out_invoice', 'E'): ('19', u'19-Factura E'),
-        ('out_credit_note', 'A'): ('3', u'03-Nota de Crédito A'),
-        ('out_credit_note', 'B'): ('8', u'08-Nota de Crédito B'),
-        ('out_credit_note', 'C'): ('13', u'13-Nota de Crédito C'),
-        ('out_credit_note', 'E'): ('21', u'21-Nota de Crédito E'),
+        ('out_invoice', False, 'A'): ('1', u'01-Factura A'),
+        ('out_invoice', False, 'B'): ('6', u'06-Factura B'),
+        ('out_invoice', False, 'C'): ('11', u'11-Factura C'),
+        ('out_invoice', False, 'E'): ('19', u'19-Factura E'),
+        ('out_credit_note', True, 'A'): ('3', u'03-Nota de Cŕedito A'),
+        ('out_credit_note', True, 'B'): ('8', u'08-Nota de Cŕedito B'),
+        ('out_credit_note', True, 'C'): ('13', u'08-Nota de Cŕedito C'),
+        ('out_credit_note', True, 'E'): ('21', u'08-Nota de Cŕedito E'),
+        }
+INVOICE_CREDIT_AFIP_CODE = {
+        '1': ('3', u'03-Nota de Crédito A'),
+        '2': ('3', u'03-Nota de Crédito A'),
+        '3': ('2', u'02-Nota de Débito A'),
+        '6': ('8', u'08-Nota de Crédito B'),
+        '7': ('8', u'08-Nota de Crédito B'),
+        '8': ('7', u'07-Nota de Débito B'),
+        '11': ('13', u'13-Nota de Crédito C'),
+        '12': ('13', u'13-Nota de Crédito C'),
+        '13': ('12', u'12-Nota de Débito C'),
+        '19': ('21', u'21-Nota de Crédito E'),
+        '20': ('21', u'21-Nota de Crédito E'),
+        '21': ('20', u'20-Nota de Débito E'),
         }
 
 INCOTERMS = [
@@ -205,8 +220,14 @@ class Invoice:
     pos = fields.Many2One('account.pos', 'Point of Sale',
         states=_POS_STATES, depends=_DEPENDS)
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
-        domain=[('pos', '=', Eval('pos'))],
-        states=_POS_STATES, depends=_DEPENDS + ['pos'])
+        domain=[('pos', '=', Eval('pos')),
+            ('invoice_type', 'in',
+                If(Eval('type').in_(['out_invoice']),
+                    ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15', '19'],
+                    ['3', '8', '13', '21']),
+                )],
+        states=_POS_STATES, depends=_DEPENDS + ['pos','invoice_type',
+            'total_amount', 'type'])
     invoice_type_tree = fields.Function(fields.Selection(INVOICE_TYPE_POS,
             'Tipo comprobante'), 'get_comprobante',
         searcher='search_comprobante')
@@ -434,7 +455,7 @@ class Invoice:
         return lines
 
     def get_comprobante(self, name):
-        if self.type == 'out' and self.invoice_type:
+        if self.type in ['out_invoice', 'out_credit_note'] and self.invoice_type:
             return self.invoice_type.invoice_type
         return None
 
@@ -512,15 +533,34 @@ class Invoice:
         PosSequence = Pool().get('account.pos.sequence')
         self.ref_number_from = None
         self.ref_number_to = None
+
+    @fields.depends('pos', 'party', 'lines', 'company', 'total_amount', 'type')
+    def on_change_with_invoice_type(self, name=None):
+        return self._set_invoice_type_sequence()
+
+    @classmethod
+    def _tax_identifier_types(cls):
+        types = super(Invoice, cls)._tax_identifier_types()
+        types.append('ar_cuit')
+        return types
+
+    def _set_invoice_type_sequence(self):
+        '''
+        Set invoice type field.
+        require: pos field must be set first.
+        '''
         if not self.pos:
-            self.invoice_type = None
-            return
+            return None
 
         client_iva = company_iva = None
+        credit_note = False
+
         if self.party:
             client_iva = self.party.iva_condition
         if self.company:
             company_iva = self.company.party.iva_condition
+        if self.type and self.type == 'out_credit_note':
+            credit_note = True
 
         if company_iva == 'responsable_inscripto':
             if client_iva is None:
@@ -535,11 +575,11 @@ class Invoice:
                 kind = 'E'
         else:
             kind = 'C'
-            if self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
+            if self.party and self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
-            (self.type, kind)
+            (self.type, credit_note, kind)
             ]
         sequences = PosSequence.search([
             ('pos', '=', self.pos.id),
@@ -550,7 +590,8 @@ class Invoice:
         elif len(sequences) > 1:
             self.raise_user_error('too_many_sequences', invoice_type_desc)
         else:
-            self.invoice_type = sequences[0].id
+            sequence, = sequences
+        return sequence.id
 
     def _credit(self):
         pool = Pool()
@@ -594,7 +635,7 @@ class Invoice:
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
-            (res['type'], kind)
+            (res['type'], True, kind)
             ]
         sequences = PosSequence.search([
             ('pos', '=', res['pos']),
