@@ -13,7 +13,7 @@ from calendar import monthrange
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
 from trytond.tools import cursor_dict
-from trytond.pyson import Eval, And
+from trytond.pyson import Eval, And, If
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
@@ -55,10 +55,14 @@ IVA_AFIP_CODE.update({
     })
 
 INVOICE_TYPE_AFIP_CODE = {
-        ('out', 'A'): ('1', u'01-Factura A'),
-        ('out', 'B'): ('6', u'06-Factura B'),
-        ('out', 'C'): ('11', u'11-Factura C'),
-        ('out', 'E'): ('19', u'19-Factura E'),
+        ('out', False, 'A'): ('1', u'01-Factura A'),
+        ('out', False, 'B'): ('6', u'06-Factura B'),
+        ('out', False, 'C'): ('11', u'11-Factura C'),
+        ('out', False, 'E'): ('19', u'19-Factura E'),
+        ('out', True, 'A'): ('3', u'03-Nota de Cŕedito A'),
+        ('out', True, 'B'): ('8', u'08-Nota de Cŕedito B'),
+        ('out', True, 'C'): ('13', u'08-Nota de Cŕedito C'),
+        ('out', True, 'E'): ('21', u'08-Nota de Cŕedito E'),
         }
 INVOICE_CREDIT_AFIP_CODE = {
         '1': ('3', u'03-Nota de Crédito A'),
@@ -218,8 +222,14 @@ class Invoice:
         domain=[('company', '=', Eval('company'))],
         states=_POS_STATES, depends=_DEPENDS + ['company'])
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
-        domain=[('pos', '=', Eval('pos'))],
-        states=_POS_STATES, depends=_DEPENDS + ['pos'])
+        domain=[('pos', '=', Eval('pos')),
+            ('invoice_type', 'in',
+                If(Eval('total_amount', -1) >= 0,
+                    ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15', '19'],
+                    ['3', '8', '13', '21']),
+                )],
+        states=_POS_STATES, depends=_DEPENDS + ['pos','invoice_type',
+            'total_amount'])
     invoice_type_tree = fields.Function(fields.Selection(INVOICE_TYPE_POS,
             'Tipo comprobante'), 'get_comprobante',
         searcher='search_comprobante')
@@ -513,10 +523,10 @@ class Invoice:
     def on_change_pos(self):
         self.ref_number_from = None
         self.ref_number_to = None
-        if not self.pos:
-            self.invoice_type = None
-            return
-        self._set_invoice_type_sequence()
+
+    @fields.depends('pos', 'party', 'lines', 'company', 'total_amount', 'type')
+    def on_change_with_invoice_type(self, name=None):
+        return self._set_invoice_type_sequence()
 
     @classmethod
     def _tax_identifier_types(cls):
@@ -530,15 +540,18 @@ class Invoice:
         require: pos field must be set first.
         '''
         if not self.pos:
-            return
+            return None
 
         PosSequence = Pool().get('account.pos.sequence')
         client_iva = company_iva = None
+        credit_note = False
 
         if self.party:
             client_iva = self.party.iva_condition
         if self.company:
             company_iva = self.company.party.iva_condition
+        if self.total_amount and self.total_amount < 0:
+            credit_note = True
 
         if company_iva == 'responsable_inscripto':
             if client_iva is None:
@@ -557,7 +570,7 @@ class Invoice:
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
-            (self.type, kind)
+            (self.type, credit_note, kind)
             ]
         sequences = PosSequence.search([
             ('pos', '=', self.pos),
@@ -568,7 +581,8 @@ class Invoice:
         elif len(sequences) > 1:
             self.raise_user_error('too_many_sequences', invoice_type_desc)
         else:
-            self.invoice_type = sequences[0]
+            sequence, = sequences
+        return sequence.id
 
     def set_pyafipws_concept(self):
         '''
