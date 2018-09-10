@@ -241,7 +241,7 @@ class Invoice:
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
-    ref_pos_number = fields.Function(fields.Char('POS Number', size=4, states={
+    ref_pos_number = fields.Function(fields.Char('POS Number', size=5, states={
         'required': And(Eval('type').in_(['in_invoice', 'in_credit_note']), Eval('state') != 'draft'),
         'invisible': Eval('type').in_(['out_invoice', 'out_credit_note']),
         }), 'get_ref_subfield', setter='set_ref_subfield')
@@ -430,9 +430,9 @@ class Invoice:
         for invoice in invoices:
             if invoice.type[:2] == 'in':
                 if name == 'ref_pos_number':
-                    reference = '%04d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
+                    reference = '%05d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
                 elif name == 'ref_voucher_number':
-                    reference = '%04d-%08d' % (int(invoice.ref_pos_number or 0), int(value or 0))
+                    reference = '%05d-%08d' % (int(invoice.ref_pos_number or 0), int(value or 0))
                 invoice.reference = reference
         cls.save(invoices)
 
@@ -627,12 +627,12 @@ class Invoice:
                 date=self.invoice_date or Date.today()):
             if self.type in ('out_invoice', 'out_credit_note'):
                 if self.pos.pos_daily_report:
-                    vals = {'number': '%04d-%08d:%d' % \
+                    vals = {'number': '%05d-%08d:%d' % \
                             (self.pos.number, int(self.ref_number_from),
                              int(self.ref_number_to))}
                 else:
                     number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-                    vals = {'number': '%04d-%08d' % (self.pos.number, int(number))}
+                    vals = {'number': '%05d-%08d' % (self.pos.number, int(number))}
                 if (not self.invoice_date
                         and self.type in ('out_invoice', 'out_credit_note')):
                     vals['invoice_date'] = Transaction().context['date']
@@ -1028,7 +1028,7 @@ class Invoice:
             cae_due = ''.join([c for c in str(ws.Vencimiento or '')
                     if c.isdigit()])
             bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
-                    '%04d' % int(punto_vta), str(ws.CAE), cae_due])
+                    '%05d' % int(punto_vta), str(ws.CAE), cae_due])
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
         else:
             bars = ''
