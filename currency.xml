@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
+this repository contains the full copyright notices and license terms. -->
+<tryton>
+    <data skiptest="1" grouped="1">
+
+        <record model="currency.currency" id="currency.usd">
+            <field name="symbol">U$S</field>
+        </record>
+    </data>
+
+    <data noupdate="1" skiptest="1">
+        <!--- Default rate -->
+        <record model="currency.currency.rate" id="usd_rate">
+            <field name="date" eval="time.strftime('%Y-01-01')"/>
+            <field name="rate" eval="Decimal('1.0')"/>
+            <field name="currency" ref="currency.usd"/>
+        </record>
+
+    </data>
+</tryton>
