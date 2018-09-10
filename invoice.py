@@ -1426,6 +1426,8 @@ class InvoiceReport:
             cls._get_condicion_iva_cliente(Invoice, invoice))
         report_context['vat_number_cliente'] = cls._get_vat_number_cliente(
             Invoice, invoice)
+        report_context['dni_number_cliente'] = cls._get_dni_number_cliente(
+            Invoice, invoice)
         report_context['get_impuestos'] = cls.get_impuestos
         report_context['get_line_amount'] = cls.get_line_amount
         report_context['get_taxes'] = cls.get_taxes
@@ -1507,6 +1509,14 @@ class InvoiceReport:
         if value:
             return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
         return ''
+
+    @classmethod
+    def _get_dni_number_cliente(cls, Invoice, invoice):
+        value = ''
+        for identifier in invoice.party.identifiers:
+            if identifier.type == 'ar_dni':
+                value = identifier.code
+        return value
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
