@@ -267,7 +267,7 @@ class Invoice:
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
-    ref_pos_number = fields.Function(fields.Char('POS Number', size=4, states={
+    ref_pos_number = fields.Function(fields.Char('POS Number', size=5, states={
         'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
         'invisible': Eval('type') == 'out',
         'readonly': Eval('state') != 'draft',
@@ -467,9 +467,9 @@ class Invoice:
         for invoice in invoices:
             if invoice.type == 'in':
                 if name == 'ref_pos_number':
-                    reference = '%04d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
+                    reference = '%05d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
                 elif name == 'ref_voucher_number':
-                    reference = '%04d-%08d' % (int(invoice.ref_pos_number or 0), int(value or 0))
+                    reference = '%05d-%08d' % (int(invoice.ref_pos_number or 0), int(value or 0))
                 invoice.reference = reference
         cls.save(invoices)
 
@@ -697,7 +697,7 @@ class Invoice:
         with Transaction().set_context(date=self.invoice_date):
             if self.type == 'out':
                 number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-                return '%04d-%08d' % (self.pos.number, int(number))
+                return '%05d-%08d' % (self.pos.number, int(number))
             return SequenceStrict.get_id(sequence.id)
 
     def _get_move_line(self, date, amount):
@@ -770,7 +770,7 @@ class Invoice:
                         if invoice.pos.pos_daily_report:
                             if not invoice.invoice_date and invoice.type == 'out':
                                 invoice.invoice_date = Date.today()
-                            invoice.number = '%04d-%08d:%d' % \
+                            invoice.number = '%05d-%08d:%d' % \
                                 (invoice.pos.number, int(invoice.ref_number_from),
                                  int(invoice.ref_number_to))
                         else:
@@ -1316,7 +1316,7 @@ class Invoice:
             cae_due = ''.join([c for c in str(vto)
                     if c.isdigit()])
             bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
-                    '%04d' % int(punto_vta), str(ws.CAE), cae_due])
+                    '%05d' % int(punto_vta), str(ws.CAE), cae_due])
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
             pyafipws_cae_due_date = vto or None
             if not '-' in vto:
