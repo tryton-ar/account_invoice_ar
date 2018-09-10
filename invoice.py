@@ -1437,32 +1437,32 @@ class InvoiceReport:
 
     @classmethod
     def get_line_amount(cls, line_amount, line_taxes):
-        total = line_amount
+        total = abs(line_amount)
         taxes = cls.get_line_taxes(line_taxes)
         for tax in taxes:
             if tax.tax.rate:
                 total = total + (line_amount * tax.tax.rate)
             elif tax.tax.amount:
-                total = total + tax.tax.amount
+                total = total + abs(tax.tax.amount)
         return total
 
     @classmethod
     def get_subtotal(cls, invoice):
-        subtotal = invoice.untaxed_amount
+        subtotal = abs(invoice.untaxed_amount)
         taxes = cls.get_line_taxes(invoice.taxes)
         for tax in taxes:
-            subtotal += tax.amount
+            subtotal += abs(tax.amount)
         return subtotal
 
     @classmethod
     def get_impuestos(cls, invoice):
         if hasattr(invoice.invoice_type, 'invoice_type') is False:
-            return invoice.tax_amount
+            return abs(invoice.tax_amount)
 
         tax_amount = Decimal('0')
         taxes = cls.get_taxes(invoice.taxes)
         for tax in taxes:
-            tax_amount += tax.amount
+            tax_amount += abs(tax.amount)
         return tax_amount
 
     @classmethod
