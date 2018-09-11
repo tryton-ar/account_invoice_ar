@@ -1198,10 +1198,9 @@ class Invoice:
                             })
                 if 'iva' in tax.group.code.lower():
                     iva_id = IVA_AFIP_CODE[tax.rate]
-                    if iva_id != 3:  # 0%
-                        base_imp = ('%.2f' % abs(tax_line.base))
-                        importe = ('%.2f' % abs(tax_line.amount))
-                        ws.AgregarIva(iva_id, base_imp, importe)
+                    base_imp = ('%.2f' % abs(tax_line.base))
+                    importe = ('%.2f' % abs(tax_line.amount))
+                    ws.AgregarIva(iva_id, base_imp, importe)
                 else:
                     if 'nacional' in tax.group.code.lower():
                         tributo_id = 1  # nacional
