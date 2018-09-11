@@ -1158,10 +1158,7 @@ class Invoice:
         else:
             domicilio_cliente = ''
         if self.party.vat_number_afip_foreign:
-            for identifier in self.party.identifiers:
-                if identifier.type == 'ar_foreign':
-                    # map ISO country code to AFIP destination country code:
-                    pais_dst_cmp = identifier.afip_country.code
+            pais_dst_cmp = self.party.vat_number_afip_foreign
 
         # create the invoice internally in the helper
         if service == 'wsfe':
