@@ -9,6 +9,7 @@ import logging
 from decimal import Decimal
 from datetime import date
 from calendar import monthrange
+from unicodedata import normalize
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
@@ -1238,7 +1239,8 @@ class Invoice:
                     codigo = line.product.code
                 else:
                     codigo = 0
-                ds = line.description
+                ds = ''.join((c.encode('ascii', 'ignore') for c in
+                        normalize('NFD', line.description.decode('utf-8'))))
                 qty = abs(line.quantity)
                 umed = 7  # FIXME: (7 - unit)
                 precio = str(line.unit_price)
