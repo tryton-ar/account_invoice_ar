@@ -1370,9 +1370,7 @@ class Invoice:
             for tax_line in self.taxes:
                 tax = tax_line.tax
                 if 'iva' in tax.group.code.lower():
-                    iva_id = IVA_AFIP_CODE[tax.rate]
-                    if iva_id != 3:  # 0%
-                        imp_iva += tax_line.amount
+                    imp_iva += tax_line.amount
                 else:
                     imp_trib += tax_line.amount
 
