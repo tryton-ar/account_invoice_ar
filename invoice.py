@@ -2,7 +2,7 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
-import collections
+from collections import defaultdict
 import logging
 from decimal import Decimal
 import datetime
@@ -42,7 +42,7 @@ _POS_STATES.update({
     'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
     })
 
-IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
+IVA_AFIP_CODE = defaultdict(lambda: 0)
 IVA_AFIP_CODE.update({
     Decimal('0'): 3,
     Decimal('0.105'): 4,
@@ -256,6 +256,11 @@ class Invoice:
         depends=['pos_pos_daily_report', 'state'])
     ref_number_to = fields.Char('To number', size=13, states=_REF_NUMBERS_STATES,
         depends=['pos_pos_daily_report', 'state'])
+    annulled = fields.Function(fields.Boolean('Annulled', states={
+        'invisible': Eval('type').in_(['out_credit_note', 'in_credit_note']),
+        }, depends=['type']), 'get_annulled')
+
+
 
     @classmethod
     def __setup__(cls):
@@ -393,6 +398,21 @@ class Invoice:
                     'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
                     }),
             ]
+
+    @classmethod
+    def get_annulled(cls, invoices, name):
+        lines = defaultdict(list)
+        invoices = [i for i in invoices if i.state == 'paid']
+        for invoice in invoices:
+            for line in invoice.lines_to_pay:
+                if line.reconciliation:
+                    lines[invoice.id] = len(line.search([
+                        ('reconciliation', '=', line.reconciliation),
+                        ('id', '!=', line.id),
+                        ('origin.type', '=', 'out_credit_note', 'account.invoice'),
+                    ])) > 0
+                    break
+        return lines
 
     def get_ref_subfield(self, name):
         if self.type[:2] == 'in' and self.reference and '-' in self.reference:

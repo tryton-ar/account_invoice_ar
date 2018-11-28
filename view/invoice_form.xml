@@ -65,4 +65,10 @@
         </group>
       </group>
     </xpath>
+
+    <xpath expr="/form//group[@id='reconciled_state']" position="inside">
+        <label name="annulled"/>
+        <field name="annulled" xexpand="0"/>
+    </xpath>
+
 </data>
