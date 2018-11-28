@@ -4,7 +4,7 @@
 # the full copyright notices and license terms.
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
-import collections
+from collections import defaultdict
 import logging
 from decimal import Decimal
 from datetime import date
@@ -47,7 +47,7 @@ _POS_STATES.update({
     'invisible': Eval('type') == 'in',
     })
 
-IVA_AFIP_CODE = collections.defaultdict(lambda: 0)
+IVA_AFIP_CODE = defaultdict(lambda: 0)
 IVA_AFIP_CODE.update({
     Decimal('0'): 3,
     Decimal('0.105'): 4,
@@ -286,6 +286,9 @@ class Invoice:
         depends=['pos_pos_daily_report', 'state'])
     ref_number_to = fields.Char('To number', size=13, states=_REF_NUMBERS_STATES,
         depends=['pos_pos_daily_report', 'state'])
+    annulled = fields.Function(fields.Boolean('Annulled', states={
+        'invisible': Eval('total_amount', -1) <= 0,
+        }, depends=['total_amount']), 'get_annulled')
 
     @classmethod
     def __setup__(cls):
@@ -407,6 +410,21 @@ class Invoice:
         super(Invoice, cls).validate(invoices)
         for invoice in invoices:
             invoice.check_unique_daily_report()
+
+    @classmethod
+    def get_annulled(cls, invoices, name):
+        lines = defaultdict(list)
+        invoices = [i for i in invoices if i.state == 'paid']
+        for invoice in invoices:
+            for line in invoice.lines_to_pay:
+                if line.reconciliation:
+                    lines[invoice.id] = len(line.search([
+                        ('reconciliation', '=', line.reconciliation),
+                        ('id', '!=', line.id),
+                        ('origin.total_amount', '<', 0, 'account.invoice'),
+                    ])) > 0
+                    break
+        return lines
 
     def check_unique_daily_report(self):
         if (self.type == 'out' and self.pos
