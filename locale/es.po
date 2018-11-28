@@ -136,6 +136,10 @@ msgctxt "field:party.party,start_activity_date:"
 msgid "Start activity date"
 msgstr "Inicio de actividad"
 
+msgctxt "field:account.invoice,annulled:"
+msgid "Annulled"
+msgstr "Anulada"
+
 msgctxt "help:account.pos,number:"
 msgid "Prefijo de emisión habilitado en AFIP"
 msgstr ""
