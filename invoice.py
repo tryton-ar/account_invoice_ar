@@ -254,7 +254,7 @@ class Invoice:
         help=u'Código de Autorización Electrónico, devuelto por AFIP')
     pyafipws_cae_due_date = fields.Date('Vencimiento CAE', readonly=True,
         help=u'Fecha tope para verificar CAE, devuelto por AFIP')
-    pyafipws_barcode = fields.Char(u'Codigo de Barras', size=40,
+    pyafipws_barcode = fields.Char(u'Codigo de Barras', size=41,
         help=u'Código de barras para usar en la impresión', readonly=True,)
     pyafipws_number = fields.Char(u'Número', size=13, readonly=True,
         help=u'Número de factura informado a la AFIP')
