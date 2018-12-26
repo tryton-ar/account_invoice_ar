@@ -14,7 +14,6 @@
             <field name="pyafipws_cae"/>
             <label name="pyafipws_cae_due_date"/>
             <field name="pyafipws_cae_due_date"/>
-
             <newline />
             <field name="transactions" colspan="4"/>
         </page>
@@ -26,36 +25,35 @@
             <field name="pyafipws_licenses" colspan="4"/>
         </page>
     </xpath>
-    <xpath expr="/form/label[@name='description']" position="replace"/>
-    <xpath expr="/form/field[@name='description']" position="replace"/>
-    <xpath expr="/form/field[@name='invoice_address']" position="after">
+
+    <xpath expr="/form/field[@name='party_tax_identifier']" position="after">
         <label name="pos"/>
         <field name="pos" widget="selection"/>
         <label name="invoice_type"/>
         <field name="invoice_type" widget="selection"/>
+        <group id="ref_numbers_group" colspan="2">
+            <label string="From/to #" name="ref_number_from"/>
+            <field name="ref_number_from"/>
+            <field name="ref_number_to"/>
+        </group>
     </xpath>
+
+    <xpath expr="/form/label[@name='description']" position="replace"/>
+    <xpath expr="/form/field[@name='description']" position="replace"/>
 
     <xpath expr="/form/field[@name='reference']" position="replace">
-      <group id="reference">
-        <field name="ref_pos_number"/>
-        <label name="ref_pos_number" string="-" xalign="0.0" xexpand="1" xfill="1"/>
-        <field name="ref_voucher_number"/>
-        <field name="reference"/>
-      </group>
-      <group id="tipo_comprobante_group" colspan="4">
-        <label name="tipo_comprobante"/>
-        <field name="tipo_comprobante"/>
+        <group id="reference">
+            <field name="ref_pos_number"/>
+            <label name="ref_pos_number" string="-" xalign="0.0" xexpand="1" xfill="1"/>
+            <field name="ref_voucher_number"/>
+            <field name="reference"/>
+        </group>
         <label name="description"/>
-        <field name="description"/>
-      </group>
-    </xpath>
-
-    <xpath expr="/form/field[@name='invoice_address']" position="after">
-      <group id="ref_numbers_group" colspan="2">
-        <label string="From/to #" name="ref_number_from"/>
-        <field name="ref_number_from"/>
-        <field name="ref_number_to"/>
-      </group>
+        <field name="description" colspan="3"/>
+        <group id="tipo_comprobante_group" colspan="6">
+            <label name="tipo_comprobante"/>
+            <field name="tipo_comprobante"/>
+        </group>
     </xpath>
 
 </data>
