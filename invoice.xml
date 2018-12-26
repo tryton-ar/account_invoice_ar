@@ -35,13 +35,11 @@
         </record>
 
         <record model="ir.action.report" id="account_invoice.report_invoice">
-              <field name="active" eval="False"/>
-          </record>
-        <record model="ir.action.report" id="account_invoice_ar_report_invoice">
             <field name="name">Invoice</field>
             <field name="model">account.invoice</field>
             <field name="report_name">account.invoice</field>
-            <field name="report">account_invoice_ar/invoice.odt</field>
+            <field name="report">account_invoice_ar/invoice.fodt</field>
+              <field name="active" eval="True"/>
         </record>
     </data>
 </tryton>
