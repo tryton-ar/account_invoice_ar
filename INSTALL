@@ -4,17 +4,19 @@ Installing account_invoice_ar
 Prerequisites
 -------------
 
- * Python 2.7 or later (http://www.python.org/)
+ * Python 3.4 or later (http://www.python.org/)
  * trytond (http://www.tryton.org/)
  * trytond_account (http://www.tryton.org/)
 
  * Pyafipws and swig:
      * swig
-       apt-get install swig
-     * Pyafipws
-       wget https://github.com/reingart/pyafipws/archive/2.7.tar.gz
-       tar zxvf 2.7.tar.gz
-       mv pyafipws-2.7 /usr/lib/pythonX.X/dist-packages/pyafipws
+        apt-get install swig
+     * PyAfipWS
+        git clone --single-branch -b py3k https://github.com/reingart/pyafipws.git
+        ( cd pyafipws && python setup.py install )
+     * PySimpleSoap
+        git clone --single-branch -b stable_py3k https://github.com/pysimplesoap/pysimplesoap.git
+        ( cd pysimplesoap && python setup.py install )
 
 Installation
 ------------
