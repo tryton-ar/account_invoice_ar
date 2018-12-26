@@ -1390,7 +1390,8 @@ class InvoiceExportLicense(ModelSQL, ModelView):
     invoice = fields.Many2One('account.invoice', 'Invoice',
         ondelete='CASCADE', select=True, required=True)
     license_id = fields.Char('License Id', required=True)
-    afip_country = fields.Many2One('afip.country', 'Country', required=True)
+    afip_country = fields.Many2One('afip.country', 'AFIP Country',
+        required=True)
 
     @classmethod
     def __register__(cls, module_name):
