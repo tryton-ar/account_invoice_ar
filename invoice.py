@@ -18,7 +18,7 @@ from trytond.pyson import Eval, And, If
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
-import afip_auth
+from . import afip_auth
 
 logger = logging.getLogger(__name__)
 
@@ -56,28 +56,28 @@ IVA_AFIP_CODE.update({
     })
 
 INVOICE_TYPE_AFIP_CODE = {
-        ('out', False, 'A'): ('1', u'01-Factura A'),
-        ('out', False, 'B'): ('6', u'06-Factura B'),
-        ('out', False, 'C'): ('11', u'11-Factura C'),
-        ('out', False, 'E'): ('19', u'19-Factura E'),
-        ('out', True, 'A'): ('3', u'03-Nota de Cŕedito A'),
-        ('out', True, 'B'): ('8', u'08-Nota de Cŕedito B'),
-        ('out', True, 'C'): ('13', u'08-Nota de Cŕedito C'),
-        ('out', True, 'E'): ('21', u'08-Nota de Cŕedito E'),
+        ('out', False, 'A'): ('1', '01-Factura A'),
+        ('out', False, 'B'): ('6', '06-Factura B'),
+        ('out', False, 'C'): ('11', '11-Factura C'),
+        ('out', False, 'E'): ('19', '19-Factura E'),
+        ('out', True, 'A'): ('3', '03-Nota de Cŕedito A'),
+        ('out', True, 'B'): ('8', '08-Nota de Cŕedito B'),
+        ('out', True, 'C'): ('13', '08-Nota de Cŕedito C'),
+        ('out', True, 'E'): ('21', '08-Nota de Cŕedito E'),
         }
 INVOICE_CREDIT_AFIP_CODE = {
-        '1': ('3', u'03-Nota de Crédito A'),
-        '2': ('3', u'03-Nota de Crédito A'),
-        '3': ('2', u'02-Nota de Débito A'),
-        '6': ('8', u'08-Nota de Crédito B'),
-        '7': ('8', u'08-Nota de Crédito B'),
-        '8': ('7', u'07-Nota de Débito B'),
-        '11': ('13', u'13-Nota de Crédito C'),
-        '12': ('13', u'13-Nota de Crédito C'),
-        '13': ('12', u'12-Nota de Débito C'),
-        '19': ('21', u'21-Nota de Crédito E'),
-        '20': ('21', u'21-Nota de Crédito E'),
-        '21': ('20', u'20-Nota de Débito E'),
+        '1': ('3', '03-Nota de Crédito A'),
+        '2': ('3', '03-Nota de Crédito A'),
+        '3': ('2', '02-Nota de Débito A'),
+        '6': ('8', '08-Nota de Crédito B'),
+        '7': ('8', '08-Nota de Crédito B'),
+        '8': ('7', '07-Nota de Débito B'),
+        '11': ('13', '13-Nota de Crédito C'),
+        '12': ('13', '13-Nota de Crédito C'),
+        '13': ('12', '12-Nota de Débito C'),
+        '19': ('21', '21-Nota de Crédito E'),
+        '20': ('21', '21-Nota de Crédito E'),
+        '21': ('20', '20-Nota de Débito E'),
         }
 
 INCOTERMS = [
@@ -101,96 +101,96 @@ INCOTERMS = [
 
 TIPO_COMPROBANTE = [
     ('', ''),
-    ('001', u'FACTURAS A'),
-    ('002', u'NOTAS DE DEBITO A'),
-    ('003', u'NOTAS DE CREDITO A'),
-    ('004', u'RECIBOS A'),
-    ('005', u'NOTAS DE VENTA AL CONTADO A'),
-    ('006', u'FACTURAS B'),
-    ('007', u'NOTAS DE DEBITO B'),
-    ('008', u'NOTAS DE CREDITO B'),
-    ('009', u'RECIBOS B'),
-    ('010', u'NOTAS DE VENTA AL CONTADO B'),
-    ('011', u'FACTURAS C'),
-    ('012', u'NOTAS DE DEBITO C'),
-    ('013', u'NOTAS DE CREDITO C'),
-    ('015', u'RECIBOS C'),
-    ('016', u'NOTAS DE VENTA AL CONTADO C'),
-    ('017', u'LIQUIDACION DE SERVICIOS PUBLICOS CLASE A'),
-    ('018', u'LIQUIDACION DE SERVICIOS PUBLICOS CLASE B'),
-    ('019', u'FACTURAS DE EXPORTACION'),
-    ('020', u'NOTAS DE DEBITO POR OPERACIONES CON EL EXTERIOR'),
-    ('021', u'NOTAS DE CREDITO POR OPERACIONES CON EL EXTERIOR'),
-    ('022', u'FACTURAS - PERMISO EXPORTACION SIMPLIFICADO - DTO. 855/97'),
-    ('023', u'COMPROBANTES A DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
-    ('024', u'COMPROBANTES A DE CONSIGNACION PRIMARIA SECTOR PESQUERO '
+    ('001', 'FACTURAS A'),
+    ('002', 'NOTAS DE DEBITO A'),
+    ('003', 'NOTAS DE CREDITO A'),
+    ('004', 'RECIBOS A'),
+    ('005', 'NOTAS DE VENTA AL CONTADO A'),
+    ('006', 'FACTURAS B'),
+    ('007', 'NOTAS DE DEBITO B'),
+    ('008', 'NOTAS DE CREDITO B'),
+    ('009', 'RECIBOS B'),
+    ('010', 'NOTAS DE VENTA AL CONTADO B'),
+    ('011', 'FACTURAS C'),
+    ('012', 'NOTAS DE DEBITO C'),
+    ('013', 'NOTAS DE CREDITO C'),
+    ('015', 'RECIBOS C'),
+    ('016', 'NOTAS DE VENTA AL CONTADO C'),
+    ('017', 'LIQUIDACION DE SERVICIOS PUBLICOS CLASE A'),
+    ('018', 'LIQUIDACION DE SERVICIOS PUBLICOS CLASE B'),
+    ('019', 'FACTURAS DE EXPORTACION'),
+    ('020', 'NOTAS DE DEBITO POR OPERACIONES CON EL EXTERIOR'),
+    ('021', 'NOTAS DE CREDITO POR OPERACIONES CON EL EXTERIOR'),
+    ('022', 'FACTURAS - PERMISO EXPORTACION SIMPLIFICADO - DTO. 855/97'),
+    ('023', 'COMPROBANTES A DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('024', 'COMPROBANTES A DE CONSIGNACION PRIMARIA SECTOR PESQUERO '
         'MARITIMO'),
-    ('025', u'COMPROBANTES B DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
-    ('026', u'COMPROBANTES B DE CONSIGNACION PRIMARIA SECTOR PESQUERO '
+    ('025', 'COMPROBANTES B DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO'),
+    ('026', 'COMPROBANTES B DE CONSIGNACION PRIMARIA SECTOR PESQUERO '
         'MARITIMO'),
-    ('027', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
-    ('028', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
-    ('029', u'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
-    ('030', u'COMPROBANTES DE COMPRA DE BIENES USADOS'),
-    ('031', u'MANDATO - CONSIGNACION'),
-    ('032', u'COMPROBANTES PARA RECICLAR MATERIALES'),
-    ('033', u'LIQUIDACION PRIMARIA DE GRANOS'),
-    ('034', u'COMPROBANTES A DEL APARTADO A INCISO F RG N.1415'),
-    ('035', u'COMPROBANTES B DEL ANEXO I, APARTADO A, INC. F), RG N. 1415'),
-    ('036', u'COMPROBANTES C DEL Anexo I, Apartado A, INC.F), R.G. N° 1415'),
-    ('037', u'NOTAS DE DEBITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415'),
-    ('038', u'NOTAS DE CREDITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415'),
-    ('039', u'OTROS COMPROBANTES A QUE CUMPLEN CON LA R G  1415'),
-    ('040', u'OTROS COMPROBANTES B QUE CUMPLAN CON LA R.G. N° 1415'),
-    ('041', u'OTROS COMPROBANTES C QUE CUMPLAN CON LA R.G. N° 1415'),
-    ('043', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
-    ('044', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
-    ('045', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
-    ('046', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
-    ('047', u'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
-    ('048', u'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
-    ('049', u'COMPROBANTES DE COMPRA DE BIENES NO REGISTRABLES A CONSUMIDORES '
+    ('027', 'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
+    ('028', 'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
+    ('029', 'LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
+    ('030', 'COMPROBANTES DE COMPRA DE BIENES USADOS'),
+    ('031', 'MANDATO - CONSIGNACION'),
+    ('032', 'COMPROBANTES PARA RECICLAR MATERIALES'),
+    ('033', 'LIQUIDACION PRIMARIA DE GRANOS'),
+    ('034', 'COMPROBANTES A DEL APARTADO A INCISO F RG N.1415'),
+    ('035', 'COMPROBANTES B DEL ANEXO I, APARTADO A, INC. F), RG N. 1415'),
+    ('036', 'COMPROBANTES C DEL Anexo I, Apartado A, INC.F), R.G. N° 1415'),
+    ('037', 'NOTAS DE DEBITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415'),
+    ('038', 'NOTAS DE CREDITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415'),
+    ('039', 'OTROS COMPROBANTES A QUE CUMPLEN CON LA R G  1415'),
+    ('040', 'OTROS COMPROBANTES B QUE CUMPLAN CON LA R.G. N° 1415'),
+    ('041', 'OTROS COMPROBANTES C QUE CUMPLAN CON LA R.G. N° 1415'),
+    ('043', 'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
+    ('044', 'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
+    ('045', 'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
+    ('046', 'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B'),
+    ('047', 'NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C'),
+    ('048', 'NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A'),
+    ('049', 'COMPROBANTES DE COMPRA DE BIENES NO REGISTRABLES A CONSUMIDORES '
         'FINALES'),
-    ('050', u'RECIBO FACTURA A  REGIMEN DE FACTURA DE CREDITO'),
-    ('051', u'FACTURAS M'),
-    ('052', u'NOTAS DE DEBITO M'),
-    ('053', u'NOTAS DE CREDITO M'),
-    ('054', u'RECIBOS M'),
-    ('055', u'NOTAS DE VENTA AL CONTADO M'),
-    ('056', u'COMPROBANTES M DEL ANEXO I  APARTADO A  INC F) R.G. N° 1415'),
-    ('057', u'OTROS COMPROBANTES M QUE CUMPLAN CON LA R.G. N° 1415'),
-    ('058', u'CUENTAS DE VENTA Y LIQUIDO PRODUCTO M'),
-    ('059', u'LIQUIDACIONES M'),
-    ('060', u'CUENTAS DE VENTA Y LIQUIDO PRODUCTO A'),
-    ('061', u'CUENTAS DE VENTA Y LIQUIDO PRODUCTO B'),
-    ('063', u'LIQUIDACIONES A'),
-    ('064', u'LIQUIDACIONES B'),
-    ('066', u'DESPACHO DE IMPORTACION'),
-    ('068', u'LIQUIDACION C'),
-    ('070', u'RECIBOS FACTURA DE CREDITO'),
-    ('080', u'INFORME DIARIO DE CIERRE (ZETA) - CONTROLADORES FISCALES'),
-    ('081', u'TIQUE FACTURA A'),
-    ('082', u'TIQUE FACTURA B'),
-    ('083', u'TIQUE'),
-    ('088', u'REMITO ELECTRONICO'),
-    ('089', u'RESUMEN DE DATOS'),
-    ('090', u'OTROS COMPROBANTES - DOCUMENTOS EXCEPTUADOS - NOTAS DE CREDITO'),
-    ('091', u'REMITOS R'),
-    ('099', u'OTROS COMPROBANTES QUE NO CUMPLEN O ESTÁN EXCEPTUADOS DE LA '
+    ('050', 'RECIBO FACTURA A  REGIMEN DE FACTURA DE CREDITO'),
+    ('051', 'FACTURAS M'),
+    ('052', 'NOTAS DE DEBITO M'),
+    ('053', 'NOTAS DE CREDITO M'),
+    ('054', 'RECIBOS M'),
+    ('055', 'NOTAS DE VENTA AL CONTADO M'),
+    ('056', 'COMPROBANTES M DEL ANEXO I  APARTADO A  INC F) R.G. N° 1415'),
+    ('057', 'OTROS COMPROBANTES M QUE CUMPLAN CON LA R.G. N° 1415'),
+    ('058', 'CUENTAS DE VENTA Y LIQUIDO PRODUCTO M'),
+    ('059', 'LIQUIDACIONES M'),
+    ('060', 'CUENTAS DE VENTA Y LIQUIDO PRODUCTO A'),
+    ('061', 'CUENTAS DE VENTA Y LIQUIDO PRODUCTO B'),
+    ('063', 'LIQUIDACIONES A'),
+    ('064', 'LIQUIDACIONES B'),
+    ('066', 'DESPACHO DE IMPORTACION'),
+    ('068', 'LIQUIDACION C'),
+    ('070', 'RECIBOS FACTURA DE CREDITO'),
+    ('080', 'INFORME DIARIO DE CIERRE (ZETA) - CONTROLADORES FISCALES'),
+    ('081', 'TIQUE FACTURA A'),
+    ('082', 'TIQUE FACTURA B'),
+    ('083', 'TIQUE'),
+    ('088', 'REMITO ELECTRONICO'),
+    ('089', 'RESUMEN DE DATOS'),
+    ('090', 'OTROS COMPROBANTES - DOCUMENTOS EXCEPTUADOS - NOTAS DE CREDITO'),
+    ('091', 'REMITOS R'),
+    ('099', 'OTROS COMPROBANTES QUE NO CUMPLEN O ESTÁN EXCEPTUADOS DE LA '
         'R.G. 1415 Y SUS MODIF'),
-    ('110', u'TIQUE NOTA DE CREDITO'),
-    ('111', u'TIQUE FACTURA C'),
-    ('112', u'TIQUE NOTA DE CREDITO A'),
-    ('113', u'TIQUE NOTA DE CREDITO B'),
-    ('114', u'TIQUE NOTA DE CREDITO C'),
-    ('115', u'TIQUE NOTA DE DEBITO A'),
-    ('116', u'TIQUE NOTA DE DEBITO B'),
-    ('117', u'TIQUE NOTA DE DEBITO C'),
-    ('118', u'TIQUE FACTURA M'),
-    ('119', u'TIQUE NOTA DE CREDITO M'),
-    ('120', u'TIQUE NOTA DE DEBITO M'),
-    ('331', u'LIQUIDACION SECUNDARIA DE GRANOS'),
-    ('332', u'CERTIFICACION ELECTRONICA (GRANOS)'),
+    ('110', 'TIQUE NOTA DE CREDITO'),
+    ('111', 'TIQUE FACTURA C'),
+    ('112', 'TIQUE NOTA DE CREDITO A'),
+    ('113', 'TIQUE NOTA DE CREDITO B'),
+    ('114', 'TIQUE NOTA DE CREDITO C'),
+    ('115', 'TIQUE NOTA DE DEBITO A'),
+    ('116', 'TIQUE NOTA DE DEBITO B'),
+    ('117', 'TIQUE NOTA DE DEBITO C'),
+    ('118', 'TIQUE FACTURA M'),
+    ('119', 'TIQUE NOTA DE CREDITO M'),
+    ('120', 'TIQUE NOTA DE DEBITO M'),
+    ('331', 'LIQUIDACION SECUNDARIA DE GRANOS'),
+    ('332', 'CERTIFICACION ELECTRONICA (GRANOS)'),
     ]
 
 
@@ -206,18 +206,17 @@ class AfipWSTransaction(ModelSQL, ModelView):
         ('R', 'Rechazado'),
         ('O', 'Observado'),
         ], 'Resultado', readonly=True,
-        help=u'Resultado procesamiento de la Solicitud, devuelto por AFIP')
+        help='Resultado procesamiento de la Solicitud, devuelto por AFIP')
     pyafipws_message = fields.Text('Mensaje', readonly=True,
-        help=u'Mensaje de error u observación, devuelto por AFIP')
+        help='Mensaje de error u observación, devuelto por AFIP')
     pyafipws_xml_request = fields.Text('Requerimiento XML', readonly=True,
-        help=u'Mensaje XML enviado a AFIP (depuración)')
+        help='Mensaje XML enviado a AFIP (depuración)')
     pyafipws_xml_response = fields.Text('Respuesta XML', readonly=True,
-        help=u'Mensaje XML recibido de AFIP (depuración)')
+        help='Mensaje XML recibido de AFIP (depuración)')
 
 
-class Invoice:
+class Invoice(metaclass=PoolMeta):
     __name__ = 'account.invoice'
-    __metaclass__ = PoolMeta
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
         domain=[('company', '=', Eval('company'))],
@@ -235,10 +234,10 @@ class Invoice:
             'Tipo comprobante'), 'get_comprobante',
         searcher='search_comprobante')
     pyafipws_concept = fields.Selection([
-        ('1', u'1-Productos'),
-        ('2', u'2-Servicios'),
-        ('3', u'3-Productos y Servicios (mercado interno)'),
-        ('4', u'4-Otros (exportación)'),
+        ('1', '1-Productos'),
+        ('2', '2-Servicios'),
+        ('3', '3-Productos y Servicios (mercado interno)'),
+        ('4', '4-Otros (exportación)'),
         ('', ''),
         ], 'Concepto', select=True, depends=['state'], states={
             'readonly': Eval('state') != 'draft',
@@ -246,20 +245,20 @@ class Invoice:
             })
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
         states=_BILLING_STATES, depends=_DEPENDS,
-        help=u'Seleccionar fecha de fin de servicios - Sólo servicios')
+        help='Seleccionar fecha de fin de servicios - Sólo servicios')
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
         states=_BILLING_STATES, depends=_DEPENDS,
-        help=u'Seleccionar fecha de inicio de servicios - Sólo servicios')
+        help='Seleccionar fecha de inicio de servicios - Sólo servicios')
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
-        help=u'Código de Autorización Electrónico, devuelto por AFIP')
+        help='Código de Autorización Electrónico, devuelto por AFIP')
     pyafipws_cae_due_date = fields.Date('Vencimiento CAE', readonly=True,
-        help=u'Fecha tope para verificar CAE, devuelto por AFIP')
-    pyafipws_barcode = fields.Char(u'Codigo de Barras', size=41,
-        help=u'Código de barras para usar en la impresión', readonly=True,)
-    pyafipws_number = fields.Char(u'Número', size=13, readonly=True,
-        help=u'Número de factura informado a la AFIP')
+        help='Fecha tope para verificar CAE, devuelto por AFIP')
+    pyafipws_barcode = fields.Char('Codigo de Barras', size=41,
+        help='Código de barras para usar en la impresión', readonly=True,)
+    pyafipws_number = fields.Char('Número', size=13, readonly=True,
+        help='Número de factura informado a la AFIP')
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
-        'invoice', u'Transacciones', readonly=True)
+        'invoice', 'Transacciones', readonly=True)
     tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
         select=True, depends=['state', 'type'], states={
             'invisible': Eval('type') == 'out',
@@ -303,40 +302,40 @@ class Invoice:
         })
         cls._error_messages.update({
             'missing_pyafipws_billing_date':
-                u'Debe establecer los valores "Fecha desde" y "Fecha hasta" '
-                u'en el Diario, correspondientes al servicio que se está '
-                u'facturando',
+                'Debe establecer los valores "Fecha desde" y "Fecha hasta" '
+                'en el Diario, correspondientes al servicio que se está '
+                'facturando',
             'invalid_invoice_number':
-                u'El número de la factura (%d), no coincide con el que espera '
-                u'la AFIP (%d). Modifique la secuencia del diario',
+                'El número de la factura (%d), no coincide con el que espera '
+                'la AFIP (%d). Modifique la secuencia del diario',
             'not_cae':
-                u'No fue posible obtener el CAE de la factura "%(invoice)s" '
-                u'para la entidad "%(party)s". Mensaje: "%(msg)s"',
+                'No fue posible obtener el CAE de la factura "%(invoice)s" '
+                'para la entidad "%(party)s". Mensaje: "%(msg)s"',
             'invalid_journal':
-                u'Este diario (%s) no tiene establecido los datos necesaios '
-                u'para facturar electrónicamente',
+                'Este diario (%s) no tiene establecido los datos necesaios '
+                'para facturar electrónicamente',
             'missing_sequence':
-                u'No existe una secuencia para facturas del tipo: %s',
+                'No existe una secuencia para facturas del tipo: %s',
             'too_many_sequences':
-                u'Existe mas de una secuencia para facturas del tipo: %s',
+                'Existe mas de una secuencia para facturas del tipo: %s',
             'missing_company_iva_condition': 'The iva condition on company '
                 '"%(company)s" is missing.',
             'missing_party_iva_condition': 'The iva condition on party '
                 '"%(party)s" is missing.',
             'not_invoice_type':
-                u'El campo "Tipo de factura" en "Factura" es requerido.',
+                'El campo "Tipo de factura" en "Factura" es requerido.',
             'missing_currency_rate':
-                u'Debe configurar la cotización de la moneda.',
+                'Debe configurar la cotización de la moneda.',
             'missing_pyafipws_incoterms':
-                u'Debe establecer el valor de Incoterms si desea realizar '
-                u'un tipo de "Factura E".',
+                'Debe establecer el valor de Incoterms si desea realizar '
+                'un tipo de "Factura E".',
             'reference_unique':
-                u'El numero de factura ya ha sido ingresado en el sistema.',
+                'El numero de factura ya ha sido ingresado en el sistema.',
             'tax_without_group':
-                u'El impuesto (%s) debe tener un grupo asignado '
-                u'(iibb, municipal, iva).',
+                'El impuesto (%s) debe tener un grupo asignado '
+                '(iibb, municipal, iva).',
             'in_invoice_validate_failed':
-                u'Los campos "Referencia" y "Comprobante" son requeridos.',
+                'Los campos "Referencia" y "Comprobante" son requeridos.',
             'rejected_invoices':
                 'There was a problem at invoices IDs "%(invoices)s".\n'
                 'Check out error messages: "%(msg)s"',
@@ -774,8 +773,8 @@ class Invoice:
                         Transaction().commit()
                         if result is False:
                             logger.error(
-                                u'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
-                                u'XmlResponse: %s\n',
+                                'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
+                                'XmlResponse: %s\n',
                                     repr(msg.encode('ascii', 'ignore').strip()),
                                     invoice.id, invoice.type, invoice.party.rec_name,
                                     repr(ws.XmlRequest), repr(ws.XmlResponse))
@@ -809,8 +808,8 @@ class Invoice:
         Move.post([i.move for i in invoices if i.move.state != 'posted'])
 
         error_invoices = []
-        for pos, value_dict in invoices_wsfe.iteritems():
-            for key, invoices_by_type in value_dict.iteritems():
+        for pos, value_dict in list(invoices_wsfe.items()):
+            for key, invoices_by_type in list(value_dict.items()):
                 (pre_rejected_invoice, rejected_invoice) = \
                     cls.post_wsfe(invoices_by_type)
                 Transaction().commit()
@@ -968,8 +967,8 @@ class Invoice:
                     if rejected_invoice is None:
                         rejected_invoice = invoice
                         logger.error(
-                            u'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
-                            u'XmlResponse: %s\n', rejected_invoice.id,
+                            'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
+                            'XmlResponse: %s\n', rejected_invoice.id,
                             rejected_invoice.type, rejected_invoice.party.rec_name,
                             repr(ws.XmlRequest), repr(ws.XmlResponse))
 
@@ -1002,8 +1001,8 @@ class Invoice:
         '''
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
-            logger.info(u'Se trata de obtener CAE de la factura que ya tiene. '
-                    u'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
+            logger.info('Se trata de obtener CAE de la factura que ya tiene. '
+                    'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
             return
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
@@ -1305,8 +1304,8 @@ class Invoice:
                 # avoid encoding problem when reporting exceptions to the user:
                 import traceback
                 import sys
-                msg = traceback.format_exception_only(sys.exc_type,
-                    sys.exc_value)[0]
+                msg = traceback.format_exception_only(sys.exc_info()[0],
+                    sys.exc_info()[1])[0]
         return (ws, msg)
 
     def process_afip_result(self, ws, msg=''):
@@ -1315,7 +1314,7 @@ class Invoice:
         '''
         AFIP_Transaction = Pool().get('account_invoice_ar.afip_transaction')
 
-        message = u'\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
+        message = '\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
         message = message.encode('ascii', 'ignore').strip()
         AFIP_Transaction.create([{'invoice': self,
             'pyafipws_result': ws.Resultado,
@@ -1416,9 +1415,8 @@ class InvoiceExportLicense(ModelSQL, ModelView):
             table_handler.drop_column('country')
 
 
-class InvoiceReport:
+class InvoiceReport(metaclass=PoolMeta):
     __name__ = 'account.invoice'
-    __metaclass__ = PoolMeta
 
     @classmethod
     def get_context(cls, records, data):
@@ -1594,7 +1592,7 @@ class InvoiceReport:
     def _get_pyafipws_barcode_img(cls, Invoice, invoice):
         'Generate the required barcode Interleaved of 7 image using PIL'
         from pyafipws.pyi25 import PyI25
-        from cStringIO import StringIO as StringIO
+        from io import StringIO as StringIO
         # create the helper:
         pyi25 = PyI25()
         output = StringIO()

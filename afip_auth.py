@@ -94,15 +94,15 @@ def authenticate(service, certificate, private_key, force=False,
         sign = wsaa.ObtenerTagXml('sign')
         #print 'sign', sign
         err_msg = None
-    except:
+    except Exception as e:
         token = sign = None
         if wsaa.Excepcion:
             # get the exception already parsed by the helper
             err_msg = wsaa.Excepcion
         else:
             # avoid encoding problem when reporting exceptions to the user:
-            err_msg = traceback.format_exception_only(sys.exc_type,
-                                                      sys.exc_value)[0]
+            err_msg = traceback.format_exception_only(sys.exc_info()[0],
+                                                      sys.exc_info()[1])[0]
         if DEBUG:
             raise
     return {'token': token, 'sign': sign, 'err_msg': err_msg}
@@ -122,12 +122,12 @@ if __name__ == '__main__':
     reingart_crt = open('./pyafipws/reingart.crt').read()
     reingart_key = open('./pyafipws/reingart.key').read()
     auth_data = authenticate('wsfe', reingart_crt, reingart_key, force=True)
-    print auth_data
+    print(auth_data)
     assert auth_data['token']
     assert auth_data['sign']
     old_token = auth_data['token']
     auth_data = authenticate('wsfe', reingart_crt, reingart_key, force=True)
     assert auth_data['token'] == old_token
     import base64
-    print base64.b64decode(auth_data['token'])
-    print 'ok.'
+    print((base64.b64decode(auth_data['token'])))
+    print('ok.')

@@ -18,23 +18,23 @@ DEPENDS = ['active']
 
 INVOICE_TYPE_POS = [
         ('', ''),
-        ('1', u'01-Factura A'),
-        ('2', u'02-Nota de Débito A'),
-        ('3', u'03-Nota de Crédito A'),
-        ('4', u'04-Recibos A'),
-        ('5', u'05-Nota de Venta al Contado A'),
-        ('6', u'06-Factura B'),
-        ('7', u'07-Nota de Débito B'),
-        ('8', u'08-Nota de Crédito B'),
-        ('9', u'09-Recibos B'),
-        ('10', u'10-Notas de Venta al Contado B'),
-        ('11', u'11-Factura C'),
-        ('12', u'12-Nota de Débito C'),
-        ('13', u'13-Nota de Crédito C'),
-        ('15', u'15-Recibo C'),
-        ('19', u'19-Factura E'),
-        ('20', u'20-Nota de Débito E'),
-        ('21', u'21-Nota de Crédito E'),
+        ('1', '01-Factura A'),
+        ('2', '02-Nota de Débito A'),
+        ('3', '03-Nota de Crédito A'),
+        ('4', '04-Recibos A'),
+        ('5', '05-Nota de Venta al Contado A'),
+        ('6', '06-Factura B'),
+        ('7', '07-Nota de Débito B'),
+        ('8', '08-Nota de Crédito B'),
+        ('9', '09-Recibos B'),
+        ('10', '10-Notas de Venta al Contado B'),
+        ('11', '11-Factura C'),
+        ('12', '12-Nota de Débito C'),
+        ('13', '13-Nota de Crédito C'),
+        ('15', '15-Recibo C'),
+        ('19', '19-Factura E'),
+        ('20', '20-Nota de Débito E'),
+        ('21', '21-Nota de Crédito E'),
     ]
 
 
@@ -46,14 +46,14 @@ class Pos(ModelSQL, ModelView):
         states=STATES, depends=DEPENDS)
     number = fields.Integer('Punto de Venta AFIP', required=True,
         states=STATES, depends=DEPENDS,
-        help=u'Prefijo de emisión habilitado en AFIP')
+        help='Prefijo de emisión habilitado en AFIP')
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
         'Point of Sale', context={'company': Eval('company', -1)},
         depends=['company', 'active'], states=STATES)
     pos_type = fields.Selection([
-        ('manual', u'Manual'),
-        ('electronic', u'Electronic'),
-        ('fiscal_printer', u'Fiscal Printer'),
+        ('manual', 'Manual'),
+        ('electronic', 'Electronic'),
+        ('fiscal_printer', 'Fiscal Printer'),
         ], 'Pos Type', required=True, states=STATES, depends=DEPENDS)
     pos_type_string = pos_type.translated('pos_type')
     pos_daily_report = fields.Boolean('Cierre diario (ZETA)', states={
@@ -62,16 +62,16 @@ class Pos(ModelSQL, ModelView):
         depends=['pos_type'])
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
-        ('wsfe', u'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
-        #('wsmtxca', u'Mercado interno -con detalle- RG2904 (WSMTXCA)'),
-        ('wsbfe', u'Bono Fiscal -con detalle- RG2557 (WSMTXCA)'),
-        ('wsfex', u'Exportación -con detalle- RG2758 (WSFEXv1)'),
-        ], u'AFIP Web Service', depends=['pos_type', 'active'], states={
+        ('wsfe', 'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
+        #('wsmtxca', 'Mercado interno -con detalle- RG2904 (WSMTXCA)'),
+        ('wsbfe', 'Bono Fiscal -con detalle- RG2557 (WSMTXCA)'),
+        ('wsfex', 'Exportación -con detalle- RG2758 (WSFEXv1)'),
+        ], 'AFIP Web Service', depends=['pos_type', 'active'], states={
             'invisible': Eval('pos_type') != 'electronic',
             'required': Eval('pos_type') == 'electronic',
             'readonly': ~Eval('active', True),
             },
-        help=u'Habilita la facturación electrónica por webservices AFIP')
+        help='Habilita la facturación electrónica por webservices AFIP')
     active = fields.Boolean('Active', select=True)
 
     @classmethod

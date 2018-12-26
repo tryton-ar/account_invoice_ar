@@ -9,9 +9,8 @@ from trytond.pool import PoolMeta
 __all__ = ['Company']
 
 
-class Company:
+class Company(metaclass=PoolMeta):
     __name__ = 'company.company'
-    __metaclass__ = PoolMeta
 
     pyafipws_certificate = fields.Text('Certificado AFIP WS',
         help='Certificado (.crt) de la empresa para webservices AFIP')
@@ -19,12 +18,12 @@ class Company:
         help='Clave Privada (.key) de la empresa para webservices AFIP')
     pyafipws_mode_cert = fields.Selection([
         ('', 'n/a'),
-        ('homologacion', u'Homologación'),
-        ('produccion', u'Producción'),
+        ('homologacion', 'Homologación'),
+        ('produccion', 'Producción'),
         ], 'Modo de certificacion',
-        help=u'El objetivo de Homologación (testing), es facilitar las '
-            u'pruebas. Los certificados de Homologación y Producción son '
-            u'distintos.')
+        help='El objetivo de Homologación (testing), es facilitar las '
+            'pruebas. Los certificados de Homologación y Producción son '
+            'distintos.')
 
     @staticmethod
     def default_pyafipws_mode_cert():
@@ -56,7 +55,7 @@ class Company:
 
     def pyafipws_authenticate(self, service='wsfe', force=False):
         'Authenticate against AFIP, returns token, sign, err_msg (dict)'
-        import afip_auth
+        from . import afip_auth
         auth_data = {}
         # get the authentication credentials:
         certificate = str(self.pyafipws_certificate)
@@ -67,8 +66,8 @@ class Company:
             WSAA_URL = 'https://wsaa.afip.gov.ar/ws/services/LoginCms?wsdl'
         else:
             self.raise_user_error('wrong_pyafipws_mode', {
-                'message': u'El modo de certificación no es ni producción, ni '
-                    u'homologación. Configure su Empresa',
+                'message': 'El modo de certificación no es ni producción, ni '
+                    'homologación. Configure su Empresa',
                 })
 
         # call the helper function to obtain the access ticket:
