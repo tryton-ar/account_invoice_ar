@@ -108,13 +108,13 @@ def authenticate(service, certificate, private_key, force=False,
     return {'token': token, 'sign': sign, 'err_msg': err_msg}
 
 
-def get_account_invoice_install_dir():
+def get_module_install_dir():
     basepath = __file__
     return os.path.dirname(os.path.abspath(basepath))
 
 
 def get_cache_dir():
-    return os.path.join(get_account_invoice_install_dir(), 'cache')
+    return os.path.join(get_module_install_dir(), 'cache')
 
 
 if __name__ == '__main__':
