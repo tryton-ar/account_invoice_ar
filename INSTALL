@@ -10,11 +10,13 @@ Prerequisites
 
  * Pyafipws and swig:
      * swig
-       apt-get install swig
-     * Pyafipws
-       wget https://github.com/reingart/pyafipws/archive/2.7.tar.gz
-       tar zxvf 2.7.tar.gz
-       mv pyafipws-2.7 /usr/lib/pythonX.X/dist-packages/pyafipws
+        apt-get install swig
+     * PyAfipWS
+        git clone --single-branch -b master https://github.com/reingart/pyafipws.git
+        ( cd pyafipws && python setup.py install )
+     * PySimpleSoap
+        git clone --single-branch -b stable https://github.com/pysimplesoap/pysimplesoap.git
+        ( cd pysimplesoap && python setup.py install )
 
 Installation
 ------------
