@@ -44,12 +44,11 @@ def authenticate(service, certificate, private_key, force=False,
     wsaa.LanzarExcepciones = True  # raise python exceptions on any failure
 
     # make md5 hash of the parameter for caching...
-    fn = '%s.xml' % hashlib.md5(
-        service + certificate + private_key).hexdigest()
-    if cache:
-        fn = os.path.join(cache, fn)
-    else:
-        fn = os.path.join(get_cache_dir(), fn)
+    fn = '%s.xml' % hashlib.md5((
+        service + certificate + private_key).encode('utf-8')).hexdigest()
+    if not cache:
+        cache = get_cache_dir()
+    fn = os.path.join(cache, fn)
 
     try:
         # read the access ticket (if already authenticated)

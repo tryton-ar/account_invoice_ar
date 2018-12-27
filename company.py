@@ -48,13 +48,13 @@ class Company:
         if self.pyafipws_mode_cert == '':
             return
 
-        auth_data = self.pyafipws_authenticate(service='wsfe', force=True)
+        auth_data = self.pyafipws_authenticate(service='wsfe', force=False)
         if auth_data['err_msg'] is not None:
             self.raise_user_error('wrong_pyafipws_mode', {
                 'message': auth_data['err_msg'],
                 })
 
-    def pyafipws_authenticate(self, service='wsfe', force=False):
+    def pyafipws_authenticate(self, service='wsfe', force=False, cache=''):
         'Authenticate against AFIP, returns token, sign, err_msg (dict)'
         import afip_auth
         auth_data = {}
@@ -73,6 +73,6 @@ class Company:
 
         # call the helper function to obtain the access ticket:
         auth = afip_auth.authenticate(service, certificate, private_key,
-            wsdl=WSAA_URL, force=force)
+            force=force, cache=cache, wsdl=WSAA_URL)
         auth_data.update(auth)
         return auth_data
