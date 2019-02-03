@@ -841,7 +841,7 @@
     <table:table-row table:style-name="Tabla1.1">
      <table:table-cell table:style-name="Tabla1.A1" office:value-type="string">
       <text:p text:style-name="P29"><text:span text:style-name="Line_20_numbering"><text:placeholder text:placeholder-type="text">&lt;if test=&quot;hasattr(company, &apos;logo&apos;) and company.logo&quot;&gt;</text:placeholder></text:span></text:p>
-      <text:p text:style-name="P53"><draw:frame draw:style-name="fr1" draw:name="image: (str(company.logo), &apos;image/jpeg&apos;)" text:anchor-type="paragraph" svg:x="1.64cm" svg:y="-0.079cm" style:rel-width="60%" svg:height="1.709cm" draw:z-index="1">
+      <text:p text:style-name="P53"><draw:frame draw:style-name="fr1" draw:name="image: (company.logo, &apos;image/png&apos;)" text:anchor-type="paragraph" svg:x="1.64cm" svg:y="-0.079cm" style:rel-width="60%" svg:height="1.709cm" draw:z-index="1">
         <draw:text-box fo:min-height="16%" fo:min-width="4.551cm">
          <text:p text:style-name="P49"/>
         </draw:text-box>
@@ -1238,7 +1238,7 @@
    <text:p text:style-name="P4"><text:placeholder text:placeholder-type="text">&lt;comment&gt;</text:placeholder></text:p>
    <text:p text:style-name="P3"><text:placeholder text:placeholder-type="text">&lt;/for&gt;</text:placeholder></text:p>
    <text:p text:style-name="P12"><text:span text:style-name="Line_20_numbering"><text:placeholder text:placeholder-type="text">&lt;if test=&quot;invoice.pyafipws_cae&quot;&gt;</text:placeholder></text:span></text:p>
-   <text:p text:style-name="P6"><draw:frame draw:style-name="fr2" draw:name="image: (str(barcode_img), &apos;image/jpeg&apos;)" text:anchor-type="paragraph" svg:x="-0.049cm" svg:y="0.319cm" style:rel-width="57%" svg:height="1.529cm" draw:z-index="0">
+   <text:p text:style-name="P6"><draw:frame draw:style-name="fr2" draw:name="image: barcode_img" text:anchor-type="paragraph" svg:x="-0.049cm" svg:y="0.319cm" style:rel-width="57%" svg:height="1.529cm" draw:z-index="0">
      <draw:text-box fo:min-height="6%" fo:min-width="10.026cm">
       <text:p text:style-name="Frame_20_contents"/>
      </draw:text-box>

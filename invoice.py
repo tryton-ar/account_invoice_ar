@@ -4,6 +4,9 @@
 # the full copyright notices and license terms.
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
+from pyafipws.pyi25 import PyI25
+from io import BytesIO
+
 from collections import defaultdict
 import logging
 from decimal import Decimal
@@ -1316,12 +1319,13 @@ class Invoice(metaclass=PoolMeta):
 
         message = '\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
         message = message.encode('ascii', 'ignore').strip()
-        AFIP_Transaction.create([{'invoice': self,
-            'pyafipws_result': ws.Resultado,
-            'pyafipws_message': message,
-            'pyafipws_xml_request': ws.XmlRequest,
-            'pyafipws_xml_response': ws.XmlResponse,
-            }])
+        afip_tr = AFIP_Transaction()
+        afip_tr.invoice = self
+        afip_tr.pyafipws_result = ws.Resultado
+        afip_tr.pyafipws_message = message.decode('utf-8')
+        afip_tr.pyafipws_xml_request = ws.XmlRequest.decode('utf-8')
+        afip_tr.pyafipws_xml_response = ws.XmlResponse.decode('utf-8')
+        afip_tr.save()
         if ws.CAE:
             tipo_cbte = self.invoice_type.invoice_type
             punto_vta = self.pos.number
@@ -1591,11 +1595,9 @@ class InvoiceReport(metaclass=PoolMeta):
     @classmethod
     def _get_pyafipws_barcode_img(cls, Invoice, invoice):
         'Generate the required barcode Interleaved of 7 image using PIL'
-        from pyafipws.pyi25 import PyI25
-        from io import StringIO as StringIO
         # create the helper:
         pyi25 = PyI25()
-        output = StringIO()
+        output = BytesIO()
         if not invoice.pyafipws_barcode:
             return
         # call the helper:
@@ -1604,6 +1606,6 @@ class InvoiceReport(metaclass=PoolMeta):
             bars = '00'
         pyi25.GenerarImagen(bars, output, basewidth=3, width=380, height=50,
             extension='PNG')
-        image = buffer(output.getvalue())
+        image = (output.getvalue(), 'image/jpeg')
         output.close()
         return image
