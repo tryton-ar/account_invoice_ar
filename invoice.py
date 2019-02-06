@@ -1002,6 +1002,26 @@ class Invoice(metaclass=PoolMeta):
         '''
         Create invoice as pyafipws requires and call to ws.CrearFactura(args).
         '''
+
+        def strip_accents(text):
+            """
+            Strip accents from input String.
+
+            :param text: The input string.
+            :type text: String.
+
+            :returns: The processed String.
+            :rtype: String.
+            """
+            try:
+                text = unicode(text, 'utf-8')
+            except (TypeError, NameError): # unicode is a default on python 3
+                pass
+            text = normalize('NFD', text)
+            text = text.encode('ascii', 'ignore')
+            text = text.decode("utf-8")
+            return str(text)
+
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
             logger.info('Se trata de obtener CAE de la factura que ya tiene. '
@@ -1260,8 +1280,7 @@ class Invoice(metaclass=PoolMeta):
                     codigo = line.product.code
                 else:
                     codigo = 0
-                ds = ''.join((c.encode('ascii', 'ignore') for c in
-                        normalize('NFD', line.description.decode('utf-8'))))
+                ds = strip_accents(line.description)
                 qty = abs(line.quantity)
                 umed = 7  # FIXME: (7 - unit)
                 precio = str(line.unit_price)
