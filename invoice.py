@@ -814,7 +814,8 @@ class Invoice(metaclass=PoolMeta):
         for pos, value_dict in list(invoices_wsfe.items()):
             for key, invoices_by_type in list(value_dict.items()):
                 (pre_rejected_invoice, rejected_invoice) = \
-                    cls.post_wsfe(invoices_by_type)
+                    cls.post_wsfe([i for i in invoices_by_type
+                            if not i.pyafipws_cae])
                 Transaction().commit()
                 if rejected_invoice:
                     error_invoices.append(rejected_invoice)
@@ -1024,9 +1025,9 @@ class Invoice(metaclass=PoolMeta):
 
         # if already authorized (electronic invoice with CAE), ignore
         if self.pyafipws_cae:
-            logger.info('Se trata de obtener CAE de la factura que ya tiene. '
-                    'Factura: %s, CAE: %s', self.number, self.pyafipws_cae)
-            return
+            logger.info('invoice_has_cae: Invoice (%s) has CAE %s',
+                (self.number, self.pyafipws_cae))
+            return (ws, True)
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
         Sequence = pool.get('ir.sequence')
