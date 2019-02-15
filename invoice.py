@@ -627,8 +627,13 @@ class Invoice:
         '''
         set pyafipws_billing_dates by invoice_date.
         '''
-        year = int(self.invoice_date.strftime("%Y"))
-        month = int(self.invoice_date.strftime("%m"))
+        today = Pool().get('ir.date').today()
+        if self.invoice_date:
+            year = int(self.invoice_date.strftime("%Y"))
+            month = int(self.invoice_date.strftime("%m"))
+        else:
+            year = int(today.strftime("%Y"))
+            month = int(today.strftime("%m"))
         self.pyafipws_billing_start_date = date(year, month, 1)
         self.pyafipws_billing_end_date = date(year, month,
             monthrange(year, month)[1])
