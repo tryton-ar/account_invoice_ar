@@ -344,9 +344,6 @@ class Invoice:
         else:
             default = default.copy()
         default['transactions'] = None
-        default['pyafipws_concept'] = None
-        default['pyafipws_billing_start_date'] = None
-        default['pyafipws_billing_end_date'] = None
         default['pyafipws_cae'] = None
         default['pyafipws_cae_due_date'] = None
         default['pyafipws_barcode'] = None
