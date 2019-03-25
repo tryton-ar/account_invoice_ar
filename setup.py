@@ -55,7 +55,8 @@ requires.append('pysimplesoap')
 
 tests_require = [get_require_version('proteus')]
 dependency_links = [
-    'https://github.com/tryton-ar/party_ar/tarball/%s.%s#egg=trytonar_party_ar' % (major_version, minor_version),
+    'https://github.com/tryton-ar/party_ar/tarball/%s.%s#egg=trytonar_party_ar-%s.%s' \
+        % (major_version, minor_version, major_version, minor_version),
     'https://github.com/reingart/pyafipws/tarball/py3k#egg=pyafipws',
     'https://github.com/pysimplesoap/pysimplesoap/tarball/stable_py3k#egg=pysimplesoap',
     ]
