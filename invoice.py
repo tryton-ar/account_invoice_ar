@@ -247,6 +247,7 @@ class Invoice:
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
             })
+    tipo_comprobante_string = tipo_comprobante.translated('tipo_comprobante')
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
@@ -1225,7 +1226,6 @@ class InvoiceReport:
                 invoice.invoice_type.invoice_type][:2]
         else:
             return ''
-
     @classmethod
     def _get_vat_number(cls, company):
         value = company.party.vat_number
