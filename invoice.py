@@ -761,9 +761,7 @@ class Invoice(metaclass=PoolMeta):
                     # web service == wsfe invoices go throw batch.
                     invoices_wsfe[str(invoice.pos.number)][
                         invoice.invoice_type.invoice_type].append(invoice)
-                else:
-                    invoices_no_wsfe.append(invoice)
-        invoices = invoices_no_wsfe
+                    invoices.remove(invoice)
 
         moves = []
         for invoice in invoices:
