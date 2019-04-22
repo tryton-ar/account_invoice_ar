@@ -65,7 +65,7 @@ setup(name=name,
     version=version,
     description=('Tryton module to add account invoice (electronic/manual) '
         'localizacion for Argentina (AFIP)'),
-    long_description=read('README.md'),
+    long_description=read('README'),
     author='tryton-ar',
     url='https://github.com/tryton-ar/account_invoice_ar',
     download_url=download_url,
