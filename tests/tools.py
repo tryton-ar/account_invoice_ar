@@ -6,7 +6,7 @@ from proteus import Model
 from trytond.modules.company.tests.tools import get_company
 
 __all__ = ['create_pos', 'get_pos', 'get_invoice_types',
-    'create_tax_groups', 'set_company_afip']
+    'create_tax_groups', 'set_afip_certs']
 
 
 def create_pos(company=None, type='manual', number=1, config=None):
@@ -95,7 +95,7 @@ def create_tax_groups(company=None, config=None):
     return groups
 
 
-def set_company_afip(company=None, config=None):
+def set_afip_certs(company=None, config=None):
     "Set AFIP certificates"
     if not company:
         company = get_company()
@@ -109,3 +109,4 @@ def set_company_afip(company=None, config=None):
         company.pyafipws_private_key = read_data.encode('utf8')
     company.pyafipws_mode_cert = 'homologacion'
     company.save()
+    return company

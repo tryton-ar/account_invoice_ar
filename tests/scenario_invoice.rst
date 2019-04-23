@@ -295,9 +295,23 @@ Credit invoice with refund::
     ...     credit_note_tax_code.amount
     Decimal('20.00')
 
-Pay invoice::
+Attempt to post invoice without pos::
 
     >>> invoice, = invoice.duplicate()
+    >>> invoice.state
+    'draft'
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
+
+Pay invoice::
+
+    >>> invoice.pos = pos
+    >>> invoice.invoice_type == invoice_types['1']
+    True
     >>> invoice.click('post')
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
