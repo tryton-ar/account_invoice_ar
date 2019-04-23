@@ -81,6 +81,18 @@ INVOICE_CREDIT_AFIP_CODE = {
         '19': ('21', '21-Nota de Crédito E'),
         '20': ('21', '21-Nota de Crédito E'),
         '21': ('20', '20-Nota de Débito E'),
+        '27': ('48','48-Nota de Credito Liquidacion CLASE A'),
+        '28': ('43','43-Nota de Credito Liquidacion CLASE B'),
+        '29': ('44','44-Nota de Credito Liquidacion CLASE C'),
+        '51':  ('53','53-NotaS de Credito M'),
+        '81': ('112','112-Tique Nota de Credito A'),
+        '82': ('113','113-Tique Nota de Credito B'),
+        '83': ('110','110-Tique Nota de Credito'),
+        '111': ('114','114-Tique Nota de Credito C'),
+        '118': ('119','119-Tique Nota de Credito M'),
+        '201': ('203','203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+        '206': ('208','208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+        '211': ('213','213- Nota de Credito Electronica MiPyMEs (FCE) C'),
         }
 
 INCOTERMS = [
@@ -403,6 +415,13 @@ class Invoice(metaclass=PoolMeta):
         default['pyafipws_cae_due_date'] = None
         default['pyafipws_barcode'] = None
         default['pyafipws_number'] = None
+        default['pyafipws_number'] = None
+        default['pos'] = None
+        default['invoice_type'] = None
+        default['ref_pos_number'] = None
+        default['ref_voucher_number'] = None
+        default['reference'] = None
+        default['tipo_comprobante'] = None
         return super(Invoice, cls).copy(invoices, default=default)
 
     @classmethod
@@ -529,8 +548,7 @@ class Invoice(metaclass=PoolMeta):
             self.raise_user_error('reference_unique')
 
     def pre_validate_fields(self):
-        if (self.tipo_comprobante is None or self.tipo_comprobante == ''
-                or self.reference == ''):
+        if not self.reference and not self.tipo_comprobante:
             self.raise_user_error('in_invoice_validate_failed')
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
@@ -645,9 +663,12 @@ class Invoice(metaclass=PoolMeta):
 
         credit = super(Invoice, self)._credit()
         if self.type == 'in':
+            invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
+                str(int(self.tipo_comprobante))
+                ]
+            credit.tipo_comprobante = invoice_type.rjust(3, '0')
+            credit.reference = None
             return credit
-
-        credit.taxes = [tax._credit() for tax in self.taxes]
 
         credit.pos = self.pos
         credit.invoice_date = Date.today()
