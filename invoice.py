@@ -317,6 +317,8 @@ class Invoice(metaclass=PoolMeta):
             Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
         })
         cls._error_messages.update({
+            'missing_pyafipws_concept':
+                'The "concept" is required if pos type is electronic',
             'missing_pyafipws_billing_date':
                 'Debe establecer los valores "Fecha desde" y "Fecha hasta" '
                 'en el Diario, correspondientes al servicio que se está '
@@ -1050,6 +1052,22 @@ class Invoice(metaclass=PoolMeta):
             logger.info('invoice_has_cae: Invoice (%s) has CAE %s',
                 (self.number, self.pyafipws_cae))
             return (ws, True)
+
+        # if pyafipws_concept is empty
+        if not self.pyafipws_concept:
+            if batch:
+                logger.error('missing_pyafipws_concept:field pyafipws_concept '
+                    'is missing at invoice "%s"' self.rec_name))
+                return (ws, True)
+            self.raise_user_error('missing_pyafipws_concept')
+        if (self.pyafipws_concept in ['2', '3'] and not
+                (self.pyafipws_billing_start_date or
+                    self.pyafipws_billing_end_date)):
+                if batch:
+                    logger.error('missing_pyafipws_billing_date:billing_dates '
+                        'fields are missing at invoice "%s"' % (self.rec_name))
+                    return (ws, True)
+                self.raise_user_error('missing_pyafipws_billing_date')
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
         Sequence = pool.get('ir.sequence')
