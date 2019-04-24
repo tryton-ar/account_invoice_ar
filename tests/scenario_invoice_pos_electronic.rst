@@ -215,9 +215,9 @@ Create invoice::
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
-    Decimal('20.00')
+    Decimal('42.00')
     >>> invoice.total_amount
-    Decimal('240.00')
+    Decimal('262.00')
     >>> invoice.invoice_type == invoice_types['1']
     True
     >>> invoice.save()
@@ -230,8 +230,18 @@ Test change tax::
     >>> tax_line.tax = None
     >>> tax_line.tax = tax
 
+Test missing pyafipws_concept at invoice::
+
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
+
 Post invoice::
 
+    >>> invoice.pyafipws_concept = '1'
     >>> invoice.click('post')
     >>> invoice.state
     'posted'
@@ -240,12 +250,12 @@ Post invoice::
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
-    Decimal('20.00')
+    Decimal('42.00')
     >>> invoice.total_amount
-    Decimal('240.00')
+    Decimal('262.00')
     >>> receivable.reload()
     >>> receivable.debit
-    Decimal('240.00')
+    Decimal('262.00')
     >>> receivable.credit
     Decimal('0.00')
     >>> revenue.reload()
@@ -257,7 +267,7 @@ Post invoice::
     >>> account_tax.debit
     Decimal('0.00')
     >>> account_tax.credit
-    Decimal('20.00')
+    Decimal('42.00')
     >>> with config.set_context(periods=period_ids):
     ...     invoice_base_code = TaxCode(invoice_base_code.id)
     ...     invoice_base_code.amount
@@ -265,7 +275,7 @@ Post invoice::
     >>> with config.set_context(periods=period_ids):
     ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
     ...     invoice_tax_code.amount
-    Decimal('20.00')
+    Decimal('42.00')
     >>> with config.set_context(periods=period_ids):
     ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
     ...     credit_note_base_code.amount
@@ -303,9 +313,9 @@ Credit invoice with refund::
     True
     >>> receivable.reload()
     >>> receivable.debit
-    Decimal('240.00')
+    Decimal('262.00')
     >>> receivable.credit
-    Decimal('240.00')
+    Decimal('262.00')
     >>> revenue.reload()
     >>> revenue.debit
     Decimal('220.00')
@@ -313,9 +323,9 @@ Credit invoice with refund::
     Decimal('220.00')
     >>> account_tax.reload()
     >>> account_tax.debit
-    Decimal('20.00')
+    Decimal('42.00')
     >>> account_tax.credit
-    Decimal('20.00')
+    Decimal('42.00')
     >>> with config.set_context(periods=period_ids):
     ...     invoice_base_code = TaxCode(invoice_base_code.id)
     ...     invoice_base_code.amount
@@ -323,7 +333,7 @@ Credit invoice with refund::
     >>> with config.set_context(periods=period_ids):
     ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
     ...     invoice_tax_code.amount
-    Decimal('20.00')
+    Decimal('42.00')
     >>> with config.set_context(periods=period_ids):
     ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
     ...     credit_note_base_code.amount
@@ -331,7 +341,7 @@ Credit invoice with refund::
     >>> with config.set_context(periods=period_ids):
     ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
     ...     credit_note_tax_code.amount
-    Decimal('20.00')
+    Decimal('42.00')
 
 Pay invoice::
 
@@ -343,8 +353,8 @@ Pay invoice::
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('240.00')
-    >>> pay.form.amount = Decimal('120.00')
+    Decimal('262.00')
+    >>> pay.form.amount = Decimal('131.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.state
@@ -352,13 +362,13 @@ Pay invoice::
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('120.00')
-    >>> pay.form.amount = Decimal('20.00')
+    Decimal('131.00')
+    >>> pay.form.amount = Decimal('31.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.form.type = 'partial'
     >>> pay.form.amount
-    Decimal('20.00')
+    Decimal('31.00')
     >>> len(pay.form.lines_to_pay)
     1
     >>> len(pay.form.payment_lines)
