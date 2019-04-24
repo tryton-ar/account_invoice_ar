@@ -3,13 +3,14 @@
 # the full copyright notices and license terms.
 from proteus import Model
 
+from trytond.tools import file_open
 from trytond.modules.company.tests.tools import get_company
 
 __all__ = ['create_pos', 'get_pos', 'get_invoice_types',
     'create_tax_groups', 'set_afip_certs']
 
 
-def create_pos(company=None, type='manual', number=1, config=None):
+def create_pos(company=None, type='manual', number=1, ws=None, config=None):
     "Create a Point of Sale"
     Pos = Model.get('account.pos', config=config)
     Sequence = Model.get('ir.sequence', config=config)
@@ -21,6 +22,7 @@ def create_pos(company=None, type='manual', number=1, config=None):
         company=company.id,
         number=number,
         pos_type=type,
+        pyafipws_electronic_invoice_service=ws,
         )
 
     for attr, name in (
@@ -99,14 +101,12 @@ def set_afip_certs(company=None, config=None):
     "Set AFIP certificates"
     if not company:
         company = get_company()
-    crt_file = 'reingart.crt'
-    key_file = 'reingart.key'
-    with open(crt_file, 'rb') as f:
-        read_data = f.read()
-        company.pyafipws_certificate = read_data.encode('utf8')
-    with open(key_file, 'rb') as f:
-        read_data = f.read()
-        company.pyafipws_private_key = read_data.encode('utf8')
+    with file_open('account_invoice_ar/tests/reingart.crt', mode='rb') as fp:
+        crt = fp.read()
+        company.pyafipws_certificate = crt.decode('utf8')
+    with file_open('account_invoice_ar/tests/reingart.key', mode='rb') as fp:
+        key = fp.read()
+        company.pyafipws_private_key = key.decode('utf8')
     company.pyafipws_mode_cert = 'homologacion'
     company.save()
     return company
