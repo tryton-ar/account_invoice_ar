@@ -215,6 +215,12 @@ Credit invoice::
     >>> credit_note.tipo_comprobante == '003'
     True
     >>> credit_note.reference
+    >>> credit_note.ref_pos_number = '1'
+    >>> credit_note.ref_voucher_number = '55'
+    >>> credit_note.invoice_date = today
+    >>> credit_note.click('validate_invoice')
+    >>> credit_note.reference
+    '00001-00000055'
 
 Create a draft and post invoice::
 
@@ -240,7 +246,7 @@ Credit invoice::
     >>> credit.form.with_refund = False
     >>> credit.execute('credit')
     >>> credit_note, = Invoice.find(
-    ...     [('type', '=', 'in'), ('id', '!=', invoice.id)])
+    ...     [('type', '=', 'in'), ('state', '=', 'draft')])
     >>> credit_note.state
     'draft'
     >>> credit_note.untaxed_amount == -invoice.untaxed_amount
