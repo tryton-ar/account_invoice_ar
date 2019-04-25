@@ -1057,7 +1057,7 @@ class Invoice(metaclass=PoolMeta):
         if not self.pyafipws_concept:
             if batch:
                 logger.error('missing_pyafipws_concept:field pyafipws_concept '
-                    'is missing at invoice "%s"' self.rec_name))
+                    'is missing at invoice "%s"' % self.rec_name)
                 return (ws, True)
             self.raise_user_error('missing_pyafipws_concept')
         if (self.pyafipws_concept in ['2', '3'] and not
@@ -1065,7 +1065,7 @@ class Invoice(metaclass=PoolMeta):
                     self.pyafipws_billing_end_date)):
                 if batch:
                     logger.error('missing_pyafipws_billing_date:billing_dates '
-                        'fields are missing at invoice "%s"' % (self.rec_name))
+                        'fields are missing at invoice "%s"' % self.rec_name)
                     return (ws, True)
                 self.raise_user_error('missing_pyafipws_billing_date')
         # get the electronic invoice type, point of sale and service:
