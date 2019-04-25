@@ -342,6 +342,8 @@ class Invoice(metaclass=PoolMeta):
                 '"%(party)s" is missing.',
             'not_invoice_type':
                 'El campo "Tipo de factura" en "Factura" es requerido.',
+            'miss_tax_identifier':
+                'La empresa no tiene configurado el identificador impositivo',
             'missing_currency_rate':
                 'Debe configurar la cotización de la moneda.',
             'missing_pyafipws_incoterms':
@@ -536,6 +538,11 @@ class Invoice(metaclass=PoolMeta):
                     })
         if not self.invoice_type:
             self.raise_user_error('not_invoice_type')
+        if not self.get_tax_identifier():
+            self.raise_user_error('miss_tax_identifier')
+        if (self.get_tax_identifier() and
+                not self.company.party.tax_identifier.type == 'ar_cuit'):
+            self.raise_user_error('miss_tax_identifier')
 
     def check_unique_reference(self):
         invoice = self.search([
