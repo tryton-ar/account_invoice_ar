@@ -1104,11 +1104,21 @@ class Invoice:
 
         # invoice amount totals:
         imp_total = str('%.2f' % abs(self.total_amount))
-        imp_tot_conc = '0.00'
-        imp_neto = str('%.2f' % abs(self.untaxed_amount))
+        imp_subtotal = str('%.2f' % abs(self.untaxed_amount)) # TODO
+        imp_tot_conc = Decimal('0') # No gravado
+        imp_neto = Decimal('0')
         imp_iva, imp_trib = self._get_imp_total_iva_and_trib(service)
-        imp_subtotal = imp_neto  # TODO: not allways the case!
-        imp_op_ex = '0.00'
+        imp_op_ex = '0.00' # Exento TODO: issue#136
+
+        for line in self.lines:
+            if line.taxes:
+                imp_neto += abs(line.amount)
+            else:
+                imp_tot_conc += abs(line.amount)
+
+        imp_neto = str('%.2f' % imp_neto)
+        imp_tot_conc = str('%.2f' % imp_tot_conc)
+
         if self.company.currency.rate == Decimal('0'):
             if self.party.vat_number_afip_foreign:
                 if batch:
