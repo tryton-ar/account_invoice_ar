@@ -448,6 +448,12 @@ class Invoice:
         default['pyafipws_number'] = None
         default['ref_number_from'] = None
         default['ref_number_to'] = None
+        default['pos'] = None
+        default['invoice_type'] = None
+        default['ref_pos_number'] = None
+        default['ref_voucher_number'] = None
+        default['reference'] = None
+        default['tipo_comprobante'] = None
         return super(Invoice, cls).copy(invoices, default=default)
 
     @classmethod
