@@ -401,6 +401,12 @@ class Invoice:
         default['pyafipws_cae_due_date'] = None
         default['pyafipws_barcode'] = None
         default['pyafipws_number'] = None
+        default['pos'] = None
+        default['invoice_type'] = None
+        default['ref_pos_number'] = None
+        default['ref_voucher_number'] = None
+        default['reference'] = None
+        default['tipo_comprobante'] = None
         return super(Invoice, cls).copy(invoices, default=default)
 
     @classmethod
