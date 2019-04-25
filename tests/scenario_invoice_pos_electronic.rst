@@ -246,7 +246,7 @@ Post invoice::
     >>> invoice.state
     'posted'
     >>> invoice.tax_identifier.code
-    '11111111113'
+    '20267565393'
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
@@ -343,14 +343,45 @@ Credit invoice with refund::
     ...     credit_note_tax_code.amount
     Decimal('42.00')
 
-Pay invoice::
+Test post without point of sale::
 
     >>> invoice, = invoice.duplicate()
+    >>> invoice.pyafipws_concept
+    '1'
     >>> invoice.pyafipws_cae
     >>> invoice.pyafipws_cae_due_date
+    >>> invoice.pos
+    >>> invoice.invoice_type
     >>> invoice.transactions
-    >>> invoice.click('post')
+    []
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
 
+Test post when clear tax_identifier type::
+
+    >>> tax_identifier, = company.party.identifiers
+    >>> tax_identifier.type = None
+    >>> tax_identifier.save()
+
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
+
+    >>> tax_identifier, = company.party.identifiers
+    >>> tax_identifier.type = 'ar_cuit'
+    >>> tax_identifier.save()
+
+Pay invoice::
+
+    >>> invoice.pos = pos
+    >>> invoice.click('post')
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
     Decimal('262.00')
@@ -381,7 +412,7 @@ Pay invoice::
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('-20.00')
+    Decimal('-31.00')
     >>> pay.form.amount = Decimal('99.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
@@ -407,6 +438,7 @@ Create empty invoice::
     >>> invoice = Invoice()
     >>> invoice.party = party
     >>> invoice.pos = pos
+    >>> invoice.pyafipws_concept = '1'
     >>> invoice.payment_term = payment_term
     >>> invoice.click('post')
     >>> invoice.state
@@ -417,6 +449,7 @@ Create some complex invoice and test its taxes base rounding::
     >>> invoice = Invoice()
     >>> invoice.party = party
     >>> invoice.pos = pos
+    >>> invoice.pyafipws_concept = '1'
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
     >>> line = invoice.lines.new()
@@ -439,17 +472,12 @@ Create some complex invoice and test its taxes base rounding::
     >>> found_invoice.id == invoice.id
     True
 
-Clear company tax_identifier::
-
-    >>> tax_identifier, = company.party.identifiers
-    >>> tax_identifier.type = None
-    >>> tax_identifier.save()
-
 Create a paid invoice::
 
     >>> invoice = Invoice()
     >>> invoice.party = party
     >>> invoice.pos = pos
+    >>> invoice.pyafipws_concept = '1'
     >>> invoice.payment_term = payment_term
     >>> line = invoice.lines.new()
     >>> line.product = product
@@ -461,7 +489,8 @@ Create a paid invoice::
     >>> pay.execute('choice')
     >>> pay.state
     'end'
-    >>> invoice.tax_identifier
+    >>> invoice.tax_identifier.type
+    'ar_cuit'
     >>> invoice.state
     'paid'
 
@@ -471,13 +500,15 @@ The invoice is posted when the reconciliation is deleted::
     >>> invoice.reload()
     >>> invoice.state
     'posted'
-    >>> invoice.tax_identifier
+    >>> invoice.tax_identifier.type
+    'ar_cuit'
 
 Credit invoice with non line lines::
 
     >>> invoice = Invoice()
     >>> invoice.party = party
     >>> invoice.pos = pos
+    >>> invoice.pyafipws_concept = '1'
     >>> invoice.payment_term = payment_term
     >>> line = invoice.lines.new()
     >>> line.product = product
