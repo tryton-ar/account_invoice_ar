@@ -418,13 +418,26 @@ Create a paid invoice::
     >>> line.product = product
     >>> line.quantity = 5
     >>> line.unit_price = Decimal('40')
+
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
+
+    >>> tax_identifier, = company.party.identifiers
+    >>> tax_identifier.type = 'ar_cuit'
+    >>> tax_identifier.save()
+
     >>> invoice.click('post')
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.state
     'end'
-    >>> invoice.tax_identifier
+    >>> invoice.tax_identifier.type
+    'ar_cuit'
     >>> invoice.state
     'paid'
 
@@ -434,7 +447,8 @@ The invoice is posted when the reconciliation is deleted::
     >>> invoice.reload()
     >>> invoice.state
     'posted'
-    >>> invoice.tax_identifier
+    >>> invoice.tax_identifier.type
+    'ar_cuit'
 
 Credit invoice with non line lines::
 
