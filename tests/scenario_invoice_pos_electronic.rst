@@ -521,3 +521,25 @@ Credit invoice with non line lines::
     >>> credit = Wizard('account.invoice.credit', [invoice])
     >>> credit.form.with_refund = True
     >>> credit.execute('credit')
+
+Post numbered/CAE invoice without move::
+
+    >>> invoice = Invoice()
+    >>> invoice.party = party
+    >>> invoice.pos = pos
+    >>> invoice.pyafipws_concept = '1'
+    >>> invoice.payment_term = payment_term
+    >>> invoice.number = '00001-00000312'
+    >>> invoice.pyafipws_cae = '11111111111111'
+    >>> invoice.invoice_date = today
+    >>> line = invoice.lines.new()
+    >>> line.product = product
+    >>> line.quantity = 5
+    >>> line.unit_price = Decimal('40')
+    >>> bool(invoice.move)
+    False
+    >>> invoice.click('post')
+    >>> invoice.state
+    'posted'
+    >>> bool(invoice.move)
+    True
