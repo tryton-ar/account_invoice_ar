@@ -1176,11 +1176,15 @@ class Invoice(metaclass=PoolMeta):
         imp_iva, imp_trib = self._get_imp_total_iva_and_trib(service)
         imp_op_ex = '0.00' # Exento TODO: issue#136
 
-        for line in self.lines:
-            if line.taxes:
-                imp_neto += abs(line.amount)
-            else:
-                imp_tot_conc += abs(line.amount)
+        if self.company.party.iva_condition in ['exento', 'monotributo']:
+            imp_neto = abs(self.untaxed_amount)
+            imp_tot_conc = Decimal('0')
+        else:
+            for line in self.lines:
+                if line.taxes:
+                    imp_neto += abs(line.amount)
+                else:
+                    imp_tot_conc += abs(line.amount)
 
         imp_neto = str('%.2f' % imp_neto)
         imp_tot_conc = str('%.2f' % imp_tot_conc)
