@@ -612,7 +612,7 @@ class Invoice(metaclass=PoolMeta):
                 kind = 'E'
         else:
             kind = 'C'
-            if self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
+            if self.party and self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
