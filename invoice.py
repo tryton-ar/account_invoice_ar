@@ -767,114 +767,108 @@ class Invoice(metaclass=PoolMeta):
     @Workflow.transition('posted')
     def post(cls, invoices):
         pool = Pool()
-        Move = pool.get('account.move')
         Pos = pool.get('account.pos')
         Date = pool.get('ir.date')
+        invoices_in = [i for i in invoices if i.type == 'in']
+        invoices_out = [i for i in invoices if i.type == 'out']
 
         invoices_wsfe = {}
         invoices_wsfe_to_recover = []
+        error_invoices = []
+        error_pre_afip_invoices = []
+        approved_invoices = []
         point_of_sales = Pos.search([
             ('pos_type', '=', 'electronic')
             ])
+
         for pos in point_of_sales:
             pos_number = str(pos.number)
             invoices_wsfe[pos_number] = {}
             for pos_sequence in pos.pos_sequences:
                 invoices_wsfe[pos_number][pos_sequence.invoice_type] = []
 
-        for invoice in invoices:
-            if invoice.type == 'out':
-                invoice.check_invoice_type()
-                if (invoice.pos and invoice.pos.pos_type == 'electronic' and
-                        invoice.pos.pyafipws_electronic_invoice_service ==
-                        'wsfe'):
-                    # web service == wsfe invoices go throw batch.
-                    if invoice.number and invoice.pyafipws_cae:
-                        invoices_wsfe_to_recover.append(invoice)
+        for invoice in invoices_out:
+            invoice.check_invoice_type()
+            if (invoice.pos and invoice.pos.pos_type == 'electronic' and
+                    invoice.pos.pyafipws_electronic_invoice_service ==
+                    'wsfe'):
+                # web service == wsfe invoices go throw batch.
+                if invoice.number and invoice.pyafipws_cae:
+                    invoices_wsfe_to_recover.append(invoice)
+                else:
+                    invoices_wsfe[str(invoice.pos.number)][
+                        invoice.invoice_type.invoice_type].append(invoice)
+                invoices_out.remove(invoice)
+
+        invoices_recover = cls.consultar_and_recover(invoices_wsfe_to_recover)
+
+        for invoice in invoices_out:
+            if invoice.pos:
+                if invoice.pos.pos_type == 'electronic':
+                    ws = cls.get_ws_afip(invoice)
+                    (ws, error) = invoice.create_pyafipws_invoice(ws,
+                        batch=False)
+                    (ws, msg) = invoice.request_cae(ws)
+                    if not invoice.process_afip_result(ws, msg=msg):
+                        error_invoices.append(invoice)
+                elif invoice.pos.pos_type == 'fiscal_printer':
+                    if invoice.pos.pos_daily_report:
+                        if not invoice.invoice_date:
+                            invoice.invoice_date = Date.today()
+                        invoice.number = '%05d-%08d:%d' % \
+                            (invoice.pos.number, int(invoice.ref_number_from),
+                             int(invoice.ref_number_to))
                     else:
-                        invoices_wsfe[str(invoice.pos.number)][
-                            invoice.invoice_type.invoice_type].append(invoice)
-                    invoices.remove(invoice)
+                        #TODO: Implement fiscal printer integration
+                        cls.fiscal_printer_invoice_post()
 
-        cls.consultar_and_recover(invoices_wsfe_to_recover)
-
-        moves = []
-        for invoice in invoices:
-            if invoice.type == 'out':
-                invoice.check_invoice_type()
-                if invoice.pos:
-                    if invoice.pos.pos_type == 'electronic':
-                        ws = cls.get_ws_afip(invoice)
-                        (ws, error) = invoice.create_pyafipws_invoice(ws,
-                            batch=False)
-                        (ws, msg) = invoice.request_cae(ws)
-                        result = invoice.process_afip_result(ws, msg=msg)
-                        Transaction().commit()
-                        if result is False:
-                            logger.error(
-                                'ErrorCAE: %s\nFactura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
-                                'XmlResponse: %s\n',
-                                    repr(msg.encode('ascii', 'ignore').strip()),
-                                    invoice.id, invoice.type, invoice.party.rec_name,
-                                    repr(ws.XmlRequest), repr(ws.XmlResponse))
-                            cls.raise_user_error('rejected_invoices', {
-                                'invoice': invoice.id,
-                                'msg': (
-                                    invoice.transactions[-1].pyafipws_message),
-                                #'party': invoice.party.rec_name,
-                                })
-                    elif invoice.pos.pos_type == 'fiscal_printer':
-                        if invoice.pos.pos_daily_report:
-                            if not invoice.invoice_date and invoice.type == 'out':
-                                invoice.invoice_date = Date.today()
-                            invoice.number = '%05d-%08d:%d' % \
-                                (invoice.pos.number, int(invoice.ref_number_from),
-                                 int(invoice.ref_number_to))
-                        else:
-                            #TODO: Implement fiscal printer integration
-                            cls.fiscal_printer_invoice_post()
-
-            cls.set_number([invoice])
-            move = invoice.get_move()
-            if move != invoice.move:
-                invoice.move = move
-                moves.append(move)
-            if invoice.state != 'posted':
-                invoice.state = 'posted'
-        if moves:
-            Move.save(moves)
-        cls.save(invoices)
-        Move.post([i.move for i in invoices if i.move.state != 'posted'])
-
-        error_invoices = []
         for pos, value_dict in list(invoices_wsfe.items()):
             for key, invoices_by_type in list(value_dict.items()):
-                (pre_rejected_invoice, rejected_invoice) = \
+                (approved_invoices, pre_rejected_invoice, rejected_invoice) = \
                     cls.post_wsfe([i for i in invoices_by_type
                             if not (i.pyafipws_cae and i.number)])
-                Transaction().commit()
+                if approved_invoices:
+                    invoices_out.extend(approved_invoices)
                 if rejected_invoice:
                     error_invoices.append(rejected_invoice)
-                elif pre_rejected_invoice:
-                    error_invoices.append(pre_rejected_invoice)
+                if pre_rejected_invoice:
+                    error_pre_afip_invoices.append(pre_rejected_invoice)
+        # invoices_out: pos manuales + pos WSFEXv1
+        # approved_invoices: invoices aceptadas en afip WSFEv1
+        # recover_invoices: invoices recuperadas y aceptadas por afip WSFEv1
+        if invoices_recover:
+            invoices_out.extend(invoices_recover)
+        if invoices_in:
+            invoices_out.extend(invoices_in)
+        super(Invoice, cls).post(invoices_out)
+        Transaction().commit()
         if error_invoices:
+            last_invoice = error_invoices[-1]
+            logger.error(
+                'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
+                'XmlResponse: %s\n',
+                last_invoice.id,
+                last_invoice.type, last_invoice.party.rec_name,
+                str(last_invoice.pyafipws_xml_request),
+                str(last_invoice.pyafipws_xml_response))
             cls.raise_user_error('rejected_invoices', {
                 'invoices': ','.join([str(i.id) for i in error_invoices]),
                 'msg': ','.join([i.transactions[-1].pyafipws_message for i \
                             in error_invoices if i.transactions]),
                 })
-
-        # Bug: https://github.com/tryton-ar/account_invoice_ar/issues/38
-        #for invoice in invoices:
-        #    if invoice.type == 'out':
-        #        invoice.print_invoice()
+        if error_pre_afip_invoices:
+            last_invoice = error_pre_afip_invoices[-1]
+            logger.error('Factura: %s, %s\nEntidad: %s', last_invoice.id,
+                last_invoice.type, last_invoice.party.rec_name)
+            cls.raise_user_error('rejected_invoices', {
+                'invoices': ','.join([str(i.id) for i in error_pre_afip_invoices]),
+                'msg': '',
+                })
 
     @classmethod
     def consultar_and_recover(cls, invoices):
         pool = Pool()
-        Move = pool.get('account.move')
         AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
-        moves = []
         for invoice in invoices:
             ws = cls.get_ws_afip(invoice=invoice)
             if not invoice.invoice_date:
@@ -889,21 +883,25 @@ class Invoice(metaclass=PoolMeta):
                 logger.info('se ha reprocesado invoice %s', invoice.id)
                 if not invoice.transactions:
                     invoice.save_afip_tr(ws, msg='Reprocesar=S')
-                move = invoice.get_move()
-                if move != invoice.move:
-                    invoice.move = move
-                    moves.append(move)
-                if invoice.state != 'posted':
-                    invoice.state = 'posted'
+                    tipo_cbte = invoice.invoice_type.invoice_type
+                    punto_vta = invoice.pos.number
+                    vto = ws.Vencimiento
+                    cae_due = ''.join([c for c in str(vto)
+                            if c.isdigit()])
+                    bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
+                            '%05d' % int(punto_vta), str(cae), cae_due])
+                    bars = bars + invoice.pyafipws_verification_digit_modulo10(bars)
+                    pyafipws_cae_due_date = vto or None
+                    if not '-' in vto:
+                        pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
+                    invoice.pyafipws_barcode = bars
+                    invoice.pyafipws_cae_due_date = pyafipws_cae_due_date
             else:
                 # raise error, los datos enviados no existen en AFIP.
                 logger.error('diferencias entre el comprobante %s '
                     'que tiene AFIP y el de tryton.', invoice.id)
                 cls.raise_user_error('reprocesar_invoice_dif')
-        if moves:
-            Move.save(moves)
-        cls.save(invoices)
-        Move.post([i.move for i in invoices if i.move.state != 'posted'])
+        return invoices
 
     @classmethod
     def fiscal_printer_invoice_post(cls, invoice=None):
@@ -986,10 +984,8 @@ class Invoice(metaclass=PoolMeta):
         Post batch invoices.
         '''
         if invoices == []:
-            return ([], [])
+            return ([], [], [])
 
-        Move = Pool().get('account.move')
-        moves = []
         ws = cls.get_ws_afip(batch=True)
         reg_x_req = ws.CompTotXRequest()    # cant max. comprobantes
         cant_invoices = len(invoices)
@@ -1057,20 +1053,7 @@ class Invoice(metaclass=PoolMeta):
                 cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
                 sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
 
-        for invoice in approved_invoices:
-            move = invoice.get_move()
-            if move != invoice.move:
-                invoice.move = move
-                moves.append(move)
-            if invoice.state != 'posted':
-                invoice.state = 'posted'
-        if moves:
-            Move.save(moves)
-        cls.save(invoices)
-        if moves:
-            Move.post([i.move for i in approved_invoices
-                if i.move.state != 'posted'])
-        return (pre_rejected_invoice, rejected_invoice)
+        return (approved_invoices, pre_rejected_invoice, rejected_invoice)
 
     def create_pyafipws_invoice(self, ws, batch=False):
         '''
