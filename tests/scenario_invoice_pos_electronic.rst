@@ -118,7 +118,7 @@ Create party::
     >>> Party = Model.get('party.party')
     >>> party = Party(name='Party')
     >>> party.iva_condition='responsable_inscripto'
-    >>> party.vat_number='33333333339'
+    >>> party.vat_number='30688555872'
     >>> party.save()
 
 Create party consumidor final::
@@ -192,6 +192,10 @@ Get CompUltimoAutorizado and configure sequences::
     >>> cbte_nro = int(wsfev1.CompUltimoAutorizado('6', pos.number))
     >>> invoice_types['6'].invoice_sequence.number_next = cbte_nro + 1
     >>> invoice_types['6'].invoice_sequence.save()
+
+    >>> cbte_nro = int(wsfev1.CompUltimoAutorizado('11', pos.number))
+    >>> invoice_types['11'].invoice_sequence.number_next = cbte_nro + 1
+    >>> invoice_types['11'].invoice_sequence.save()
 
 Create invoice::
 
@@ -592,3 +596,39 @@ Duplicate and test recover last posted invoice::
     >>> # invoice.transactions[-1].pyafipws_xml_request
     >>> # posted_invoice.transactions[-1].pyafipws_xml_response
     >>> # invoice.transactions[-1].pyafipws_xml_response
+
+Post wrong invoice, number and invoice_date should be None::
+
+    >>> company.party.iva_condition = 'monotributo'
+    >>> company.party.save()
+
+    >>> invoice = Invoice()
+    >>> invoice.party = party
+    >>> invoice.pos = pos
+    >>> invoice.invoice_type = pos
+    >>> invoice.invoice_type = invoice_types['11'] # Factura C
+    >>> invoice.pyafipws_concept = '1'
+    >>> invoice.payment_term = payment_term
+    >>> line = invoice.lines.new()
+    >>> line.product = product
+    >>> line.quantity = 5
+    >>> line.unit_price = Decimal('40')
+    >>> bool(invoice.move)
+    False
+    >>> invoice.state
+    'draft'
+    >>> invoice.number
+    >>> invoice.invoice_date
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
+    >>> bool(invoice.move)
+    False
+    >>> invoice.number
+    >>> invoice.invoice_date
+
+    >>> company.party.iva_condition = 'responsable_inscripto'
+    >>> company.party.save()
