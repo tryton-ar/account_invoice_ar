@@ -990,6 +990,7 @@ class Invoice(metaclass=PoolMeta):
         if invoices == []:
             return ([], [], [])
 
+        Date = Pool().get('ir.date')
         ws = cls.get_ws_afip(batch=True)
         reg_x_req = ws.CompTotXRequest()    # cant max. comprobantes
         cant_invoices = len(invoices)
@@ -1003,8 +1004,11 @@ class Invoice(metaclass=PoolMeta):
         # TODO: Add those validations to validate_invoice method.
         for invoice in invoices:
             # TODO: usar try/except
+            if not invoice.invoice_date:
+                invoice.invoice_date = Date.today()
             (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
             if error:
+                invoice.invoice_date = None
                 if pre_rejected_invoice is None:
                     pre_rejected_invoice = invoice
             else:
