@@ -642,6 +642,8 @@ class Invoice(metaclass=PoolMeta):
                     products['1'] += 1
                 if line.product.type == 'service':
                     products['2'] += 1
+            else:
+                products['2'] += 1
 
         if products['1'] != 0 and products['2'] != 0:
             self.pyafipws_concept = '3'
