@@ -789,6 +789,7 @@ class Invoice(metaclass=PoolMeta):
             for pos_sequence in pos.pos_sequences:
                 invoices_wsfe[pos_number][pos_sequence.invoice_type] = []
 
+        invoices_nowsfe = invoices_out.copy()
         for invoice in invoices_out:
             invoice.check_invoice_type()
             if (invoice.pos and invoice.pos.pos_type == 'electronic' and
@@ -800,11 +801,11 @@ class Invoice(metaclass=PoolMeta):
                 else:
                     invoices_wsfe[str(invoice.pos.number)][
                         invoice.invoice_type.invoice_type].append(invoice)
-                invoices_out.remove(invoice)
+                invoices_nowsfe.remove(invoice)
 
         invoices_recover = cls.consultar_and_recover(invoices_wsfe_to_recover)
 
-        for invoice in invoices_out:
+        for invoice in invoices_nowsfe:
             if invoice.pos:
                 if invoice.pos.pos_type == 'electronic':
                     ws = cls.get_ws_afip(invoice)
@@ -830,21 +831,21 @@ class Invoice(metaclass=PoolMeta):
                     cls.post_wsfe([i for i in invoices_by_type
                             if not (i.pyafipws_cae and i.number)])
                 if approved_invoices:
-                    invoices_out.extend(approved_invoices)
+                    invoices_nowsfe.extend(approved_invoices)
                 if rejected_invoice:
                     error_invoices.append(rejected_invoice)
                 if pre_rejected_invoice:
                     error_pre_afip_invoices.append(pre_rejected_invoice)
-        # invoices_out: pos manuales + pos WSFEXv1
+        # invoices_nowsfe: pos manuales + pos WSFEXv1
         # approved_invoices: invoices aceptadas en afip WSFEv1
         # recover_invoices: invoices recuperadas y aceptadas por afip WSFEv1
         if invoices_recover:
-            invoices_out.extend(invoices_recover)
+            invoices_nowsfe.extend(invoices_recover)
         if invoices_in:
-            invoices_out.extend(invoices_in)
+            invoices_nowsfe.extend(invoices_in)
         cls.save(invoices)
         Transaction().commit()
-        super(Invoice, cls).post(invoices_out)
+        super(Invoice, cls).post(invoices_nowsfe)
         if error_invoices:
             last_invoice = error_invoices[-1]
             logger.error(
