@@ -844,8 +844,8 @@ class Invoice(metaclass=PoolMeta):
         if invoices_in:
             invoices_nowsfe.extend(invoices_in)
         cls.save(invoices)
-        Transaction().commit()
         super(Invoice, cls).post(invoices_nowsfe)
+        Transaction().commit()
         if error_invoices:
             last_invoice = error_invoices[-1]
             logger.error(
