@@ -758,7 +758,6 @@ class Invoice:
         Date = pool.get('ir.date')
 
         invoices_wsfe = {}
-        invoices_no_wsfe = []
         point_of_sales = Pos.search([
             ('pos_type', '=', 'electronic')
             ])
@@ -768,6 +767,7 @@ class Invoice:
             for pos_sequence in pos.pos_sequences:
                 invoices_wsfe[pos_number][pos_sequence.invoice_type] = []
 
+        invoices_nowsfe = invoices.copy()
         for invoice in invoices:
             if invoice.type == 'out':
                 invoice.check_invoice_type()
@@ -777,10 +777,10 @@ class Invoice:
                     # web service == wsfe invoices go throw batch.
                     invoices_wsfe[str(invoice.pos.number)][
                         invoice.invoice_type.invoice_type].append(invoice)
-                    invoices.remove(invoice)
+                    invoices_nowsfe.remove(invoice)
 
         moves = []
-        for invoice in invoices:
+        for invoice in invoices_nowsfe:
             if invoice.type == 'out':
                 invoice.check_invoice_type()
                 if invoice.pos:
