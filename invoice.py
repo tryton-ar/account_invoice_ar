@@ -945,6 +945,7 @@ class Invoice(metaclass=PoolMeta):
             cls.raise_user_error('webservice_not_supported', service)
 
         ws = cls.conect_afip(ws, WSDL, company.party.vat_number, auth_data)
+        ws.Reprocesar = False
         return ws
 
     @classmethod
