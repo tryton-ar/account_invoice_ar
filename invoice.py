@@ -1165,7 +1165,7 @@ class Invoice(metaclass=PoolMeta):
             elif ws.Reprocesar:
                 last_payment = self.invoice_date
             else:
-                last_payment = date.today()
+                last_payment = Date.today()
             fecha_venc_pago = last_payment.strftime('%Y-%m-%d')
             if service != 'wsmtxca':
                 fecha_venc_pago = fecha_venc_pago.replace('-', '')
