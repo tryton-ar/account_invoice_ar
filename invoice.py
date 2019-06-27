@@ -840,8 +840,9 @@ class Invoice(metaclass=PoolMeta):
             invoices_out.extend(invoices_recover)
         if invoices_in:
             invoices_out.extend(invoices_in)
-        super(Invoice, cls).post(invoices_out)
+        cls.save(invoices)
         Transaction().commit()
+        super(Invoice, cls).post(invoices_out)
         if error_invoices:
             last_invoice = error_invoices[-1]
             logger.error(
