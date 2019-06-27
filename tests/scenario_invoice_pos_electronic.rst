@@ -632,3 +632,31 @@ Post wrong invoice, number and invoice_date should be None::
 
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
+
+Without CAE but with number will post. If error, raise and number set to None::
+
+    >>> invoice = Invoice()
+    >>> invoice.party = party
+    >>> invoice.pos = pos
+    >>> invoice.pyafipws_concept = '1'
+    >>> invoice.payment_term = payment_term
+    >>> invoice.number = '04000-00000312'
+    >>> invoice.invoice_date = today
+    >>> line = invoice.lines.new()
+    >>> line.product = product
+    >>> line.quantity = 5
+    >>> line.unit_price = Decimal('40')
+    >>> bool(invoice.move)
+    False
+    >>> invoice.state
+    'draft'
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
+    >>> bool(invoice.move)
+    False
+    >>> invoice.invoice_date
+    >>> invoice.number
