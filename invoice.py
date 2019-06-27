@@ -852,8 +852,8 @@ class Invoice(metaclass=PoolMeta):
                 'XmlResponse: %s\n',
                 last_invoice.id,
                 last_invoice.type, last_invoice.party.rec_name,
-                str(last_invoice.pyafipws_xml_request),
-                str(last_invoice.pyafipws_xml_response))
+                str(last_invoice.transactions[-1].pyafipws_xml_request),
+                str(last_invoice.transactions[-1].pyafipws_xml_response))
             cls.raise_user_error('rejected_invoices', {
                 'invoices': ','.join([str(i.id) for i in error_invoices]),
                 'msg': ','.join([i.transactions[-1].pyafipws_message for i \
