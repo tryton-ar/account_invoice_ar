@@ -1246,7 +1246,7 @@ class Invoice(metaclass=PoolMeta):
         else:
             moneda_id = {'USD': 'DOL', 'EUR': '060'}[self.currency.code]
 
-        moneda_ctz = str('%.2f' % ctz)
+        moneda_ctz = "{:.{}f}".format(ctz, 6)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
