@@ -1582,14 +1582,13 @@ class InvoiceReport(metaclass=PoolMeta):
 
     @classmethod
     def get_line_amount(cls, line_amount, line_taxes):
-        total = abs(line_amount)
-        taxes = cls.get_line_taxes(line_taxes)
-        for tax in taxes:
-            if tax.tax.rate:
-                total = total + (line_amount * tax.tax.rate)
-            elif tax.tax.amount:
-                total = total + abs(tax.tax.amount)
-        return total
+        amount = abs(line_amount)
+        Tax = Pool().get('account.tax')
+        line_taxes = cls.get_line_taxes(line_taxes)
+        for line_tax in line_taxes:
+            values, = Tax.compute([line_tax.tax], abs(amount), 1)
+            amount = values['amount'] + values['base']
+        return amount
 
     @classmethod
     def get_subtotal(cls, invoice):
