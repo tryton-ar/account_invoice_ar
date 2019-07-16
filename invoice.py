@@ -767,7 +767,7 @@ class Invoice:
             for pos_sequence in pos.pos_sequences:
                 invoices_wsfe[pos_number][pos_sequence.invoice_type] = []
 
-        invoices_nowsfe = invoices.copy()
+        invoices_nowsfe = list(invoices)
         for invoice in invoices:
             if invoice.type == 'out':
                 invoice.check_invoice_type()
