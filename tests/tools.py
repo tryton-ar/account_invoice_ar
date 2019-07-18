@@ -34,7 +34,10 @@ def create_pos(company=None, type='manual', number=1, ws=None, config=None):
             ('8', '08-Nota de Credito B'),
             ('11', '11-Factura C'),
             ('12', '12-Nota de Debito C'),
-            ('13', '13-Nota de Credito C')):
+            ('13', '13-Nota de Credito C'),
+            ('19', '19-Factura E'),
+            ('20', '20-Nota de Débito E'),
+            ('21', '21-Nota de Crédito E')):
         sequence = Sequence(
             name='%s %s' % (name, type),
             code='account.invoice',
