@@ -257,6 +257,9 @@ Post invoice::
     >>> invoice.click('post')
     >>> invoice.state
     'posted'
+    >>> # invoice.pyafipws_cae
+    >>> # invoice.transactions[0].pyafipws_xml_request
+    >>> # invoice.transactions[0].pyafipws_xml_response
     >>> invoice.tax_identifier.code
     '30710158254'
     >>> invoice.untaxed_amount
@@ -306,6 +309,9 @@ Credit invoice with refund::
     ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
     >>> credit_note.state
     'paid'
+    >>> # credit_note.pyafipws_cae
+    >>> # credit_note.transactions[0].pyafipws_xml_request
+    >>> # credit_note.transactions[0].pyafipws_xml_response
     >>> credit_note.untaxed_amount == -invoice.untaxed_amount
     True
     >>> credit_note.tax_amount == -invoice.tax_amount
@@ -345,7 +351,9 @@ Test post without point of sale::
 
     >>> invoice, = invoice.duplicate()
     >>> invoice.pyafipws_concept
-    '1'
+    '2'
+    >>> invoice.pyafipws_incoterms
+    'FOB'
     >>> invoice.pyafipws_cae
     >>> invoice.pyafipws_cae_due_date
     >>> invoice.pos
@@ -379,6 +387,7 @@ Test post when clear tax_identifier type::
 Pay invoice::
 
     >>> invoice.pos = pos
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.click('post')
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
@@ -437,6 +446,7 @@ Create empty invoice::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
     >>> invoice.click('post')
     >>> invoice.state
@@ -448,6 +458,7 @@ Create some complex invoice and test its taxes base rounding::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
     >>> line = invoice.lines.new()
@@ -476,6 +487,7 @@ Create a paid invoice::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
     >>> line = invoice.lines.new()
     >>> line.product = product
@@ -507,6 +519,7 @@ Credit invoice with non line lines::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
     >>> line = invoice.lines.new()
     >>> line.product = product
@@ -526,8 +539,9 @@ Post wrong numbered/CAE invoice without move::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
-    >>> invoice.number = '04000-00000312'
+    >>> invoice.number = '05000-00000312'
     >>> invoice.pyafipws_cae = '11111111111111'
     >>> invoice.invoice_date = today
     >>> line = invoice.lines.new()
@@ -551,7 +565,7 @@ Duplicate and test recover last posted invoice::
 
     >>> posted_invoice = Invoice.find([
     ...     ('type', '=', 'out'), ('state', '=', 'posted')])[0]
-    >>> last_cbte_nro = int(wsfexv1.CompUltimoAutorizado('1', pos.number))
+    >>> last_cbte_nro = int(wsfexv1.GetLastCMP('19', pos.number))
     >>> invoice, = invoice.duplicate()
     >>> invoice.pyafipws_concept
     '1'
@@ -560,6 +574,7 @@ Duplicate and test recover last posted invoice::
     >>> invoice.pos = posted_invoice.pos
     >>> invoice.invoice_type = posted_invoice.invoice_type
     >>> invoice.number = posted_invoice.number
+    >>> invoice.pyafipws_incoterms = posted_invoice.pyafipws_incoterms
     >>> invoice.transactions
     []
     >>> invoice.save()
@@ -600,8 +615,9 @@ Post wrong invoice, number and invoice_date should be None::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.invoice_type = pos
-    >>> invoice.invoice_type = invoice_types['11'] # Factura C
+    >>> # invoice.invoice_type = invoice_types['19'] # Factura E
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
     >>> line = invoice.lines.new()
     >>> line.product = product
@@ -633,8 +649,9 @@ Without CAE but with number will post. If error, raise and number set to None::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
+    >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
-    >>> invoice.number = '04000-00000312'
+    >>> invoice.number = '05000-00000312'
     >>> invoice.invoice_date = today
     >>> line = invoice.lines.new()
     >>> line.product = product
