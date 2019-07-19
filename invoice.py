@@ -963,7 +963,8 @@ class Invoice:
                 ws.AutorizarComprobante()
                 vto = ws.Vencimiento
             elif service == 'wsfex':
-                ws.Authorize(self.id)
+                wsfex_id = ws.GetLastID() + 1
+                ws.Authorize(wsfex_id)
                 vto = ws.FchVencCAE
         #except SoapFault as fault:
         #    msg = 'Falla SOAP %s: %s' % (fault.faultcode, fault.faultstring)
