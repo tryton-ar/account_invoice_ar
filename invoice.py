@@ -1350,7 +1350,8 @@ class Invoice:
             elif service == 'wsmtxca':
                 ws.AutorizarComprobante()
             elif service == 'wsfex':
-                ws.Authorize(self.id)
+                wsfex_id = ws.GetLastID() + 1
+                ws.Authorize(wsfex_id)
         except Exception as e:
             if ws.Excepcion:
                 # get the exception already parsed by the helper
