@@ -589,10 +589,7 @@ class Invoice:
                 res['pyafipws_billing_end_date'] = (
                     self.pyafipws_billing_end_date)
 
-        if self.type[:3] == 'out':
-            res['description'] = 'Ref. Nro. %s' % self.number
-        else:
-            res['description'] = 'Ref. Nro. %s' % self.reference
+        res['reference'] = self.number
 
         return res
 
@@ -996,6 +993,11 @@ class Invoice:
                     ws.AgregarPermiso(
                         export_license.license_id,
                         export_license.afip_country.code)
+                if int(tipo_cbte) in (20, 21):
+                    cbteasoc_tipo = 19
+                    cbteasoc_nro = int(self.reference[-8:])
+                    ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
+                        cbteasoc_nro, self.company.party.tax_identifier.code)
 
         # Request the authorization! (call the AFIP webservice method)
         try:
