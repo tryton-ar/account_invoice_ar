@@ -1379,7 +1379,7 @@ class Invoice(metaclass=PoolMeta):
                     codigo = line.product.code
                 else:
                     codigo = 0
-                ds = strip_accents(line.description)
+                ds = strip_accents(line.description or '-')
                 qty = abs(line.quantity)
                 umed = 7  # FIXME: (7 - unit)
                 precio = str(line.unit_price)
