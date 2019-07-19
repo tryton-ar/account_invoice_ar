@@ -663,8 +663,7 @@ class Invoice:
             credit.pyafipws_incoterms = self.pyafipws_incoterms
             credit.pyafipws_licenses = self.pyafipws_licenses
 
-        ref_number = self.number if self.type == 'out' else self.reference
-        credit.description = 'Ref. Nro. %s' % ref_number
+        credit.reference = '%s' % self.number
         return credit
 
     def get_next_number(self, pattern=None):
@@ -1302,6 +1301,11 @@ class Invoice:
                     ws.AgregarPermiso(
                         export_license.license_id,
                         export_license.afip_country.code)
+                if int(tipo_cbte) in (20, 21):
+                    cbteasoc_tipo = 19
+                    cbteasoc_nro = int(self.reference[-8:])
+                    ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
+                        cbteasoc_nro, self.company.party.tax_identifier.code)
         return (ws, False)
 
     def request_cae(self, ws):
