@@ -823,8 +823,8 @@ class Invoice:
                 invoice.state = 'posted'
         if moves:
             Move.save(moves)
-        cls.save(invoices)
-        Move.post([i.move for i in invoices if i.move.state != 'posted'])
+        cls.save(invoices_nowsfe)
+        Move.post([i.move for i in invoices_nowsfe if i.move.state != 'posted'])
 
         error_invoices = []
         for pos, value_dict in invoices_wsfe.iteritems():
