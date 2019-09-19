@@ -104,10 +104,10 @@ def set_afip_certs(company=None, config=None):
     "Set AFIP certificates"
     if not company:
         company = get_company()
-    with file_open('account_invoice_ar/tests/reingart.crt', mode='rb') as fp:
+    with file_open('account_invoice_ar/tests/gcoop.crt', mode='rb') as fp:
         crt = fp.read()
         company.pyafipws_certificate = crt.decode('utf8')
-    with file_open('account_invoice_ar/tests/reingart.key', mode='rb') as fp:
+    with file_open('account_invoice_ar/tests/gcoop.key', mode='rb') as fp:
         key = fp.read()
         company.pyafipws_private_key = key.decode('utf8')
     company.pyafipws_mode_cert = 'homologacion'
