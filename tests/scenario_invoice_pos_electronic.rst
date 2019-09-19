@@ -35,7 +35,7 @@ Create company::
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
     >>> tax_identifier.type = 'ar_cuit'
-    >>> tax_identifier.code = '20267565393' # reingart CUIT
+    >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
 
@@ -250,7 +250,7 @@ Post invoice::
     >>> invoice.state
     'posted'
     >>> invoice.tax_identifier.code
-    '20267565393'
+    '30710158254'
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
