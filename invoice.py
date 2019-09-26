@@ -17,7 +17,7 @@ from unicodedata import normalize
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
 from trytond.tools import cursor_dict
-from trytond.pyson import Eval, And, If
+from trytond.pyson import Eval, And, If, Bool
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
@@ -26,7 +26,7 @@ from . import afip_auth
 logger = logging.getLogger(__name__)
 
 __all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
-    'InvoiceReport']
+    'InvoiceReport', 'CreditInvoiceStart', 'CreditInvoice']
 
 _STATES = {
     'readonly': Eval('state') != 'draft',
@@ -59,14 +59,20 @@ IVA_AFIP_CODE.update({
     })
 
 INVOICE_TYPE_AFIP_CODE = {
-        ('out', False, 'A'): ('1', '01-Factura A'),
-        ('out', False, 'B'): ('6', '06-Factura B'),
-        ('out', False, 'C'): ('11', '11-Factura C'),
-        ('out', False, 'E'): ('19', '19-Factura E'),
-        ('out', True, 'A'): ('3', '03-Nota de Cŕedito A'),
-        ('out', True, 'B'): ('8', '08-Nota de Cŕedito B'),
-        ('out', True, 'C'): ('13', '08-Nota de Cŕedito C'),
-        ('out', True, 'E'): ('21', '08-Nota de Cŕedito E'),
+        ('out', False, 'A', False): ('1', '01-Factura A'),
+        ('out', False, 'A', True): ('201', '201-Factura de Crédito MiPyme A'),
+        ('out', False, 'B', False): ('6', '06-Factura B'),
+        ('out', False, 'B', True): ('206', '206-Factura de Crédito MiPyme B'),
+        ('out', False, 'C', False): ('11', '11-Factura C'),
+        ('out', False, 'B', True): ('211', '211-Factura de Crédito MiPyme C'),
+        ('out', False, 'E', False): ('19', '19-Factura E'),
+        ('out', True, 'A', False): ('3', '03-Nota de Cŕedito A'),
+        ('out', True, 'A', True): ('203', '203-Factura de Crédito MiPyme A'),
+        ('out', True, 'B', False): ('8', '08-Nota de Cŕedito B'),
+        ('out', True, 'B', True): ('208', '208-Factura de Crédito MiPyme B'),
+        ('out', True, 'C', False): ('13', '13-Nota de Cŕedito C'),
+        ('out', True, 'C', True): ('213', '213-Factura de Crédito MiPyme C'),
+        ('out', True, 'E', False): ('21', '21-Nota de Cŕedito E'),
         }
 INVOICE_CREDIT_AFIP_CODE = {
         '1': ('3', '03-Nota de Crédito A'),
@@ -91,8 +97,14 @@ INVOICE_CREDIT_AFIP_CODE = {
         '111': ('114','114-Tique Nota de Credito C'),
         '118': ('119','119-Tique Nota de Credito M'),
         '201': ('203','203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+        '202': ('203','203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+        '203': ('202','202-Nota de Debito Electronica MiPyMEs (FCE) A'),
         '206': ('208','208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+        '207': ('208','208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+        '208': ('207','207-Nota de Debito Electronica MiPyMEs (FCE) B'),
         '211': ('213','213- Nota de Credito Electronica MiPyMEs (FCE) C'),
+        '212': ('213','213- Nota de Credito Electronica MiPyMEs (FCE) C'),
+        '213': ('212','212- Nota de Debito Electronica MiPyMEs (FCE) C'),
         }
 
 INCOTERMS = [
@@ -240,8 +252,9 @@ class Invoice(metaclass=PoolMeta):
         domain=[('pos', '=', Eval('pos')),
             ('invoice_type', 'in',
                 If(Eval('total_amount', -1) >= 0,
-                    ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15', '19'],
-                    ['3', '8', '13', '21']),
+                    ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15',
+                        '19', '201', '202', '206', '207', '211', '212'],
+                    ['3', '8', '13', '21', '203', '208', '213']),
                 )],
         states=_POS_STATES, depends=_DEPENDS + ['pos','invoice_type',
             'total_amount'])
@@ -251,7 +264,7 @@ class Invoice(metaclass=PoolMeta):
     pyafipws_concept = fields.Selection([
         ('1', '1-Productos'),
         ('2', '2-Servicios'),
-        ('3', '3-Productos y Servicios (mercado interno)'),
+        ('3', '3-Productos y Servicios'),
         ('4', '4-Otros (exportación)'),
         ('', ''),
         ], 'Concepto', select=True, depends=['state'], states={
@@ -314,6 +327,19 @@ class Invoice(metaclass=PoolMeta):
         ], 'Condicion ante IVA', states=_STATES, depends=_DEPENDS)
     party_iva_condition_string = party_iva_condition.translated(
         'party_iva_condition')
+    pyafipws_cbu = fields.Many2One('bank.account', 'CBU del Emisor',
+        states=_STATES,
+        domain=[
+            ('owners', '=', Eval('company_party')),
+            ('numbers.type', '=', 'cbu'),
+            ],
+        context={
+            'owners': Eval('company_party'),
+            'numbers.type': 'cbu',
+            },
+        depends=_DEPENDS + ['company_party'])
+    pyafipws_anulacion = fields.Boolean('FCE Anulación', states=_STATES,
+        depends=_DEPENDS)
 
     @classmethod
     def __setup__(cls):
@@ -382,7 +408,10 @@ class Invoice(metaclass=PoolMeta):
             'invalid_ref_number':
                 'The value "%(ref_value)s" is not a number.',
             'invalid_ref_from_to':
-                '"From number" must be smaller than "To number"'
+                '"From number" must be smaller than "To number"',
+            'fce_10168_cbu_emisor':
+                'Si el tipo de comprobante es MiPyme (FCE) es obligatorio '
+                'informar CBU.',
             })
 
     @classmethod
@@ -405,6 +434,11 @@ class Invoice(metaclass=PoolMeta):
     @staticmethod
     def default_party_iva_condition():
         return ''
+
+    @staticmethod
+    def default_pyafipws_anulacion():
+        return False
+
     def on_change_party(self):
         super(Invoice, self).on_change_party()
 
@@ -415,6 +449,17 @@ class Invoice(metaclass=PoolMeta):
     def on_change_with_pos_pos_daily_report(self, name=None):
         if self.pos:
             return self.pos.pos_daily_report
+
+    def get_pyafipws_cbu(self):
+        "Return the cbu to send afip"
+        for bank_account in self.company.party.bank_accounts:
+            if bank_account.pyafipws_cbu:
+                return bank_account.id
+
+    @fields.depends('company', 'type')
+    def on_change_with_pyafipws_cbu(self, name=None):
+        if self.company and self.type == 'out':
+            return self.get_pyafipws_cbu()
 
     @classmethod
     def order_invoice_type_tree(cls, tables):
@@ -609,7 +654,7 @@ class Invoice(metaclass=PoolMeta):
 
         PosSequence = Pool().get('account.pos.sequence')
         client_iva = company_iva = None
-        credit_note = False
+        fce = credit_note = False
 
         if self.party:
             client_iva = self.party.iva_condition
@@ -635,8 +680,12 @@ class Invoice(metaclass=PoolMeta):
             if self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
                 kind = 'E'
 
+        if (kind != 'E' and self.party.pyafipws_fce and
+                abs(total_amount) >= self.party.pyafipws_fce_amount):
+            fce = True
+
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
-            (self.type, credit_note, kind)
+            (self.type, credit_note, kind, fce)
             ]
         sequences = PosSequence.search([
             ('pos', '=', self.pos),
@@ -825,9 +874,10 @@ class Invoice(metaclass=PoolMeta):
         invoices_nowsfe = invoices_out.copy()
         for invoice in invoices_out:
             invoice.check_invoice_type()
-            if (invoice.pos and invoice.pos.pos_type == 'electronic' and
-                    invoice.pos.pyafipws_electronic_invoice_service ==
-                    'wsfe'):
+            if (invoice.pos and invoice.pos.pos_type == 'electronic'
+                    and invoice.pos.pyafipws_electronic_invoice_service == 'wsfe'
+                    and invoice.invoice_type.invoice_type not in
+                    ['201', '202', '206', '211', '212', '203', '208', '213']):
                 # web service == wsfe invoices go throw batch.
                 if invoice.number and invoice.pyafipws_cae:
                     invoices_wsfe_to_recover.append(invoice)
@@ -1196,8 +1246,9 @@ class Invoice(metaclass=PoolMeta):
 
         # due and billing dates only for concept 'services'
         concepto = tipo_expo = int(self.pyafipws_concept or 0)
-        if int(concepto) != 1:
-
+        fecha_venc_pago = fecha_serv_desde = fecha_serv_hasta = None
+        if (int(concepto) in (2, 3) or
+                self.invoice_type.invoice_type in ('201', '206', '211')):
             payments = []
             if self.payment_term:
                 payments = self.payment_term.compute(self.total_amount,
@@ -1211,22 +1262,18 @@ class Invoice(metaclass=PoolMeta):
             fecha_venc_pago = last_payment.strftime('%Y-%m-%d')
             if service != 'wsmtxca':
                 fecha_venc_pago = fecha_venc_pago.replace('-', '')
+
+        if int(concepto) != 1:
             if self.pyafipws_billing_start_date:
                 fecha_serv_desde = self.pyafipws_billing_start_date.strftime(
                     '%Y-%m-%d')
                 if service != 'wsmtxca':
                     fecha_serv_desde = fecha_serv_desde.replace('-', '')
-            else:
-                fecha_serv_desde = None
             if self.pyafipws_billing_end_date:
                 fecha_serv_hasta = self.pyafipws_billing_end_date.strftime(
                     '%Y-%m-%d')
                 if service != 'wsmtxca':
                     fecha_serv_hasta = fecha_serv_hasta.replace('-', '')
-            else:
-                fecha_serv_hasta = None
-        else:
-            fecha_venc_pago = fecha_serv_desde = fecha_serv_hasta = None
 
         # customer tax number:
         nro_doc = None
@@ -1363,6 +1410,39 @@ class Invoice(metaclass=PoolMeta):
 
         # analyze VAT (IVA) and other taxes (tributo):
         if service in ('wsfe', 'wsmtxca'):
+            if (self.invoice_type.invoice_type in ('201', '202','203',
+                    '206', '207', '208', '211', '212', '213')):
+                if self.invoice_type.invoice_type in ('201', '206', '211'):
+                    self.pyafipws_cbu = self.pyafipws_cbu or self.get_pyafipws_cbu()
+                    if not self.pyafipws_cbu:
+                        self.raise_user_error('fce_10168_cbu_emisor')
+                    ws.AgregarOpcional(2101, self.pyafipws_cbu.get_cbu_number())  # CBU
+                    # ws.AgregarOpcional(2102, "tryton")  # alias del cbu
+                if self.invoice_type.invoice_type in ('202', '203', '207',
+                        '208', '212', '213'):
+                    if Transaction().context.get('pyafipws_anulacion', False):
+                        ws.AgregarOpcional(22, 'S')
+                    else:
+                        ws.AgregarOpcional(22, 'N')
+            if (self.invoice_type.invoice_type in ('2', '3', '7', '8', '12',
+                    '13', '202', '203', '207', '208', '212', '213')):
+                cbteasoc_tipo, _ = INVOICE_CREDIT_AFIP_CODE[
+                    (self.invoice_type.invoice_type)
+                    ]
+                cbteasoc_tipo = int(cbteasoc_tipo) - 1
+                cbteasoc_nro = int(self.reference[-8:])
+                cbteasoc, = self.search([
+                        ('number', '=', self.reference),
+                        ('invoice_type.invoice_type', '=', str(cbteasoc_tipo)),
+                        ('state', 'in', ['posted', 'paid']),
+                        ])
+                cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime('%Y-%m-%d')
+                if service != 'wsmtxca':
+                    cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-', '')
+                ws.AgregarCmpAsoc(tipo=cbteasoc_tipo, pto_vta=punto_vta,
+                    nro=cbteasoc_nro, cuit=self.company.party.tax_identifier.code,
+                    fecha=cbteasoc_fecha_cbte)
+
             for tax_line in self.taxes:
                 tax = tax_line.tax
                 if tax.group is None:
@@ -1727,21 +1807,18 @@ class InvoiceReport(metaclass=PoolMeta):
 
     @classmethod
     def _get_nombre_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type'):
-            return dict(invoice.invoice_type._fields[
-                'invoice_type'].selection)[
-                invoice.invoice_type.invoice_type][3:-2]
+        if hasattr(invoice.invoice_type, 'invoice_type_string'):
+            return invoice.invoice_type.rec_name
         else:
             return ''
 
     @classmethod
     def _get_codigo_comprobante(cls, Invoice, invoice):
         if hasattr(invoice.invoice_type, 'invoice_type'):
-            return dict(invoice.invoice_type._fields[
-                'invoice_type'].selection)[
-                invoice.invoice_type.invoice_type][:2]
+            return invoice.invoice_type.invoice_type
         else:
             return ''
+
     @classmethod
     def _get_vat_number(cls, company):
         value = company.party.vat_number
@@ -1784,3 +1861,48 @@ class InvoiceReport(metaclass=PoolMeta):
         image = (output.getvalue(), 'image/jpeg')
         output.close()
         return image
+
+class CreditInvoiceStart(metaclass=PoolMeta):
+    __name__ = 'account.invoice.credit.start'
+    from_fce = fields.Boolean('From FCE', readonly=True)
+    pyafipws_anulacion = fields.Boolean('Anulación',
+        states={
+            'invisible': ~Bool(Eval('from_fce')),
+            },
+        depends=['from_fce'],
+        help='If true, the FCE was anulled from the customer.')
+
+    @classmethod
+    def view_attributes(cls):
+        states = {'invisible': ~Bool(Eval('from_fce'))}
+        return [
+            ('/form//image[@name="tryton-dialog-warning"]', 'states', states),
+            ('/form//label[@id="credit_contract"]', 'states', states),
+            ]
+
+
+class CreditInvoice(metaclass=PoolMeta):
+    __name__ = 'account.invoice.credit'
+
+    def default_start(self, fields):
+        Invoice = Pool().get('account.invoice')
+
+        default = super(CreditInvoice, self).default_start(fields)
+        default.update({
+            'from_fce': False,
+            'pyafipws_anulacion': False,
+            })
+        for invoice in Invoice.browse(Transaction().context['active_ids']):
+            if (invoice.type == 'out' and invoice.invoice_type.invoice_type in
+                    ('201', '206', '211')):
+                default['from_fce'] = True
+                break
+        return default
+
+    def do_credit(self, action):
+        Invoice = Pool().get('account.invoice')
+
+        with Transaction().set_context(
+                pyafipws_anulacion=self.start.pyafipws_anulacion):
+            action, data = super(CreditInvoice, self).do_credit(action)
+        return action, data

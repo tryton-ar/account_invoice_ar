@@ -42,6 +42,8 @@ requires = []
 for dep in info.get('depends', []):
     if dep == 'party_ar':
         requires.append(get_require_version('trytonar_%s' % dep))
+    elif dep == 'bank_ar':
+        requires.append(get_require_version('trytonar_%s' % dep))
     elif not re.match(r'(ir|res)(\W|$)', dep):
         requires.append(get_require_version('trytond_%s' % dep))
 requires.append(get_require_version('trytond'))
@@ -53,9 +55,11 @@ requires.append('pyafipws')
 requires.append('pysimplesoap')
 #requires.append('suds>=0.4')
 
-tests_require = [get_require_version('proteus')]
+tests_require = [get_require_version('proteus'), 'pytz']
 dependency_links = [
     'https://github.com/tryton-ar/party_ar/tarball/%s.%s#egg=trytonar_party_ar-%s.%s' \
+        % (major_version, minor_version, major_version, minor_version),
+    'https://github.com/tryton-ar/bank_ar/tarball/%s.%s#egg=trytonar_bank_ar-%s.%s' \
         % (major_version, minor_version, major_version, minor_version),
     'https://github.com/reingart/pyafipws/tarball/py3k#egg=pyafipws',
     'https://github.com/pysimplesoap/pysimplesoap/tarball/stable_py3k#egg=pysimplesoap',
@@ -64,7 +68,7 @@ dependency_links = [
 setup(name=name,
     version=version,
     description=('Tryton module to add account invoice (electronic/manual) '
-        'localizacion for Argentina (AFIP)'),
+        'localization for Argentina (AFIP)'),
     long_description=read('README'),
     author='tryton-ar',
     url='https://github.com/tryton-ar/account_invoice_ar',

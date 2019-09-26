@@ -6,6 +6,10 @@ from trytond.pool import Pool
 from . import invoice
 from . import company
 from . import pos
+from . import bank
+from . import party
+
+__all__ = ['register']
 
 
 def register():
@@ -14,9 +18,15 @@ def register():
         pos.PosSequence,
         invoice.Invoice,
         invoice.InvoiceExportLicense,
+        invoice.CreditInvoiceStart,
         company.Company,
         invoice.AfipWSTransaction,
+        bank.BankAccount,
+        party.Party,
         module='account_invoice_ar', type_='model')
+    Pool.register(
+        invoice.CreditInvoice,
+        module='account_invoice_ar', type_='wizard')
     Pool.register(
         invoice.InvoiceReport,
         module='account_invoice_ar', type_='report')
