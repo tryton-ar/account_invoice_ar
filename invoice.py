@@ -1379,26 +1379,27 @@ class Invoice(metaclass=PoolMeta):
         #     RECEX_Parameter_Tables
         if service in ('wsfex', 'wsmtxca'):
             for line in self.lines:
-                if line.product:
-                    codigo = line.product.code
-                else:
-                    codigo = 0
-                ds = strip_accents(line.description or '-')
-                qty = abs(line.quantity)
-                umed = 7  # FIXME: (7 - unit)
-                precio = str(line.unit_price)
-                importe_total = str(abs(line.amount))
-                bonif = None  # line.discount
-                #for tax in line.taxes:
-                #    if tax.group.name == 'IVA':
-                #        iva_id = IVA_AFIP_CODE[tax.rate]
-                #        imp_iva = importe * tax.rate
-                #if service == 'wsmtxca':
-                #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
-                #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
-                if service == 'wsfex':
-                    ws.AgregarItem(codigo, ds, qty, umed, precio,
-                        importe_total, bonif)
+                if line.type == 'line':
+                    if line.product:
+                        codigo = line.product.code
+                    else:
+                        codigo = 0
+                    ds = strip_accents(line.description or '-')
+                    qty = abs(line.quantity)
+                    umed = 7  # FIXME: (7 - unit)
+                    precio = line.unit_price
+                    importe_total = abs(line.amount)
+                    bonif = None  # line.discount
+                    #for tax in line.taxes:
+                    #    if tax.group.name == 'IVA':
+                    #        iva_id = IVA_AFIP_CODE[tax.rate]
+                    #        imp_iva = importe * tax.rate
+                    #if service == 'wsmtxca':
+                    #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
+                    #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
+                    if service == 'wsfex':
+                        ws.AgregarItem(codigo, ds, qty, umed, precio,
+                            importe_total, bonif)
 
             if service == 'wsfex':
                 for export_license in self.pyafipws_licenses:
