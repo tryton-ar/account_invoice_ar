@@ -533,34 +533,6 @@ Credit invoice with non line lines::
     >>> credit.form.with_refund = True
     >>> credit.execute('credit')
 
-Post wrong numbered/CAE invoice without move::
-
-    >>> invoice = Invoice()
-    >>> invoice.party = party
-    >>> invoice.pos = pos
-    >>> invoice.pyafipws_concept = '1'
-    >>> invoice.pyafipws_incoterms = 'FOB'
-    >>> invoice.payment_term = payment_term
-    >>> invoice.number = '05000-00000312'
-    >>> invoice.pyafipws_cae = '11111111111111'
-    >>> invoice.invoice_date = today
-    >>> line = invoice.lines.new()
-    >>> line.product = product
-    >>> line.quantity = 5
-    >>> line.unit_price = Decimal('40')
-    >>> bool(invoice.move)
-    False
-    >>> invoice.state
-    'draft'
-    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    UserError: ...
-    >>> invoice.state
-    'draft'
-    >>> bool(invoice.move)
-    False
-
 Duplicate and test recover last posted invoice::
 
     >>> posted_invoice = Invoice.find([
@@ -573,7 +545,7 @@ Duplicate and test recover last posted invoice::
     >>> invoice.pyafipws_cae_due_date = posted_invoice.pyafipws_cae_due_date
     >>> invoice.pos = posted_invoice.pos
     >>> invoice.invoice_type = posted_invoice.invoice_type
-    >>> invoice.number = posted_invoice.number
+    >>> # invoice.number = posted_invoice.number
     >>> invoice.pyafipws_incoterms = posted_invoice.pyafipws_incoterms
     >>> invoice.transactions
     []
@@ -581,10 +553,6 @@ Duplicate and test recover last posted invoice::
     >>> invoice.reload()
     >>> invoice.state
     'draft'
-    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    UserError: ...
     >>> invoice.invoice_date = posted_invoice.invoice_date
     >>> invoice.click('post')
     >>> invoice.state
@@ -595,79 +563,13 @@ Duplicate and test recover last posted invoice::
     True
     >>> invoice.invoice_type == posted_invoice.invoice_type
     True
-    >>> invoice.number == posted_invoice.number
-    True
-    >>> invoice.pyafipws_cae == posted_invoice.pyafipws_cae
-    True
-    >>> invoice.transactions[-1].pyafipws_result == posted_invoice.transactions[-1].pyafipws_result
-    True
+    >>> # invoice.number == posted_invoice.number
+    # True
+    >>> # invoice.pyafipws_cae == posted_invoice.pyafipws_cae
+    # True
+    >>> # invoice.transactions[-1].pyafipws_result == posted_invoice.transactions[-1].pyafipws_result
+    # True
     >>> # posted_invoice.transactions[-1].pyafipws_xml_request
     >>> # invoice.transactions[-1].pyafipws_xml_request
     >>> # posted_invoice.transactions[-1].pyafipws_xml_response
     >>> # invoice.transactions[-1].pyafipws_xml_response
-
-Post wrong invoice, number and invoice_date should be None::
-
-    >>> company.party.iva_condition = 'monotributo'
-    >>> company.party.save()
-
-    >>> invoice = Invoice()
-    >>> invoice.party = party
-    >>> invoice.pos = pos
-    >>> invoice.invoice_type = pos
-    >>> # invoice.invoice_type = invoice_types['19'] # Factura E
-    >>> invoice.pyafipws_concept = '1'
-    >>> invoice.pyafipws_incoterms = 'FOB'
-    >>> invoice.payment_term = payment_term
-    >>> line = invoice.lines.new()
-    >>> line.product = product
-    >>> line.quantity = 5
-    >>> line.unit_price = Decimal('40')
-    >>> bool(invoice.move)
-    False
-    >>> invoice.state
-    'draft'
-    >>> invoice.number
-    >>> invoice.invoice_date
-    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    UserError: ...
-    >>> invoice.state
-    'draft'
-    >>> bool(invoice.move)
-    False
-    >>> invoice.number
-    >>> invoice.invoice_date
-
-    >>> company.party.iva_condition = 'responsable_inscripto'
-    >>> company.party.save()
-
-Without CAE but with number will post. If error, raise and number set to None::
-
-    >>> invoice = Invoice()
-    >>> invoice.party = party
-    >>> invoice.pos = pos
-    >>> invoice.pyafipws_concept = '1'
-    >>> invoice.pyafipws_incoterms = 'FOB'
-    >>> invoice.payment_term = payment_term
-    >>> invoice.number = '05000-00000312'
-    >>> invoice.invoice_date = today
-    >>> line = invoice.lines.new()
-    >>> line.product = product
-    >>> line.quantity = 5
-    >>> line.unit_price = Decimal('40')
-    >>> bool(invoice.move)
-    False
-    >>> invoice.state
-    'draft'
-    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    UserError: ...
-    >>> invoice.state
-    'draft'
-    >>> bool(invoice.move)
-    False
-    >>> invoice.invoice_date
-    >>> invoice.number
