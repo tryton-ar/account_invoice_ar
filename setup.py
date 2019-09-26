@@ -28,22 +28,30 @@ minor_version = int(minor_version)
 #Third party (no tryton modules, required)
 requires = []
 for dep in info.get('depends', []):
-    if not re.match(r'(ir|res|workflow|webdav)(\W|$)', dep):
-        requires.append('trytond_%s >= %s.%s, < %s.%s' %
-                (dep, major_version, minor_version, major_version,
-                    minor_version + 1))
-
-requires.append('trytond >= %s.%s, < %s.%s' %
-        (major_version, minor_version, major_version, minor_version + 1))
-
-requires.append('trytonspain_company_logo >= %s.%s, < %s.%s' %
-        (major_version, minor_version, major_version, minor_version + 1))
-
+    if dep == 'party_ar':
+        requires.append(get_require_version('trytonar_%s' % dep))
+    elif dep == 'bank_ar':
+        requires.append(get_require_version('trytonar_%s' % dep))
+    elif not re.match(r'(ir|res|workflow|webdav)(\W|$)', dep):
+        requires.append(get_require_version('trytond_%s' % dep))
+requires.append(get_require_version('trytond'))
+#requires.append(get_require_version('trytonspain_company_logo'))
 requires.append('M2Crypto>=0.22.3')
 requires.append('Pillow>=2.8.1')
-requires.append('PySimpleSOAP==1.08.14')
-requires.append('httplib2>=0.9.1')
-requires.append('suds>=0.4')
+requires.append('httplib2')
+requires.append('pyafipws')
+requires.append('pysimplesoap')
+#requires.append('suds>=0.4')
+
+tests_require = [get_require_version('proteus'), 'pytz']
+dependency_links = [
+    'https://github.com/tryton-ar/party_ar/tarball/%s.%s#egg=trytonar_party_ar-%s.%s' \
+        % (major_version, minor_version, major_version, minor_version),
+    'https://github.com/tryton-ar/bank_ar/tarball/%s.%s#egg=trytonar_bank_ar-%s.%s' \
+        % (major_version, minor_version, major_version, minor_version),
+    'https://github.com/reingart/pyafipws/tarball/py3k#egg=pyafipws',
+    'https://github.com/pysimplesoap/pysimplesoap/tarball/stable_py3k#egg=pysimplesoap',
+    ]
 
 setup(name='trytonar_account_invoice_ar',
     version=info.get('version', '0.0.1'),
