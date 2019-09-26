@@ -392,7 +392,7 @@ Pay invoice::
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
     Decimal('220.00')
-    >>> pay.form.amount = Decimal('131.00')
+    >>> pay.form.amount = Decimal('110.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.state
@@ -400,13 +400,13 @@ Pay invoice::
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('131.00')
-    >>> pay.form.amount = Decimal('31.00')
+    Decimal('110.00')
+    >>> pay.form.amount = Decimal('10.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.form.type = 'partial'
     >>> pay.form.amount
-    Decimal('31.00')
+    Decimal('10.00')
     >>> len(pay.form.lines_to_pay)
     1
     >>> len(pay.form.payment_lines)
@@ -419,7 +419,7 @@ Pay invoice::
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('-31.00')
+    Decimal('-10.00')
     >>> pay.form.amount = Decimal('99.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
