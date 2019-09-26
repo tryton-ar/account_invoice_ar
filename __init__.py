@@ -3,20 +3,28 @@
 # the full copyright notices and license terms.
 
 from trytond.pool import Pool
-from .invoice import *
-from .company import *
-from .pos import *
+from . import invoice
+from . import company
+from . import pos
+from . import bank
+from . import party
 
 
 def register():
     Pool.register(
-        Pos,
-        PosSequence,
-        Invoice,
-        InvoiceExportLicense,
-        Company,
-        AfipWSTransaction,
+        pos.Pos,
+        pos.PosSequence,
+        invoice.Invoice,
+        invoice.InvoiceExportLicense,
+        invoice.CreditInvoiceStart,
+        company.Company,
+        invoice.AfipWSTransaction,
+        bank.BankAccount,
+        party.Party,
         module='account_invoice_ar', type_='model')
     Pool.register(
-        InvoiceReport,
+        invoice.CreditInvoice,
+        module='account_invoice_ar', type_='wizard')
+    Pool.register(
+        invoice.InvoiceReport,
         module='account_invoice_ar', type_='report')
