@@ -585,7 +585,7 @@ class Invoice(metaclass=PoolMeta):
         Set invoice type field.
         require: pos field must be set first.
         '''
-        if not self.pos:
+        if not self.pos or not self.party:
             return None
 
         PosSequence = Pool().get('account.pos.sequence')
@@ -596,12 +596,13 @@ class Invoice(metaclass=PoolMeta):
             client_iva = self.party.iva_condition
         if self.company:
             company_iva = self.company.party.iva_condition
-        if self.total_amount and self.total_amount < 0:
+        total_amount = self.total_amount or Decimal('0')
+        if total_amount < 0:
             credit_note = True
 
         if company_iva == 'responsable_inscripto':
-            if client_iva is None:
-                return
+            if not client_iva:
+                return None
             if client_iva == 'responsable_inscripto':
                 kind = 'A'
             elif client_iva == 'consumidor_final':
@@ -612,7 +613,7 @@ class Invoice(metaclass=PoolMeta):
                 kind = 'E'
         else:
             kind = 'C'
-            if self.party and self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
+            if self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
                 kind = 'E'
 
         invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
