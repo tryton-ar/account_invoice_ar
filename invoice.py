@@ -268,7 +268,7 @@ class Invoice(metaclass=PoolMeta):
         help='Código de Autorización Electrónico, devuelto por AFIP')
     pyafipws_cae_due_date = fields.Date('Vencimiento CAE', readonly=True,
         help='Fecha tope para verificar CAE, devuelto por AFIP')
-    pyafipws_barcode = fields.Char('Codigo de Barras', size=41,
+    pyafipws_barcode = fields.Char('Codigo de Barras', size=42,
         help='Código de barras para usar en la impresión', readonly=True,)
     pyafipws_number = fields.Char('Número', size=13, readonly=True,
         help='Número de factura informado a la AFIP')
@@ -892,7 +892,7 @@ class Invoice(metaclass=PoolMeta):
                     vto = ws.Vencimiento
                     cae_due = ''.join([c for c in str(vto)
                             if c.isdigit()])
-                    bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
+                    bars = ''.join([str(ws.Cuit), '%03d' % int(tipo_cbte),
                             '%05d' % int(punto_vta), str(cae), cae_due])
                     bars = bars + invoice.pyafipws_verification_digit_modulo10(bars)
                     pyafipws_cae_due_date = vto or None
@@ -1467,7 +1467,7 @@ class Invoice(metaclass=PoolMeta):
                 vto = ws.FchVencCAE
             cae_due = ''.join([c for c in str(vto)
                     if c.isdigit()])
-            bars = ''.join([str(ws.Cuit), '%02d' % int(tipo_cbte),
+            bars = ''.join([str(ws.Cuit), '%03d' % int(tipo_cbte),
                     '%05d' % int(punto_vta), str(ws.CAE), cae_due])
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
             pyafipws_cae_due_date = vto or None
