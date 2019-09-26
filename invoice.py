@@ -1431,6 +1431,16 @@ class Invoice:
                     cbteasoc_nro = int(self.reference[-8:])
                     ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
                         cbteasoc_nro, self.company.party.tax_identifier.code)
+                if not self.lines:
+                    codigo = 0
+                    ds = '-'
+                    qty = 1
+                    umed = 7
+                    precio = Decimal('0')
+                    importe_total = Decimal('0')
+                    bonif = None
+                    ws.AgregarItem(codigo, ds, qty, umed, precio,
+                        importe_total, bonif)
         return (ws, False)
 
     def request_cae(self, ws):
