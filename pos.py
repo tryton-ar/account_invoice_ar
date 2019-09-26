@@ -31,6 +31,15 @@ INVOICE_TYPE_POS = [
         ('19', u'19-Factura E'),
         ('20', u'20-Nota de Débito E'),
         ('21', u'21-Nota de Crédito E'),
+        ('201', u'201-Factura de Crédito Electrónica MiPyMEs A'),
+        ('202', u'202-Nota de Débito Electrónica MiPyMEs A'),
+        ('203', u'203-Nota de Crédito Electrónica MiPyMEs A'),
+        ('206', u'206-Factura de Crédito Electrónica MiPyMEs B'),
+        ('207', u'207-Nota de Débito Electrónica MiPyMEs B'),
+        ('208', u'208-Nota de Crédito Electrónica MiPyMEs B'),
+        ('211', u'211-Factura de Crédito Electrónica MiPyMEs C'),
+        ('212', u'212-Nota de Débito Electrónica MiPyMEs C'),
+        ('213', u'213-Nota de Crédito Electrónica MiPyMEs C'),
     ]
 
 
@@ -100,4 +109,6 @@ class PosSequence(ModelSQL, ModelView):
         context={'code': 'account.invoice'}))
 
     def get_rec_name(self, name):
-        return self.invoice_type_string[3:]
+        if not self.invoice_type_string:
+            return ''
+        return self.invoice_type_string.split('-')[1]

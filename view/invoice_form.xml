@@ -4,18 +4,16 @@
         <page string="Factura Electronica Argentina" id="electronic_invoice">
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
-            <newline/>
+            <label name="pyafipws_cbu"/>
+            <field name="pyafipws_cbu"/>
             <label name="pyafipws_billing_start_date"/>
             <field name="pyafipws_billing_start_date"/>
             <label name="pyafipws_billing_end_date"/>
             <field name="pyafipws_billing_end_date"/>
-            <newline/>
             <label name="pyafipws_cae"/>
             <field name="pyafipws_cae"/>
             <label name="pyafipws_cae_due_date"/>
             <field name="pyafipws_cae_due_date"/>
-
-            <newline />
             <field name="transactions" colspan="4"/>
         </page>
     </xpath>
