@@ -816,6 +816,7 @@ class Invoice(metaclass=PoolMeta):
                     (ws, msg) = invoice.request_cae(ws)
                     if not invoice.process_afip_result(ws, msg=msg):
                         error_invoices.append(invoice)
+                        invoices_nowsfe.remove(invoice)
                 elif invoice.pos.pos_type == 'fiscal_printer':
                     if invoice.pos.pos_daily_report:
                         if not invoice.invoice_date:
