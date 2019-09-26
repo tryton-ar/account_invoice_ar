@@ -336,6 +336,16 @@ class Invoice:
             ('company', '=', Eval('company', -1)),
             ],
         depends=_DEPENDS + ['company', 'type'])
+    party_iva_condition = fields.Selection([
+        ('', ''),
+        ('responsable_inscripto', 'Responsable Inscripto'),
+        ('exento', 'Exento'),
+        ('consumidor_final', 'Consumidor Final'),
+        ('monotributo', 'Monotributo'),
+        ('no_alcanzado', 'No alcanzado'),
+        ], 'Condicion ante IVA', states=_STATES, depends=_DEPENDS)
+    party_iva_condition_string = party_iva_condition.translated(
+        'party_iva_condition')
 
     @classmethod
     def __setup__(cls):
@@ -426,6 +436,16 @@ class Invoice:
     @staticmethod
     def default_pyafipws_anulacion():
         return False
+
+    @staticmethod
+    def default_party_iva_condition():
+        return ''
+
+    def on_change_party(self):
+        super(Invoice, self).on_change_party()
+
+        if self.party and self.party.iva_condition:
+            self.party_iva_condition = self.party.iva_condition
 
     @fields.depends('pos')
     def on_change_with_pos_pos_daily_report(self, name=None):
@@ -758,9 +778,19 @@ class Invoice:
 
     @classmethod
     def set_number(cls, invoices):
-        '''
-        Set number to the invoice
-        '''
+        super(Invoice, cls).set_number(invoices)
+
+        for invoice in invoices:
+            # Posted and paid invoices are tested by check_modify so we can
+            # not modify tax_identifier nor number
+            if invoice.state in {'posted', 'paid'}:
+                continue
+            # Generated invoice may not fill the party iva_condition
+            if not invoice.party_iva_condition and invoice.type == 'out':
+                invoice.party_iva_condition = invoice.party.iva_condition
+        cls.save(invoices)
+
+    def get_next_number(self, pattern=None):
         pool = Pool()
         Period = pool.get('account.period')
         SequenceStrict = pool.get('ir.sequence.strict')
