@@ -45,17 +45,28 @@ requires = []
 for dep in info.get('depends', []):
     if dep == 'party_ar':
         requires.append(get_require_version('trytonar_%s' % dep))
+    elif dep == 'bank_ar':
+        requires.append(get_require_version('trytonar_%s' % dep))
     elif not re.match(r'(ir|res)(\W|$)', dep):
         requires.append(get_require_version('trytond_%s' % dep))
 requires.append(get_require_version('trytond'))
 #requires.append(get_require_version('trytonspain_company_logo'))
 requires.append('M2Crypto>=0.22.3')
 requires.append('Pillow>=2.8.1')
-requires.append('httplib2==0.9.2')
-requires.append('suds>=0.4')
+requires.append('httplib2')
+requires.append('pyafipws')
+requires.append('pysimplesoap')
+#requires.append('suds>=0.4')
 
-tests_require = [get_require_version('proteus')]
-dependency_links = []
+tests_require = [get_require_version('proteus'), 'pytz']
+dependency_links = [
+    'https://github.com/tryton-ar/party_ar/tarball/%s.%s#egg=trytonar_party_ar-%s.%s' \
+        % (major_version, minor_version, major_version, minor_version),
+    'https://github.com/tryton-ar/bank_ar/tarball/%s.%s#egg=trytonar_bank_ar-%s.%s' \
+        % (major_version, minor_version, major_version, minor_version),
+    'https://github.com/reingart/pyafipws/tarball/py3k#egg=pyafipws',
+    'https://github.com/pysimplesoap/pysimplesoap/tarball/stable_py3k#egg=pysimplesoap',
+    ]
 
 setup(name=name,
     version=version,
