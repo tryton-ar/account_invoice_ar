@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- The COPYRIGHT file at the top level of this repository contains
+     the full copyright notices and license terms. -->
+<data>
+    <xpath expr="/form/notebook/page[@id='accounting']/separator[@id='taxes']"
+        position="before">
+        <separator string="MiPyme FCE Amount" colspan="4" id="pyafipws_fce_amount"/>
+        <label name="pyafipws_fce"/>
+        <field name="pyafipws_fce"/>
+        <label name="pyafipws_fce_amount"/>
+        <field name="pyafipws_fce_amount"/>
+    </xpath>
+</data>
