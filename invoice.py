@@ -848,6 +848,8 @@ class Invoice:
                 invoice.check_invoice_type()
                 if invoice.pos:
                     if invoice.pos.pos_type == 'electronic':
+                        if invoice.pyafipws_cae:
+                            continue
                         ws = cls.get_ws_afip(invoice)
                         (ws, error) = invoice.create_pyafipws_invoice(ws,
                             batch=False)
