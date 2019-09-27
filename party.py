@@ -10,8 +10,9 @@ from trytond.transaction import Transaction
 __all__ = ['Party']
 
 
-class Party(metaclass=PoolMeta):
+class Party:
     __name__ = 'party.party'
+    __metaclass__ = PoolMeta
 
     pyafipws_fce = fields.Boolean('MiPyme FCE', states={
             'readonly': ~Eval('active', True),
