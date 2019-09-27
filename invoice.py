@@ -1753,8 +1753,10 @@ class InvoiceReport:
         output.close()
         return image
 
-class CreditInvoiceStart(metaclass=PoolMeta):
+class CreditInvoiceStart:
     __name__ = 'account.invoice.credit.start'
+    __metaclass__ = PoolMeta
+
     from_fce = fields.Boolean('From FCE', readonly=True)
     pyafipws_anulacion = fields.Boolean('Anulación',
         states={
@@ -1772,8 +1774,9 @@ class CreditInvoiceStart(metaclass=PoolMeta):
             ]
 
 
-class CreditInvoice(metaclass=PoolMeta):
+class CreditInvoice:
     __name__ = 'account.invoice.credit'
+    __metaclass__ = PoolMeta
 
     def default_start(self, fields):
         Invoice = Pool().get('account.invoice')
