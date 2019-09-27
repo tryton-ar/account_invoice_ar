@@ -317,7 +317,7 @@ class Invoice:
             'numbers.type': 'cbu',
             },
         depends=_DEPENDS + ['company_party'])
-    pyafipws_anulacion = fields.Boolean('FCE Anulación', states=_STATES,
+    pyafipws_anulacion = fields.Boolean(u'FCE Anulación', states=_STATES,
         depends=_DEPENDS)
 
     @classmethod
@@ -368,12 +368,12 @@ class Invoice:
             'in_invoice_validate_failed':
                 u'Los campos "Referencia" y "Comprobante" son requeridos.',
             'invalid_ref_number':
-                'The value "%(ref_value)s" is not a number.',
+                u'The value "%(ref_value)s" is not a number.',
             'invalid_ref_from_to':
-                '"From number" must be smaller than "To number"',
+                u'"From number" must be smaller than "To number"',
             'fce_10168_cbu_emisor':
-                'Si el tipo de comprobante es MiPyme (FCE) es obligatorio '
-                'informar CBU.',
+                u'Si el tipo de comprobante es MiPyme (FCE) es obligatorio '
+                u'informar CBU.',
             })
 
     @classmethod
@@ -1426,7 +1426,7 @@ class CreditInvoiceStart:
     __metaclass__ = PoolMeta
 
     from_fce = fields.Boolean('From FCE', readonly=True)
-    pyafipws_anulacion = fields.Boolean('Anulación',
+    pyafipws_anulacion = fields.Boolean(u'Anulación',
         states={
             'invisible': ~Bool(Eval('from_fce')),
             },
