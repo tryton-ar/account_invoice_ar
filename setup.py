@@ -64,8 +64,8 @@ dependency_links = [
         % (major_version, minor_version, major_version, minor_version),
     'https://github.com/tryton-ar/bank_ar/tarball/%s.%s#egg=trytonar_bank_ar-%s.%s' \
         % (major_version, minor_version, major_version, minor_version),
-    'https://github.com/reingart/pyafipws/tarball/py3k#egg=pyafipws',
-    'https://github.com/pysimplesoap/pysimplesoap/tarball/stable_py3k#egg=pysimplesoap',
+    'https://github.com/reingart/pyafipws/tarball/master#egg=pyafipws',
+    'https://github.com/pysimplesoap/pysimplesoap/tarball/stable#egg=pysimplesoap',
     ]
 
 setup(name=name,
