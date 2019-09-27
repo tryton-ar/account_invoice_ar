@@ -489,10 +489,6 @@ class Invoice:
                 'states', {
                     'invisible': Eval('type') == 'in',
                     }),
-            ('/tree/field[@name="tipo_comprobante"]', 'tree_invisible',
-                    Eval('type') == 'out'),
-            ('/tree/field[@name="invoice_type_tree"]', 'tree_invisible',
-                    Eval('type') == 'in'),
             ]
 
     def get_comprobante(self, name):
