@@ -7,8 +7,10 @@ from trytond.pool import PoolMeta
 __all__ = ['BankAccount']
 
 
-class BankAccount(metaclass=PoolMeta):
+class BankAccount:
     __name__ = 'bank.account'
+    __metaclass__ = PoolMeta
+
     pyafipws_cbu = fields.Boolean('CBU del Emisor', states={
             'required': If(In(Eval('party_company'),
                     Eval('owners', [])), True, False),
