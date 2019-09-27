@@ -493,12 +493,6 @@ class Invoice:
                 'states', {
                     'invisible': Eval('type').in_(['in_invoice', 'in_credit_note']),
                     }),
-            ('/tree/field[@name="tipo_comprobante"]', 'tree_invisible',
-                    Eval('type').in_(['out_invoice', 'out_credit_note']),
-            ('/tree/field[@name="invoice_type"]', 'tree_invisible',
-                    Eval('type').in_(['in_invoice', 'in_credit_note']),
-            ('/tree/field[@name="invoice_type_tree"]', 'tree_invisible',
-                    Eval('type').in_(['in_invoice', 'in_credit_note']),
             ]
 
     @classmethod
