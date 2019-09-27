@@ -241,6 +241,9 @@ class Invoice:
     __name__ = 'account.invoice'
     __metaclass__ = PoolMeta
 
+    company_party = fields.Function(
+        fields.Many2One('party.party', "Company Party"),
+        'on_change_with_company_party')
     pos = fields.Many2One('account.pos', 'Point of Sale',
         states=_POS_STATES, depends=_DEPENDS)
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
@@ -400,6 +403,11 @@ class Invoice:
     @staticmethod
     def default_pyafipws_anulacion():
         return False
+
+    @fields.depends('company')
+    def on_change_with_company_party(self, name=None):
+        if self.company:
+            return self.company.party.id
 
     @fields.depends('pos')
     def on_change_with_pos_pos_daily_report(self, name=None):
