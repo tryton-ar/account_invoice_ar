@@ -9,7 +9,6 @@ import datetime
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
-from trytond.tools import cursor_dict
 from trytond.pyson import Eval, And, If, Bool
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
