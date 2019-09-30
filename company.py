@@ -48,7 +48,7 @@ class Company:
         if self.pyafipws_mode_cert == '':
             return
 
-        auth_data = self.pyafipws_authenticate(service='wsfe', force=True)
+        auth_data = self.pyafipws_authenticate(service='wsfe', force=False)
         if auth_data['err_msg'] is not None:
             self.raise_user_error('wrong_pyafipws_mode', {
                 'message': auth_data['err_msg'],
