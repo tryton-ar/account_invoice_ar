@@ -1,6 +1,6 @@
 try:
-    from trytond.modules.account_invoice_ar.tests.tests import suite
+    from trytond.modules.account_invoice_ar.tests.test_account_invoice_ar import suite
 except ImportError:
-    from .tests import suite
+    from .test_account_invoice_ar import suite
 
 __all__ = ['suite']
