@@ -112,7 +112,7 @@ Create invoice::
     >>> Invoice = Model.get('account.invoice')
     >>> InvoiceLine = Model.get('account.invoice.line')
     >>> invoice = Invoice()
-    >>> invoice.type = 'in'
+    >>> invoice.type = 'in_invoice'
     >>> invoice.party = party
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
@@ -197,14 +197,14 @@ Credit invoice::
     >>> credit.form.with_refund = False
     >>> credit.execute('credit')
     >>> credit_note, = Invoice.find(
-    ...     [('type', '=', 'in'), ('id', '!=', invoice.id)])
+    ...     [('type', '=', 'in_credit_note'), ('id', '!=', invoice.id)])
     >>> credit_note.state
     u'draft'
-    >>> credit_note.untaxed_amount == -invoice.untaxed_amount
+    >>> credit_note.untaxed_amount == invoice.untaxed_amount
     True
-    >>> credit_note.tax_amount == -invoice.tax_amount
+    >>> credit_note.tax_amount == invoice.tax_amount
     True
-    >>> credit_note.total_amount == -invoice.total_amount
+    >>> credit_note.total_amount == invoice.total_amount
     True
     >>> credit_note.tipo_comprobante == '003'
     True
@@ -219,7 +219,7 @@ Credit invoice::
 Create a draft and post invoice::
 
     >>> invoice = Invoice()
-    >>> invoice.type = 'in'
+    >>> invoice.type = 'in_invoice'
     >>> invoice.party = party
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
@@ -240,14 +240,14 @@ Credit invoice::
     >>> credit.form.with_refund = False
     >>> credit.execute('credit')
     >>> credit_note, = Invoice.find(
-    ...     [('type', '=', 'in'), ('state', '=', 'draft')])
+    ...     [('type', '=', 'in_credit_note'), ('state', '=', 'draft')])
     >>> credit_note.state
     u'draft'
-    >>> credit_note.untaxed_amount == -invoice.untaxed_amount
+    >>> credit_note.untaxed_amount == invoice.untaxed_amount
     True
-    >>> credit_note.tax_amount == -invoice.tax_amount
+    >>> credit_note.tax_amount == invoice.tax_amount
     True
-    >>> credit_note.total_amount == -invoice.total_amount
+    >>> credit_note.total_amount == invoice.total_amount
     True
     >>> credit_note.tipo_comprobante == '112'
     True
@@ -256,7 +256,7 @@ Credit invoice::
 Create a posted and a draft invoice  to cancel::
 
     >>> invoice = Invoice()
-    >>> invoice.type = 'in'
+    >>> invoice.type = 'in_invoice'
     >>> invoice.party = party
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today

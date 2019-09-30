@@ -181,7 +181,7 @@ Create payment term::
 
     >>> PaymentTerm = Model.get('account.invoice.payment_term')
     >>> payment_term = PaymentTerm(name='Term')
-    >>> line = payment_term.lines.new(type='percent', ratio=Decimal('.5'))
+    >>> line = payment_term.lines.new(type='percent', percentage=Decimal(50))
     >>> delta = line.relativedeltas.new(days=20)
     >>> line = payment_term.lines.new(type='remainder')
     >>> delta = line.relativedeltas.new(days=40)
@@ -316,14 +316,14 @@ Credit invoice with refund::
     >>> credit.form.pyafipws_anulacion = False
     >>> credit.execute('credit')
     >>> credit_note, = Invoice.find([
-    ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
+    ...     ('type', '=', 'out_credit_note'), ('id', '!=', invoice.id)])
     >>> credit_note.state
     u'paid'
-    >>> credit_note.untaxed_amount == -invoice.untaxed_amount
+    >>> credit_note.untaxed_amount == invoice.untaxed_amount
     True
-    >>> credit_note.tax_amount == -invoice.tax_amount
+    >>> credit_note.tax_amount == invoice.tax_amount
     True
-    >>> credit_note.total_amount == -invoice.total_amount
+    >>> credit_note.total_amount == invoice.total_amount
     True
     >>> credit_note.origins == invoice.rec_name
     True
@@ -394,53 +394,3 @@ Create empty invoice::
     >>> invoice.click('post')
     >>> invoice.state
     u'paid'
-
-Create a paid invoice::
-
-    >>> invoice = Invoice()
-    >>> invoice.party = party
-    >>> invoice.pos = pos
-    >>> invoice.pyafipws_concept = '1'
-    >>> invoice.payment_term = payment_term
-    >>> line = invoice.lines.new()
-    >>> line.product = product
-    >>> line.quantity = 5
-    >>> line.unit_price = Decimal('20000')
-    >>> invoice.invoice_type == invoice_types['201']
-    True
-    >>> invoice.click('post')
-    >>> pay = Wizard('account.invoice.pay', [invoice])
-    >>> pay.form.journal = journal_cash
-    >>> pay.execute('choice')
-    >>> pay.state
-    'end'
-    >>> invoice.state
-    u'paid'
-
-The invoice is posted when the reconciliation is deleted::
-
-    >>> invoice.payment_lines[0].reconciliation.delete()
-    >>> invoice.reload()
-    >>> invoice.state
-    u'posted'
-
-Credit invoice with non line lines::
-
-    >>> invoice = Invoice()
-    >>> invoice.party = party
-    >>> invoice.pos = pos
-    >>> invoice.pyafipws_concept = '1'
-    >>> invoice.payment_term = payment_term
-    >>> line = invoice.lines.new()
-    >>> line.product = product
-    >>> line.quantity = 5
-    >>> line.unit_price = Decimal('20000')
-    >>> line = invoice.lines.new()
-    >>> line.type = 'comment'
-    >>> line.description = 'Comment'
-    >>> invoice.invoice_type == invoice_types['201']
-    True
-    >>> invoice.click('post')
-    >>> credit = Wizard('account.invoice.credit', [invoice])
-    >>> credit.form.with_refund = True
-    >>> credit.execute('credit')
