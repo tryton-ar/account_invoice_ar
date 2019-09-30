@@ -1105,7 +1105,7 @@ class Invoice:
                 if service != 'wsmtxca':
                     cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-', '')
                 ws.AgregarCmpAsoc(tipo=cbteasoc_tipo, pto_vta=punto_vta,
-                    nro=cbteasoc_nro, cuit=self.company.party.tax_identifier.code,
+                    nro=cbteasoc_nro, cuit=self.company.party.vat_number,
                     fecha=cbteasoc_fecha_cbte)
 
             for tax_line in self.taxes:
@@ -1184,7 +1184,7 @@ class Invoice:
                     cbteasoc_tipo = 19
                     cbteasoc_nro = int(self.reference[-8:])
                     ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
-                        cbteasoc_nro, self.company.party.tax_identifier.code)
+                        cbteasoc_nro, self.company.party.vat_number)
                 if not self.lines:
                     codigo = 0
                     ds = '-'
