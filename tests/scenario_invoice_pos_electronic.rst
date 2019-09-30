@@ -13,7 +13,7 @@ Imports::
     ...     get_company
     >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
-    ...     create_chart, get_accounts, create_tax, create_tax_code
+    ...     create_chart, get_accounts, create_tax, set_tax_code
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
@@ -49,7 +49,6 @@ Create fiscal year::
     ...     create_fiscalyear(company))
     >>> fiscalyear.click('create_period')
     >>> period = fiscalyear.periods[0]
-    >>> period_ids = [p.id for p in fiscalyear.periods]
 
 Create chart of accounts::
 
@@ -73,18 +72,13 @@ Create tax groups::
 
 Create tax IVA 21%::
 
-    >>> TaxCode = Model.get('account.tax.code')
-    >>> tax = create_tax(Decimal('.21'))
+    >>> tax = set_tax_code(create_tax(Decimal('.21')))
     >>> tax.group = tax_groups['iva']
     >>> tax.save()
-    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
-    >>> invoice_base_code.save()
-    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
-    >>> invoice_tax_code.save()
-    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
-    >>> credit_note_base_code.save()
-    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
-    >>> credit_note_tax_code.save()
+    >>> invoice_base_code = tax.invoice_base_code
+    >>> invoice_tax_code = tax.invoice_tax_code
+    >>> credit_note_base_code = tax.credit_note_base_code
+    >>> credit_note_tax_code = tax.credit_note_tax_code
 
 Set Cash journal::
 
@@ -123,24 +117,27 @@ Create product::
     >>> ProductUom = Model.get('product.uom')
     >>> unit, = ProductUom.find([('name', '=', 'Unit')])
     >>> ProductTemplate = Model.get('product.template')
+    >>> Product = Model.get('product.product')
+    >>> product = Product()
     >>> template = ProductTemplate()
     >>> template.name = 'product'
     >>> template.default_uom = unit
     >>> template.type = 'service'
     >>> template.list_price = Decimal('40')
+    >>> template.cost_price = Decimal('25')
     >>> template.account_expense = expense
     >>> template.account_revenue = revenue
     >>> template.customer_taxes.append(tax)
     >>> template.save()
-    >>> product, = template.products
+    >>> product.template = template
+    >>> product.save()
 
 Create payment term::
 
     >>> PaymentTerm = Model.get('account.invoice.payment_term')
     >>> payment_term = PaymentTerm(name='Term')
     >>> line = payment_term.lines.new(type='percent', ratio=Decimal('.5'))
-    >>> delta, = line.relativedeltas
-    >>> delta.days = 20
+    >>> delta = line.relativedeltas.new(days=20)
     >>> line = payment_term.lines.new(type='remainder')
     >>> delta = line.relativedeltas.new(days=40)
     >>> payment_term.save()
@@ -254,21 +251,17 @@ Post invoice::
     Decimal('0.00')
     >>> account_tax.credit
     Decimal('42.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_base_code = TaxCode(invoice_base_code.id)
-    ...     invoice_base_code.amount
+    >>> invoice_base_code.reload()
+    >>> invoice_base_code.sum
     Decimal('200.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
-    ...     invoice_tax_code.amount
+    >>> invoice_tax_code.reload()
+    >>> invoice_tax_code.sum
     Decimal('42.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
-    ...     credit_note_base_code.amount
+    >>> credit_note_base_code.reload()
+    >>> credit_note_base_code.sum
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
-    ...     credit_note_tax_code.amount
+    >>> credit_note_tax_code.reload()
+    >>> credit_note_tax_code.sum
     Decimal('0.00')
 
 Credit invoice with refund::
@@ -295,7 +288,7 @@ Credit invoice with refund::
     >>> invoice.reload()
     >>> invoice.state
     u'paid'
-    >>> invoice.reconciled == today
+    >>> invoice.reconciled
     True
     >>> receivable.reload()
     >>> receivable.debit
@@ -312,28 +305,24 @@ Credit invoice with refund::
     Decimal('42.00')
     >>> account_tax.credit
     Decimal('42.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_base_code = TaxCode(invoice_base_code.id)
-    ...     invoice_base_code.amount
+    >>> invoice_base_code.reload()
+    >>> invoice_base_code.sum
     Decimal('200.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
-    ...     invoice_tax_code.amount
+    >>> invoice_tax_code.reload()
+    >>> invoice_tax_code.sum
     Decimal('42.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
-    ...     credit_note_base_code.amount
+    >>> credit_note_base_code.reload()
+    >>> credit_note_base_code.sum
     Decimal('200.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
-    ...     credit_note_tax_code.amount
+    >>> credit_note_tax_code.reload()
+    >>> credit_note_tax_code.sum
     Decimal('42.00')
 
 Test post without point of sale::
 
     >>> invoice, = invoice.duplicate()
     >>> invoice.pyafipws_concept
-    '1'
+    u'1'
     >>> invoice.pyafipws_cae
     >>> invoice.pyafipws_cae_due_date
     >>> invoice.pos
@@ -516,7 +505,7 @@ Duplicate and test recover last posted invoice::
     >>> last_cbte_nro = int(wsfev1.CompUltimoAutorizado('1', pos.number))
     >>> invoice, = invoice.duplicate()
     >>> invoice.pyafipws_concept
-    '1'
+    u'1'
     >>> invoice.pyafipws_cae = posted_invoice.pyafipws_cae
     >>> invoice.pyafipws_cae_due_date = posted_invoice.pyafipws_cae_due_date
     >>> invoice.pos = posted_invoice.pos
