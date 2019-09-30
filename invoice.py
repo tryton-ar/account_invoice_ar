@@ -728,6 +728,10 @@ class Invoice:
                 res['pyafipws_billing_end_date'] = (
                     self.pyafipws_billing_end_date)
 
+        if self.invoice_type.invoice_type in ['19', '20', '21']:
+            res['pyafipws_incoterms'] = self.pyafipws_incoterms
+            res['pyafipws_licenses'] = self.pyafipws_licenses
+
         res['reference'] = self.number
 
         return res
