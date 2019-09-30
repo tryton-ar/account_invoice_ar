@@ -556,8 +556,7 @@ class Invoice:
             self.raise_user_error('reference_unique')
 
     def pre_validate_fields(self):
-        if (self.tipo_comprobante is None or self.tipo_comprobante == ''
-                or self.reference == ''):
+        if not self.reference and not self.tipo_comprobante:
             self.raise_user_error('in_invoice_validate_failed')
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
@@ -642,6 +641,11 @@ class Invoice:
 
         res = super(Invoice, self)._credit()
         if self.type == 'in':
+            invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
+                str(int(self.tipo_comprobante))
+                ]
+            res['tipo_comprobante'] = invoice_type.rjust(3, '0')
+            res['reference'] = None
             return res
 
         to_create = [tax._credit() for tax in self.taxes if not tax.manual]
