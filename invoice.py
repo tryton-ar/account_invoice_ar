@@ -682,32 +682,8 @@ class Invoice:
 
         res['pos'] = getattr(self, 'pos').id
         res['invoice_date'] = Date.today()
-
-        party = Party(res['party'])
-        company = Company(res['company'])
-
-        client_iva = company_iva = None
-        client_iva = party.iva_condition
-        company_iva = company.party.iva_condition
-
-        if company_iva == 'responsable_inscripto':
-            if client_iva is None:
-                return res
-            if client_iva == 'responsable_inscripto':
-                kind = 'A'
-            elif client_iva == 'consumidor_final':
-                kind = 'B'
-            elif party.vat_number:
-                kind = 'B'
-            else:
-                kind = 'E'
-        else:
-            kind = 'C'
-            if self.party.vat_number_afip_foreign: # Identificador AFIP Foraneo
-                kind = 'E'
-
-        invoice_type, invoice_type_desc = INVOICE_TYPE_AFIP_CODE[
-            (res['type'], True, kind)
+        invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
+            (self.invoice_type.invoice_type)
             ]
         sequences = PosSequence.search([
             ('pos', '=', res['pos']),
