@@ -13,7 +13,7 @@ Imports::
     ...     get_company
     >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
-    ...     create_chart, get_accounts, create_tax, create_tax_code
+    ...     create_chart, get_accounts, create_tax, set_tax_code
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
@@ -40,7 +40,6 @@ Create fiscal year::
     >>> fiscalyear = set_fiscalyear_invoice_sequences(
     ...     create_fiscalyear(company))
     >>> fiscalyear.click('create_period')
-    >>> period_ids = [p.id for p in fiscalyear.periods]
 
 Create chart of accounts::
 
@@ -57,18 +56,13 @@ Create tax groups::
 
 Create tax::
 
-    >>> TaxCode = Model.get('account.tax.code')
-    >>> tax = create_tax(Decimal('.10'))
+    >>> tax = set_tax_code(create_tax(Decimal('.10')))
     >>> tax.group = tax_groups['iva']
     >>> tax.save()
-    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
-    >>> invoice_base_code.save()
-    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
-    >>> invoice_tax_code.save()
-    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
-    >>> credit_note_base_code.save()
-    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
-    >>> credit_note_tax_code.save()
+    >>> invoice_base_code = tax.invoice_base_code
+    >>> invoice_tax_code = tax.invoice_tax_code
+    >>> credit_note_base_code = tax.credit_note_base_code
+    >>> credit_note_tax_code = tax.credit_note_tax_code
 
 Create party::
 
@@ -83,16 +77,20 @@ Create product::
     >>> ProductUom = Model.get('product.uom')
     >>> unit, = ProductUom.find([('name', '=', 'Unit')])
     >>> ProductTemplate = Model.get('product.template')
+    >>> Product = Model.get('product.product')
+    >>> product = Product()
     >>> template = ProductTemplate()
     >>> template.name = 'product'
     >>> template.default_uom = unit
     >>> template.type = 'service'
     >>> template.list_price = Decimal('40')
+    >>> template.cost_price = Decimal('20')
     >>> template.account_expense = expense
     >>> template.account_revenue = revenue
     >>> template.supplier_taxes.append(tax)
     >>> template.save()
-    >>> product, = template.products
+    >>> product.template = template
+    >>> product.save()
 
 Create payment term::
 
@@ -172,21 +170,17 @@ Create invoice::
     Decimal('10.00')
     >>> account_tax.credit
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_base_code = TaxCode(invoice_base_code.id)
-    ...     invoice_base_code.amount
+    >>> invoice_base_code.reload()
+    >>> invoice_base_code.sum
     Decimal('100.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
-    ...     invoice_tax_code.amount
+    >>> invoice_tax_code.reload()
+    >>> invoice_tax_code.sum
     Decimal('10.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
-    ...     credit_note_base_code.amount
+    >>> credit_note_base_code.reload()
+    >>> credit_note_base_code.sum
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
-    ...     credit_note_tax_code.amount
+    >>> credit_note_tax_code.reload()
+    >>> credit_note_tax_code.sum
     Decimal('0.00')
 
 Credit invoice::
@@ -279,6 +273,7 @@ Cancel draft invoice::
     u'cancel'
     >>> invoice_draft.move
     >>> invoice_draft.reconciled
+    False
 
 Cancel posted invoice::
 
@@ -287,5 +282,5 @@ Cancel posted invoice::
     u'cancel'
     >>> invoice.cancel_move is not None
     True
-    >>> invoice.reconciled == today
+    >>> invoice.reconciled
     True
