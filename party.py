@@ -36,3 +36,4 @@ class Party:
         if company_id:
             company = Company(company_id)
             return company.currency.digits
+        return 2
