@@ -606,6 +606,7 @@ class Invoice:
         if not self.pos:
             return None
 
+        PosSequence = Pool().get('account.pos.sequence')
         client_iva = company_iva = None
         fce = credit_note = False
 
