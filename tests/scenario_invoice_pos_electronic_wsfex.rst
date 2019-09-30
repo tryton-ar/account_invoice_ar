@@ -13,7 +13,7 @@ Imports::
     ...     get_company
     >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
-    ...     create_chart, get_accounts, create_tax, create_tax_code
+    ...     create_chart, get_accounts, create_tax, set_tax_code
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
@@ -51,7 +51,6 @@ Create fiscal year::
     ...     create_fiscalyear(company))
     >>> fiscalyear.click('create_period')
     >>> period = fiscalyear.periods[0]
-    >>> period_ids = [p.id for p in fiscalyear.periods]
 
 Create chart of accounts::
 
@@ -75,45 +74,30 @@ Create tax groups::
 
 Create tax IVA 21%::
 
-    >>> TaxCode = Model.get('account.tax.code')
-    >>> tax = create_tax(Decimal('.21'))
+    >>> tax = set_tax_code(create_tax(Decimal('.21')))
     >>> tax.group = tax_groups['iva']
     >>> tax.save()
-    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
-    >>> invoice_base_code.save()
-    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
-    >>> invoice_tax_code.save()
-    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
-    >>> credit_note_base_code.save()
-    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
-    >>> credit_note_tax_code.save()
+    >>> invoice_base_code = tax.invoice_base_code
+    >>> invoice_tax_code = tax.invoice_tax_code
+    >>> credit_note_base_code = tax.credit_note_base_code
+    >>> credit_note_tax_code = tax.credit_note_tax_code
 
-Create payment method::
+Set Cash journal::
 
     >>> Journal = Model.get('account.journal')
-    >>> PaymentMethod = Model.get('account.invoice.payment.method')
-    >>> Sequence = Model.get('ir.sequence')
     >>> journal_cash, = Journal.find([('type', '=', 'cash')])
-    >>> payment_method = PaymentMethod()
-    >>> payment_method.name = 'Cash'
-    >>> payment_method.journal = journal_cash
-    >>> payment_method.credit_account = account_cash
-    >>> payment_method.debit_account = account_cash
-    >>> payment_method.save()
+    >>> journal_cash.credit_account = account_cash
+    >>> journal_cash.debit_account = account_cash
+    >>> journal_cash.save()
 
-Create Write Off method::
+Create Write-Off journal::
 
-    >>> WriteOff = Model.get('account.move.reconcile.write_off')
+    >>> Sequence = Model.get('ir.sequence')
     >>> sequence_journal, = Sequence.find([('code', '=', 'account.journal')])
     >>> journal_writeoff = Journal(name='Write-Off', type='write-off',
-    ...     sequence=sequence_journal)
+    ...     sequence=sequence_journal,
+    ...     credit_account=revenue, debit_account=expense)
     >>> journal_writeoff.save()
-    >>> writeoff_method = WriteOff()
-    >>> writeoff_method.name = 'Rate loss'
-    >>> writeoff_method.journal = journal_writeoff
-    >>> writeoff_method.credit_account = expense
-    >>> writeoff_method.debit_account = expense
-    >>> writeoff_method.save()
 
 Create AFIP VAT Country::
 
@@ -139,36 +123,31 @@ Create party::
     >>> party.iva_condition = 'no_alcanzado'
     >>> party.save()
 
-Create account category::
-
-    >>> ProductCategory = Model.get('product.category')
-    >>> account_category = ProductCategory(name="Account Category")
-    >>> account_category.accounting = True
-    >>> account_category.account_expense = expense
-    >>> account_category.account_revenue = revenue
-    >>> account_category.save()
-
 Create product::
 
     >>> ProductUom = Model.get('product.uom')
     >>> unit, = ProductUom.find([('name', '=', 'Unit')])
     >>> ProductTemplate = Model.get('product.template')
+    >>> Product = Model.get('product.product')
+    >>> product = Product()
     >>> template = ProductTemplate()
     >>> template.name = 'product'
     >>> template.default_uom = unit
     >>> template.type = 'service'
     >>> template.list_price = Decimal('40')
-    >>> template.account_category = account_category
+    >>> template.cost_price = Decimal('25')
+    >>> template.account_expense = expense
+    >>> template.account_revenue = revenue
     >>> template.save()
-    >>> product, = template.products
+    >>> product.template = template
+    >>> product.save()
 
 Create payment term::
 
     >>> PaymentTerm = Model.get('account.invoice.payment_term')
     >>> payment_term = PaymentTerm(name='Term')
     >>> line = payment_term.lines.new(type='percent', ratio=Decimal('.5'))
-    >>> delta, = line.relativedeltas
-    >>> delta.days = 20
+    >>> delta = line.relativedeltas.new(days=20)
     >>> line = payment_term.lines.new(type='remainder')
     >>> delta = line.relativedeltas.new(days=40)
     >>> payment_term.save()
@@ -246,7 +225,7 @@ Test missing pyafipws_concept at invoice::
         ...
     UserError: ...
     >>> invoice.state
-    'draft'
+    u'draft'
 
 Post invoice::
 
@@ -256,12 +235,12 @@ Post invoice::
     >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.click('post')
     >>> invoice.state
-    'posted'
+    u'posted'
     >>> # invoice.pyafipws_cae
     >>> # invoice.transactions[0].pyafipws_xml_request
     >>> # invoice.transactions[0].pyafipws_xml_response
     >>> invoice.tax_identifier.code
-    '30710158254'
+    u'30710158254'
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
@@ -283,21 +262,17 @@ Post invoice::
     Decimal('0.00')
     >>> account_tax.credit
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_base_code = TaxCode(invoice_base_code.id)
-    ...     invoice_base_code.amount
+    >>> invoice_base_code.reload()
+    >>> invoice_base_code.sum
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
-    ...     invoice_tax_code.amount
+    >>> invoice_tax_code.reload()
+    >>> invoice_tax_code.sum
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
-    ...     credit_note_base_code.amount
+    >>> credit_note_base_code.reload()
+    >>> credit_note_base_code.sum
     Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
-    ...     credit_note_tax_code.amount
+    >>> credit_note_tax_code.reload()
+    >>> credit_note_tax_code.sum
     Decimal('0.00')
 
 Credit invoice with refund::
@@ -308,7 +283,7 @@ Credit invoice with refund::
     >>> credit_note, = Invoice.find([
     ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
     >>> credit_note.state
-    'paid'
+    u'paid'
     >>> # credit_note.pyafipws_cae
     >>> # credit_note.transactions[0].pyafipws_xml_request
     >>> # credit_note.transactions[0].pyafipws_xml_response
@@ -328,8 +303,8 @@ Credit invoice with refund::
     True
     >>> invoice.reload()
     >>> invoice.state
-    'paid'
-    >>> invoice.reconciled == today
+    u'paid'
+    >>> invoice.reconciled
     True
     >>> receivable.reload()
     >>> receivable.debit
@@ -351,9 +326,9 @@ Test post without point of sale::
 
     >>> invoice, = invoice.duplicate()
     >>> invoice.pyafipws_concept
-    '2'
+    u'2'
     >>> invoice.pyafipws_incoterms
-    'FOB'
+    u'FOB'
     >>> invoice.pyafipws_cae
     >>> invoice.pyafipws_cae_due_date
     >>> invoice.pos
@@ -365,7 +340,7 @@ Test post without point of sale::
         ...
     UserError: ...
     >>> invoice.state
-    'draft'
+    u'draft'
 
 Test post when clear tax_identifier type::
 
@@ -373,12 +348,13 @@ Test post when clear tax_identifier type::
     >>> tax_identifier.type = None
     >>> tax_identifier.save()
 
+    >>> invoice.pos = pos
     >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     UserError: ...
     >>> invoice.state
-    'draft'
+    u'draft'
 
     >>> tax_identifier, = company.party.identifiers
     >>> tax_identifier.type = 'ar_cuit'
@@ -393,7 +369,7 @@ Pay invoice::
     >>> pay.form.amount
     Decimal('220.00')
     >>> pay.form.amount = Decimal('110.00')
-    >>> pay.form.payment_method = payment_method
+    >>> pay.form.journal = journal_cash
     >>> pay.execute('choice')
     >>> pay.state
     'end'
@@ -402,7 +378,7 @@ Pay invoice::
     >>> pay.form.amount
     Decimal('110.00')
     >>> pay.form.amount = Decimal('10.00')
-    >>> pay.form.payment_method = payment_method
+    >>> pay.form.journal = journal_cash
     >>> pay.execute('choice')
     >>> pay.form.type = 'partial'
     >>> pay.form.amount
@@ -421,10 +397,10 @@ Pay invoice::
     >>> pay.form.amount
     Decimal('-10.00')
     >>> pay.form.amount = Decimal('99.00')
-    >>> pay.form.payment_method = payment_method
+    >>> pay.form.journal = journal_cash
     >>> pay.execute('choice')
     >>> pay.form.type = 'writeoff'
-    >>> pay.form.writeoff = writeoff_method
+    >>> pay.form.journal_writeoff = journal_writeoff
     >>> pay.form.amount
     Decimal('99.00')
     >>> len(pay.form.lines_to_pay)
@@ -438,7 +414,7 @@ Pay invoice::
     >>> pay.execute('pay')
 
     >>> invoice.state
-    'paid'
+    u'paid'
 
 Create empty invoice::
 
@@ -450,7 +426,7 @@ Create empty invoice::
     >>> invoice.payment_term = payment_term
     >>> invoice.click('post')
     >>> invoice.state
-    'paid'
+    u'paid'
 
 Create some complex invoice and test its taxes base rounding::
 
@@ -471,9 +447,7 @@ Create some complex invoice and test its taxes base rounding::
     >>> line.unit_price = Decimal('0.0035')
     >>> invoice.save()
     >>> invoice.untaxed_amount
-    Decimal('0.0')
-    >>> invoice.taxes[0].base == invoice.untaxed_amount
-    True
+    Decimal('0.00')
     >>> found_invoice, = Invoice.find([('untaxed_amount', '=', Decimal(0))])
     >>> found_invoice.id == invoice.id
     True
@@ -495,23 +469,23 @@ Create a paid invoice::
     >>> line.unit_price = Decimal('40')
     >>> invoice.click('post')
     >>> pay = Wizard('account.invoice.pay', [invoice])
-    >>> pay.form.payment_method = payment_method
+    >>> pay.form.journal = journal_cash
     >>> pay.execute('choice')
     >>> pay.state
     'end'
     >>> invoice.tax_identifier.type
-    'ar_cuit'
+    u'ar_cuit'
     >>> invoice.state
-    'paid'
+    u'paid'
 
 The invoice is posted when the reconciliation is deleted::
 
     >>> invoice.payment_lines[0].reconciliation.delete()
     >>> invoice.reload()
     >>> invoice.state
-    'posted'
+    u'posted'
     >>> invoice.tax_identifier.type
-    'ar_cuit'
+    u'ar_cuit'
 
 Credit invoice with non line lines::
 
@@ -532,44 +506,3 @@ Credit invoice with non line lines::
     >>> credit = Wizard('account.invoice.credit', [invoice])
     >>> credit.form.with_refund = True
     >>> credit.execute('credit')
-
-Duplicate and test recover last posted invoice::
-
-    >>> posted_invoice = Invoice.find([
-    ...     ('type', '=', 'out'), ('state', '=', 'posted')])[0]
-    >>> last_cbte_nro = int(wsfexv1.GetLastCMP('19', pos.number))
-    >>> invoice, = invoice.duplicate()
-    >>> invoice.pyafipws_concept
-    '1'
-    >>> invoice.pyafipws_cae = posted_invoice.pyafipws_cae
-    >>> invoice.pyafipws_cae_due_date = posted_invoice.pyafipws_cae_due_date
-    >>> invoice.pos = posted_invoice.pos
-    >>> invoice.invoice_type = posted_invoice.invoice_type
-    >>> # invoice.number = posted_invoice.number
-    >>> invoice.pyafipws_incoterms = posted_invoice.pyafipws_incoterms
-    >>> invoice.transactions
-    []
-    >>> invoice.save()
-    >>> invoice.reload()
-    >>> invoice.state
-    'draft'
-    >>> invoice.invoice_date = posted_invoice.invoice_date
-    >>> invoice.click('post')
-    >>> invoice.state
-    'posted'
-    >>> bool(invoice.move)
-    True
-    >>> invoice.pos == posted_invoice.pos
-    True
-    >>> invoice.invoice_type == posted_invoice.invoice_type
-    True
-    >>> # invoice.number == posted_invoice.number
-    # True
-    >>> # invoice.pyafipws_cae == posted_invoice.pyafipws_cae
-    # True
-    >>> # invoice.transactions[-1].pyafipws_result == posted_invoice.transactions[-1].pyafipws_result
-    # True
-    >>> # posted_invoice.transactions[-1].pyafipws_xml_request
-    >>> # invoice.transactions[-1].pyafipws_xml_request
-    >>> # posted_invoice.transactions[-1].pyafipws_xml_response
-    >>> # invoice.transactions[-1].pyafipws_xml_response
