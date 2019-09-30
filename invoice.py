@@ -1062,7 +1062,8 @@ class Invoice:
                 tipo_cbte = rejected_invoice.invoice_type.invoice_type
                 punto_vta = rejected_invoice.pos.number
                 cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
-                sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
+                sequence.number_next = int(cbte_nro_afip) + 1
+                sequence.save()
 
         for invoice in approved_invoices:
             move = invoice.get_move()
