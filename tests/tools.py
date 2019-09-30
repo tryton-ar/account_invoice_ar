@@ -20,7 +20,6 @@ def create_pos(company=None, type='manual', number=1, ws=None, config=None):
         company = get_company()
 
     pos = Pos(
-        company=company.id,
         number=number,
         pos_type=type,
         pyafipws_electronic_invoice_service=ws,
@@ -74,7 +73,6 @@ def get_pos(company=None, type='manual', number=1, config=None):
         company = get_company()
 
     pos, = Pos.find([
-            ('company', '=', company.id),
             ('pos_type', '=', type),
             ('number', '=', number),
             ])

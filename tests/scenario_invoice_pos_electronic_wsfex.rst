@@ -7,8 +7,7 @@ Imports::
     >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
     >>> from operator import attrgetter
-    >>> from proteus import Model, Wizard
-    >>> from trytond.tests.tools import activate_modules
+    >>> from proteus import config, Model, Wizard
     >>> from trytond.modules.company.tests.tools import create_company, \
     ...     get_company
     >>> from trytond.modules.currency.tests.tools import get_currency
@@ -26,9 +25,18 @@ Imports::
     >>> year = int(today.strftime("%Y"))
     >>> month = int(today.strftime("%m"))
 
+Create database::
+
+    >>> config = config.set_trytond()
+    >>> config.pool.test = True
+
 Install account_invoice::
 
-    >>> config = activate_modules('account_invoice_ar')
+    >>> Module = Model.get('ir.module')
+    >>> account_invoice_module, = Module.find(
+    ...     [('name', '=', 'account_invoice_ar')])
+    >>> account_invoice_module.click('install')
+    >>> Wizard('ir.module.install_upgrade').execute('upgrade')
 
 Create company::
 
@@ -239,7 +247,7 @@ Post invoice::
     >>> # invoice.pyafipws_cae
     >>> # invoice.transactions[0].pyafipws_xml_request
     >>> # invoice.transactions[0].pyafipws_xml_response
-    >>> invoice.tax_identifier.code
+    >>> invoice.company.party.vat_number
     u'30710158254'
     >>> invoice.untaxed_amount
     Decimal('220.00')
@@ -473,8 +481,6 @@ Create a paid invoice::
     >>> pay.execute('choice')
     >>> pay.state
     'end'
-    >>> invoice.tax_identifier.type
-    u'ar_cuit'
     >>> invoice.state
     u'paid'
 
@@ -484,8 +490,6 @@ The invoice is posted when the reconciliation is deleted::
     >>> invoice.reload()
     >>> invoice.state
     u'posted'
-    >>> invoice.tax_identifier.type
-    u'ar_cuit'
 
 Credit invoice with non line lines::
 
