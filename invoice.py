@@ -5,7 +5,8 @@
 from collections import defaultdict
 import logging
 from decimal import Decimal
-import datetime
+from datetime import date
+from calendar import monthrange
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
@@ -659,6 +660,43 @@ class Invoice:
         else:
             sequence, = sequences
         return sequence.id
+
+    def set_pyafipws_concept(self):
+        '''
+        set pyafipws_concept researching the product lines.
+        '''
+        products = {'1': 0, '2': 0}
+        self.pyafipws_concept = ''
+        for line in self.lines:
+            if line.product:
+                if line.product.type == 'goods':
+                    products['1'] += 1
+                if line.product.type == 'service':
+                    products['2'] += 1
+            else:
+                products['2'] += 1
+
+        if products['1'] != 0 and products['2'] != 0:
+            self.pyafipws_concept = '3'
+        elif products['1'] != 0:
+            self.pyafipws_concept = '1'
+        elif products['2'] != 0:
+            self.pyafipws_concept = '2'
+
+    def set_pyafipws_billing_dates(self):
+        '''
+        set pyafipws_billing_dates by invoice_date.
+        '''
+        today = Pool().get('ir.date').today()
+        if self.invoice_date:
+            year = int(self.invoice_date.strftime("%Y"))
+            month = int(self.invoice_date.strftime("%m"))
+        else:
+            year = int(today.strftime("%Y"))
+            month = int(today.strftime("%m"))
+        self.pyafipws_billing_start_date = date(year, month, 1)
+        self.pyafipws_billing_end_date = date(year, month,
+            monthrange(year, month)[1])
 
     def _credit(self):
         pool = Pool()
