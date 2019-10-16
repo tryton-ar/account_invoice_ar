@@ -1145,7 +1145,8 @@ class Invoice:
         # due and billing dates only for concept 'services'
         concepto = tipo_expo = int(self.pyafipws_concept or 0)
         fecha_venc_pago = fecha_serv_desde = fecha_serv_hasta = None
-        if (int(concepto) in (2, 3) or
+        fecha_pago = None
+        if (int(concepto) != 1 or
                 self.invoice_type.invoice_type in ('201', '206', '211')):
             payments = []
             if self.payment_term:
@@ -1161,6 +1162,9 @@ class Invoice:
             if service != 'wsmtxca':
                 fecha_venc_pago = fecha_venc_pago.replace('-', '')
 
+            if service == 'wsfex' and self.invoice_type.invoice_type == '19':
+                fecha_pago = fecha_venc_pago
+
         if int(concepto) != 1:
             if self.pyafipws_billing_start_date:
                 fecha_serv_desde = self.pyafipws_billing_start_date.strftime(
@@ -1172,6 +1176,7 @@ class Invoice:
                     '%Y-%m-%d')
                 if service != 'wsmtxca':
                     fecha_serv_hasta = fecha_serv_hasta.replace('-', '')
+
 
         # customer tax number:
         nro_doc = None
@@ -1300,7 +1305,7 @@ class Invoice:
                 nombre_cliente, cuit_pais_cliente, domicilio_cliente,
                 id_impositivo, moneda_id, moneda_ctz, obs_comerciales,
                 obs_generales, forma_pago, incoterms,
-                idioma_cbte, incoterms_ds)
+                idioma_cbte, incoterms_ds, fecha_pago)
 
         # analyze VAT (IVA) and other taxes (tributo):
         if service in ('wsfe', 'wsmtxca'):
