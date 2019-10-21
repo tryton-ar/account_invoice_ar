@@ -22,7 +22,9 @@ Imports::
     >>> from trytond.modules.account_invoice_ar.afip_auth import \
     ...     authenticate, get_cache_dir
     >>> from pyafipws.wsfexv1 import WSFEXv1
-    >>> today = datetime.date.today()
+    >>> import pytz
+    >>> timezone = pytz.timezone('America/Argentina/Buenos_Aires')
+    >>> today = datetime.datetime.now(timezone).date()
     >>> year = int(today.strftime("%Y"))
     >>> month = int(today.strftime("%m"))
 
@@ -33,6 +35,8 @@ Install account_invoice::
 Create company::
 
     >>> currency = get_currency('ARS')
+    >>> currency.afip_code = 'PES'
+    >>> currency.save()
     >>> _ = create_company(currency=currency)
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
@@ -187,7 +191,14 @@ Get USD currency and configure rate::
     >>> rate = currency.rates.new()
     >>> rate.date = today
     >>> rate.rate = Decimal(wsfexv1.GetParamCtz('DOL'))
+    >>> # rate.get_afip_rate()
     >>> currency.save()
+
+Get USD currency::
+
+    >>> usd = get_currency('USD')
+    >>> usd.afip_code = 'DOL'
+    >>> usd.save()
 
 Create invoice::
 
@@ -197,6 +208,7 @@ Create invoice::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.payment_term = payment_term
+    >>> invoice.currency = currency
     >>> line = InvoiceLine()
     >>> invoice.lines.append(line)
     >>> line.product = product
@@ -325,6 +337,7 @@ Credit invoice with refund::
 Test post without point of sale::
 
     >>> invoice, = invoice.duplicate()
+    >>> invoice.currency = currency
     >>> invoice.pyafipws_concept
     u'2'
     >>> invoice.pyafipws_incoterms
