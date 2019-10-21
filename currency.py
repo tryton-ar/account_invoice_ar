@@ -12,13 +12,15 @@ from trytond.pool import PoolMeta
 __all__ = ['Currency', 'Rate']
 
 
-class Currency(metaclass=PoolMeta):
+class Currency:
+    __metaclass__ = PoolMeta
     __name__ = 'currency.currency'
     afip_code = fields.Char('AFIP Code', size=3,
         help="The 3 digits AFIP currency code.")
 
 
-class Rate(metaclass=PoolMeta):
+class Rate:
+    __metaclass__ = PoolMeta
     __name__ = 'currency.currency.rate'
 
     def get_afip_rate(self, service='wsfex'):
