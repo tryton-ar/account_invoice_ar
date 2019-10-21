@@ -2,10 +2,36 @@
 <!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
 this repository contains the full copyright notices and license terms. -->
 <tryton>
+    <data>
+
+        <record model="ir.ui.view" id="currency_view_form">
+            <field name="model">currency.currency</field>
+            <field name="inherit" ref="currency.currency_view_form"/>
+            <field name="name">currency_form</field>
+        </record>
+
+    </data>
+
     <data skiptest="1" grouped="1">
 
         <record model="currency.currency" id="currency.usd">
             <field name="symbol">U$S</field>
+            <field name="afip_code">DOL</field>
+        </record>
+        <record model="currency.currency" id="currency.ars">
+            <field name="afip_code">PES</field>
+        </record>
+        <record model="currency.currency" id="currency.eur">
+            <field name="afip_code">060</field>
+        </record>
+        <record model="currency.currency" id="currency.gbp">
+            <field name="afip_code">021</field>
+        </record>
+        <record model="currency.currency" id="currency.brl">
+            <field name="afip_code">012</field>
+        </record>
+        <record model="currency.currency" id="currency.uyu">
+            <field name="afip_code">011</field>
         </record>
     </data>
 

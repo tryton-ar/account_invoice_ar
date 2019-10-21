@@ -8,6 +8,7 @@ from . import company
 from . import pos
 from . import bank
 from . import party
+from . import currency
 
 
 def register():
@@ -21,6 +22,7 @@ def register():
         invoice.AfipWSTransaction,
         bank.BankAccount,
         party.Party,
+        currency.Currency,
         module='account_invoice_ar', type_='model')
     Pool.register(
         invoice.CreditInvoice,
