@@ -1239,11 +1239,14 @@ class Invoice:
         else:
             ctz = self.company.currency.rate / self.currency.rate
 
-        if self.currency.code == 'ARS':
-            moneda_id = 'PES'
-        else:
-            moneda_id = {'USD': 'DOL', 'EUR': '060'}[self.currency.code]
+        if not self.currency.afip_code:
+            if batch:
+                logger.error('missing_currency_afip_code: Invoice: %s, '
+                    'currency afip code is not setted.' % self.id)
+                return (ws, True)
+            self.raise_user_error('missing_currency_afip_code')
 
+        moneda_id = self.currency.afip_code
         moneda_ctz = "{:.{}f}".format(ctz, 6)
 
         # foreign trade data: export permit, country code, etc.:
