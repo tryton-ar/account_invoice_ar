@@ -33,6 +33,8 @@ Install account_invoice::
 Create company::
 
     >>> currency = get_currency('ARS')
+    >>> currency.afip_code = 'PES'
+    >>> currency.save()
     >>> _ = create_company(currency=currency)
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
