@@ -110,6 +110,10 @@ msgctxt "field:account.invoice,annulled:"
 msgid "Annulled"
 msgstr "Anulada"
 
+msgctxt "field:account.invoice,currency_rate:"
+msgid "Currency rate"
+msgstr "Tasa de cambio"
+
 msgctxt "field:account.invoice,invoice_type:"
 msgid "Comprobante"
 msgstr "Tipo de factura"

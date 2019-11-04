@@ -60,4 +60,10 @@
         <field name="annulled" xexpand="0"/>
     </xpath>
 
+    <xpath
+        expr="/form/notebook/page[@id='info']/field[@name='cancel_move']"
+        position="after">
+        <label name="currency_rate"/>
+        <field name="currency_rate"/>
+    </xpath>
 </data>

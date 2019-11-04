@@ -340,6 +340,8 @@ class Invoice(metaclass=PoolMeta):
         depends=_DEPENDS + ['company_party'])
     pyafipws_anulacion = fields.Boolean('FCE Anulación', states=_STATES,
         depends=_DEPENDS)
+    currency_rate = fields.Numeric('Currency rate', digits=(12, 6),
+        states={'readonly': Eval('state') != 'draft'}, depends=['state'])
 
     @classmethod
     def __setup__(cls):
@@ -444,6 +446,12 @@ class Invoice(metaclass=PoolMeta):
 
         if self.party and self.party.iva_condition:
             self.party_iva_condition = self.party.iva_condition
+
+    @fields.depends('company', 'currency')
+    def on_change_currency(self):
+        if self.company and self.currency:
+            if self.company.currency != self.currency:
+                self.currency_rate = self.currency.rate
 
     @fields.depends('pos')
     def on_change_with_pos_pos_daily_report(self, name=None):
@@ -742,6 +750,7 @@ class Invoice(metaclass=PoolMeta):
         Date = pool.get('ir.date')
 
         credit = super(Invoice, self)._credit()
+        credit.currency_rate = self.currency_rate
         if self.type == 'in':
             invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
                 str(int(self.tipo_comprobante))
@@ -837,6 +846,10 @@ class Invoice(metaclass=PoolMeta):
                 number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
                 return '%05d-%08d' % (self.pos.number, int(number))
             return SequenceStrict.get_id(sequence.id)
+
+    def get_move(self):
+        with Transaction().set_context(currency_rate=self.currency_rate):
+            return super(Invoice, self).get_move()
 
     def _get_move_line(self, date, amount):
         line = super(Invoice, self)._get_move_line(date, amount)
@@ -1315,28 +1328,31 @@ class Invoice(metaclass=PoolMeta):
         imp_neto = str('%.2f' % imp_neto)
         imp_tot_conc = str('%.2f' % imp_tot_conc)
 
-        if self.company.currency.rate == Decimal('0'):
-            if self.party.vat_number_afip_foreign:
-                if batch:
-                    logger.error('missing_currency_rate: Invoice: %s, '
-                        'rate is not setted.' % self.id)
-                    return (ws, True)
-                self.raise_user_error('missing_currency_rate')
-            else:
-                ctz = 1
-        elif self.company.currency.rate == Decimal('1'):
-            ctz = 1 / self.currency.rate
-        else:
-            ctz = self.company.currency.rate / self.currency.rate
-
-        if not self.currency.afip_code:
+        # currency and rate
+        moneda_id = self.currency.afip_code
+        if not moneda_id:
             if batch:
                 logger.error('missing_currency_afip_code: Invoice: %s, '
                     'currency afip code is not setted.' % self.id)
                 return (ws, True)
             self.raise_user_error('missing_currency_afip_code')
 
-        moneda_id = self.currency.afip_code
+        if moneda_id != "PES":
+            ctz = self.currency_rate
+        else:
+            if self.company.currency.rate == Decimal('0'):
+                if self.party.vat_number_afip_foreign:
+                    if batch:
+                        logger.error('missing_currency_rate: Invoice: %s, '
+                            'rate is not setted.' % self.id)
+                        return (ws, True)
+                    self.raise_user_error('missing_currency_rate')
+                else:
+                    ctz = 1
+            elif self.company.currency.rate == Decimal('1'):
+                ctz = 1 / self.currency.rate
+            else:
+                ctz = self.company.currency.rate / self.currency.rate
         moneda_ctz = "{:.{}f}".format(ctz, 6)
 
         # foreign trade data: export permit, country code, etc.:
