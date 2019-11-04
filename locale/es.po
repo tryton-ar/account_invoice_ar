@@ -106,6 +106,10 @@ msgctxt "error:company.company:"
 msgid "Problemas de Certificado: \"%(message)s\"."
 msgstr ""
 
+msgctxt "field:account.invoice,currency_rate:"
+msgid "Currency rate"
+msgstr "Tasa de cambio"
+
 msgctxt "field:account.invoice,invoice_type:"
 msgid "Comprobante"
 msgstr "Tipo de factura"

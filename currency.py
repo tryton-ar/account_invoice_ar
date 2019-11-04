@@ -1,5 +1,6 @@
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
+from decimal import Decimal
 import datetime
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
@@ -7,7 +8,8 @@ from . import afip_auth
 
 from trytond.model import fields
 from trytond.pyson import Eval, If, In
-from trytond.pool import PoolMeta
+from trytond.pool import Pool, PoolMeta
+from trytond.transaction import Transaction
 
 __all__ = ['Currency', 'Rate']
 
@@ -15,8 +17,38 @@ __all__ = ['Currency', 'Rate']
 class Currency:
     __metaclass__ = PoolMeta
     __name__ = 'currency.currency'
+
     afip_code = fields.Char('AFIP Code', size=3,
         help="The 3 digits AFIP currency code.")
+
+    @classmethod
+    def compute(cls, from_currency, amount, to_currency, round=True):
+        pool = Pool()
+        Company = pool.get('company.company')
+
+        currency_rate = Transaction().context.get('currency_rate')
+        if not currency_rate:
+            return super(Currency, cls).compute(from_currency, amount,
+                to_currency, round)
+
+        if to_currency == from_currency:
+            if round:
+                return to_currency.round(amount)
+            else:
+                return amount
+
+        company = Company(Transaction().context['company'])
+        if from_currency == company.currency:
+            from_currency_rate = currency_rate
+            currency_rate = Decimal('1.0')
+        else:
+            from_currency_rate = Decimal('1.0')
+
+        if round:
+            return to_currency.round(
+                amount * currency_rate / from_currency_rate)
+        else:
+            return amount * currency_rate / from_currency_rate
 
 
 class Rate:
