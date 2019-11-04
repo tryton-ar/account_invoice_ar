@@ -6209,6 +6209,14 @@ msgctxt "selection:party.party,secondary_activity_code:"
 msgid "513511 - VENTA AL POR MAYOR DE MUEBLES METALICOS EXCEPTO DE OFICINA"
 msgstr ""
 
+msgctxt "field:account.invoice,currency_rate:"
+msgid "Currency rate"
+msgstr "Tasa de cambio"
+
+msgctxt "field:account.invoice,invoice_type:"
+msgid "Comprobante"
+msgstr "Tipo de factura"
+
 msgctxt "selection:party.party,secondary_activity_code:"
 msgid ""
 "513519 - VENTA AL POR MAYOR DE MUEBLES N.C.P.EXCEPTO DE OFICINA,ART. DE "
