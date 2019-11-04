@@ -1137,7 +1137,7 @@ class Invoice:
                     self.currency, date=self.invoice_date)
             if payments:
                 last_payment = max(payments, key=lambda x: x[0])[0]
-            elif ws.Reprocesar:
+            elif service == 'wsfe' and ws.Reprocesar:
                 last_payment = self.invoice_date
             else:
                 last_payment = date.today()
