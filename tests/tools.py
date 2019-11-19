@@ -101,7 +101,8 @@ def get_invoice_types(company=None, pos=None, config=None):
 def create_tax_groups(company=None, config=None):
     "Create tax groups"
     TaxGroup = Model.get('account.tax.group', config=config)
-    types = ['iva', 'nacional', 'iibb', 'municipal', 'interno']
+    types = ['gravado', 'nacional', 'provincial', 'municipal', 'interno',
+        'other']
     groups = {}
 
     for type in types:
@@ -109,6 +110,17 @@ def create_tax_groups(company=None, config=None):
         group.name = type
         group.code = type
         group.kind = 'both'
+        group.afip_kind = type
+        if type == 'nacional':
+            group.tribute_id = '1'
+        elif type == 'provincial':
+            group.tribute_id = '2'
+        elif type == 'municipal':
+            group.tribute_id = '3'
+        elif type == 'interno':
+            group.tribute_id = '4'
+        elif type == 'other':
+            group.tribute_id = '99'
         group.save()
         groups[type] = group
     return groups

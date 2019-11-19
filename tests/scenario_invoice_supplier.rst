@@ -59,7 +59,7 @@ Create tax::
 
     >>> TaxCode = Model.get('account.tax.code')
     >>> tax = create_tax(Decimal('.10'))
-    >>> tax.group = tax_groups['iva']
+    >>> tax.group = tax_groups['gravado']
     >>> tax.save()
     >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
     >>> invoice_base_code.save()

@@ -2,6 +2,17 @@
 <data>
     <xpath expr="/form/notebook/page[@id='payment']" position="after">
         <page string="Factura Electronica Argentina" id="electronic_invoice">
+            <label name="pyafipws_imp_neto"/>
+            <field name="pyafipws_imp_neto"/>
+            <label name="pyafipws_imp_tot_conc"/>
+            <field name="pyafipws_imp_tot_conc"/>
+            <label name="pyafipws_imp_op_ex"/>
+            <field name="pyafipws_imp_op_ex"/>
+            <label name="pyafipws_imp_iva"/>
+            <field name="pyafipws_imp_iva"/>
+            <label name="pyafipws_imp_trib"/>
+            <field name="pyafipws_imp_trib"/>
+            <newline />
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
             <label name="pyafipws_cbu"/>
