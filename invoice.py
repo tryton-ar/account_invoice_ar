@@ -26,12 +26,14 @@ from . import afip_auth
 logger = logging.getLogger(__name__)
 
 __all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
-    'InvoiceReport', 'CreditInvoiceStart', 'CreditInvoice']
+    'InvoiceReport', 'CreditInvoiceStart', 'CreditInvoice', 'InvoiceLine']
 
 _STATES = {
     'readonly': Eval('state') != 'draft',
     }
 _DEPENDS = ['state']
+
+_ZERO = Decimal('0.0')
 
 _REF_NUMBERS_STATES = _STATES.copy()
 _REF_NUMBERS_STATES.update({
@@ -242,6 +244,24 @@ class AfipWSTransaction(ModelSQL, ModelView):
         help='Mensaje XML recibido de AFIP (depuración)')
 
 
+class InvoiceLine(metaclass=PoolMeta):
+    __name__ = 'account.invoice.line'
+    _states = {
+        'readonly': Eval('invoice_state') != 'draft',
+        }
+    _depends = ['invoice_state']
+
+    pyafipws_exento = fields.Boolean('Exento', states={
+        'readonly': _states['readonly'] | Bool(Eval('taxes')),
+        }, depends=_depends + ['taxes'])
+
+    @fields.depends('taxes', 'pyafipws_exento')
+    def on_change_with_pyafipws_exento(self, name=None):
+        if self.taxes:
+            return False
+        return self.pyafipws_exento
+
+
 class Invoice(metaclass=PoolMeta):
     __name__ = 'account.invoice'
 
@@ -342,6 +362,16 @@ class Invoice(metaclass=PoolMeta):
         depends=_DEPENDS)
     currency_rate = fields.Numeric('Currency rate', digits=(12, 6),
         states={'readonly': Eval('state') != 'draft'}, depends=['state'])
+    pyafipws_imp_neto = fields.Function(fields.Numeric('Gravado',
+            digits=(12, 2)), 'on_change_with_pyafipws_imp_neto')
+    pyafipws_imp_tot_conc = fields.Function(fields.Numeric('No Gravado',
+            digits=(12, 2)), 'on_change_with_pyafipws_imp_tot_conc')
+    pyafipws_imp_op_ex = fields.Function(fields.Numeric('Exento',
+            digits=(12, 2)), 'on_change_with_pyafipws_imp_op_ex')
+    pyafipws_imp_iva = fields.Function(fields.Numeric('Imp. IVA',
+            digits=(12, 2)), 'on_change_with_pyafipws_imp_iva')
+    pyafipws_imp_trib = fields.Function(fields.Numeric('Imp. Tributo',
+            digits=(12, 2)), 'on_change_with_pyafipws_imp_trib')
 
     @classmethod
     def __setup__(cls):
@@ -391,7 +421,7 @@ class Invoice(metaclass=PoolMeta):
                 'El numero de factura ya ha sido ingresado en el sistema.',
             'tax_without_group':
                 'El impuesto (%s) debe tener un grupo asignado '
-                '(iibb, municipal, iva).',
+                '(gravado, nacional, provincila, municipal, interno u otros).',
             'in_invoice_validate_failed':
                 'Los campos "Referencia" y "Comprobante" son requeridos.',
             'rejected_invoices':
@@ -441,6 +471,26 @@ class Invoice(metaclass=PoolMeta):
     def default_pyafipws_anulacion():
         return False
 
+    @staticmethod
+    def default_pyafipws_imp_neto():
+        return _ZERO
+
+    @staticmethod
+    def default_pyafipws_imp_tot_conc():
+        return _ZERO
+
+    @staticmethod
+    def default_pyafipws_imp_op_ex():
+        return _ZERO
+
+    @staticmethod
+    def default_pyafipws_imp_iva():
+        return _ZERO
+
+    @staticmethod
+    def default_pyafipws_imp_trib():
+        return _ZERO
+
     def on_change_party(self):
         super(Invoice, self).on_change_party()
 
@@ -452,6 +502,63 @@ class Invoice(metaclass=PoolMeta):
         if self.company and self.currency:
             if self.company.currency != self.currency:
                 self.currency_rate = self.currency.rate
+
+    @fields.depends('company', 'untaxed_amount', 'lines')
+    def on_change_with_pyafipws_imp_neto(self, name=None):
+        imp_neto = _ZERO
+        if (self.company and self.untaxed_amount and
+                self.company.party.iva_condition in ('exento', 'monotributo')):
+            return abs(self.untaxed_amount)
+
+        for line in self.lines:
+            if line.taxes:
+                imp_neto += abs(line.amount)
+
+        return imp_neto
+
+    @fields.depends('company', 'untaxed_amount', 'lines')
+    def on_change_with_pyafipws_imp_tot_conc(self, name=None):
+        imp_tot_conc = _ZERO
+        if (self.company and self.company.party.iva_condition
+                in ('exento', 'monotributo')):
+            return imp_tot_conc
+
+        for line in self.lines:
+            if not line.taxes and not line.pyafipws_exento:
+                imp_tot_conc += abs(line.amount)
+
+        return imp_tot_conc
+
+    @fields.depends('company', 'untaxed_amount', 'lines')
+    def on_change_with_pyafipws_imp_op_ex(self, name=None):
+        imp_op_ex = _ZERO
+        if (self.company and self.company.party.iva_condition
+                in ('exento', 'monotributo')):
+            return imp_op_ex
+
+        for line in self.lines:
+            if not line.taxes and line.pyafipws_exento:
+                imp_op_ex += abs(line.amount)
+
+        return imp_op_ex
+
+    @fields.depends('taxes', 'lines')
+    def on_change_with_pyafipws_imp_trib(self, name=None):
+        imp_trib = _ZERO
+        for tax_line in self.taxes:
+            if tax_line.tax and tax_line.tax.group.afip_kind != 'gravado':
+                imp_trib += abs(tax_line.amount)
+
+        return imp_trib
+
+    @fields.depends('taxes', 'lines')
+    def on_change_with_pyafipws_imp_iva(self, name=None):
+        imp_iva = _ZERO
+        for tax_line in self.taxes:
+            if tax_line.tax and tax_line.tax.group.afip_kind == 'gravado':
+                imp_iva += abs(tax_line.amount)
+
+        return imp_iva
 
     @fields.depends('pos')
     def on_change_with_pos_pos_daily_report(self, name=None):
@@ -1310,23 +1417,11 @@ class Invoice(metaclass=PoolMeta):
         # invoice amount totals:
         imp_total = str('%.2f' % abs(self.total_amount))
         imp_subtotal = str('%.2f' % abs(self.untaxed_amount)) # TODO
-        imp_tot_conc = Decimal('0') # No gravado
-        imp_neto = Decimal('0')
-        imp_iva, imp_trib = self._get_imp_total_iva_and_trib(service)
-        imp_op_ex = '0.00' # Exento TODO: issue#136
-
-        if self.company.party.iva_condition in ['exento', 'monotributo']:
-            imp_neto = abs(self.untaxed_amount)
-            imp_tot_conc = Decimal('0')
-        else:
-            for line in self.lines:
-                if line.taxes:
-                    imp_neto += abs(line.amount)
-                else:
-                    imp_tot_conc += abs(line.amount)
-
-        imp_neto = str('%.2f' % imp_neto)
-        imp_tot_conc = str('%.2f' % imp_tot_conc)
+        imp_tot_conc = self.pyafipws_imp_tot_conc
+        imp_neto = self.pyafipws_imp_neto
+        imp_iva = self.pyafipws_imp_iva
+        imp_trib = self.pyafipws_imp_trib
+        imp_op_ex = self.pyafipws_imp_op_ex
 
         # currency and rate
         moneda_id = self.currency.afip_code
@@ -1469,7 +1564,7 @@ class Invoice(metaclass=PoolMeta):
 
             for tax_line in self.taxes:
                 tax = tax_line.tax
-                if tax.group is None:
+                if not tax.group:
                     if batch:
                         logger.error('tax_without_group: Invoice: %s, tax: %s'
                             % (self.id, tax.name))
@@ -1477,22 +1572,13 @@ class Invoice(metaclass=PoolMeta):
                     self.raise_user_error('tax_without_group', {
                             'tax': tax.name,
                             })
-                if 'iva' in tax.group.code.lower():
-                    iva_id = IVA_AFIP_CODE[tax.rate]
+                if tax.group.afip_kind == 'gravado':
+                    iva_id = tax.iva_code
                     base_imp = ('%.2f' % abs(tax_line.base))
                     importe = ('%.2f' % abs(tax_line.amount))
                     ws.AgregarIva(iva_id, base_imp, importe)
                 else:
-                    if 'nacional' in tax.group.code.lower():
-                        tributo_id = 1  # nacional
-                    elif 'iibb' in tax.group.code.lower():
-                        tributo_id = 2  # provincial
-                    elif 'municipal' in tax.group.code.lower():
-                        tributo_id = 3  # municipal
-                    elif 'interno' in tax.group.code.lower():
-                        tributo_id = 3  # municipal
-                    else:
-                        tributo_id = 99
+                    tributo_id = tax.group.tribute_id
                     desc = tax.name
                     base_imp = ('%.2f' % abs(tax_line.base))
                     importe = ('%.2f' % abs(tax_line.amount))
@@ -1651,21 +1737,6 @@ class Invoice(metaclass=PoolMeta):
             digito = 0
         return str(digito)
 
-    # @return (imp_iva, imp_trib)
-    def _get_imp_total_iva_and_trib(self, service):
-        # analyze VAT (IVA) and other taxes (tributo):
-        imp_iva = Decimal('0')
-        imp_trib = Decimal('0')
-        if service in ('wsfe', 'wsmtxca'):
-            for tax_line in self.taxes:
-                tax = tax_line.tax
-                if 'iva' in tax.group.code.lower():
-                    imp_iva += tax_line.amount
-                else:
-                    imp_trib += tax_line.amount
-
-        return ('%.2f' % abs(imp_iva), '%.2f' % abs(imp_trib))
-
 
 class InvoiceExportLicense(ModelSQL, ModelView):
     'Invoice Export License'
@@ -1778,7 +1849,7 @@ class InvoiceReport(metaclass=PoolMeta):
 
         if invoice_type_string != 'A':
             for tax in taxes:
-                if 'iva' in tax.tax.group.code.lower():
+                if tax.tax.group.afip_kind == 'gravado':
                     res.append(tax)
         return res
 
@@ -1796,7 +1867,7 @@ class InvoiceReport(metaclass=PoolMeta):
             res = taxes
         elif invoice_type_string == 'B':
             for tax in taxes:
-                if 'iva' not in tax.tax.group.code.lower():
+                if tax.tax.group.afip_kind != 'gravado':
                     res.append(tax)
         return res
 

@@ -18,6 +18,7 @@ def register():
         pos.Pos,
         pos.PosSequence,
         invoice.Invoice,
+        invoice.InvoiceLine,
         invoice.InvoiceExportLicense,
         invoice.CreditInvoiceStart,
         company.Company,

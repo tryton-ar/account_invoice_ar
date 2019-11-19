@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- The COPYRIGHT file at the top level of this repository contains the
+     full copyright notices and license terms. -->
+<data>
+    <xpath expr="/form/notebook/page[@id='general']/field[@name='taxes']" position="after">
+        <label name="pyafipws_exento"/>
+        <field name="pyafipws_exento" colspan="3"/>
+    </xpath>
+</data>
