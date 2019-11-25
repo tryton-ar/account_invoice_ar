@@ -26,7 +26,8 @@ from . import afip_auth
 logger = logging.getLogger(__name__)
 
 __all__ = ['Invoice', 'AfipWSTransaction', 'InvoiceExportLicense',
-    'InvoiceReport', 'CreditInvoiceStart', 'CreditInvoice', 'InvoiceLine']
+    'InvoiceReport', 'CreditInvoiceStart', 'CreditInvoice', 'InvoiceLine',
+    'InvoiceCmpAsoc']
 
 _STATES = {
     'readonly': Eval('state') != 'draft',
@@ -372,6 +373,14 @@ class Invoice(metaclass=PoolMeta):
             digits=(12, 2)), 'on_change_with_pyafipws_imp_iva')
     pyafipws_imp_trib = fields.Function(fields.Numeric('Imp. Tributo',
             digits=(12, 2)), 'on_change_with_pyafipws_imp_trib')
+    pyafipws_cmp_asoc = fields.Many2Many('account.invoice-cmp.asoc',
+        'invoice', 'cmp_asoc', 'Cmp Asoc', states=_STATES,
+        domain=[
+            ('type', '=', 'out'),
+            ('state', 'in', ['posted', 'paid']),
+            ('company', '=', Eval('company', -1)),
+            ],
+        depends=_DEPENDS + ['company', 'type'])
 
     @classmethod
     def __setup__(cls):
@@ -895,6 +904,7 @@ class Invoice(metaclass=PoolMeta):
             credit.pyafipws_licenses = self.pyafipws_licenses
 
         credit.reference = '%s' % self.number
+        credit.pyafipws_cmp_asoc = [self.id]
         return credit
 
     @classmethod
@@ -1551,22 +1561,15 @@ class Invoice(metaclass=PoolMeta):
                         ws.AgregarOpcional(22, 'N')
             if (self.invoice_type.invoice_type in ('2', '3', '7', '8', '12',
                     '13', '202', '203', '207', '208', '212', '213')):
-                cbteasoc_tipo, _ = INVOICE_CREDIT_AFIP_CODE[
-                    (self.invoice_type.invoice_type)
-                    ]
-                cbteasoc_tipo = int(cbteasoc_tipo) - 1
-                cbteasoc_nro = int(self.reference[-8:])
-                cbteasoc, = self.search([
-                        ('number', '=', self.reference),
-                        ('invoice_type.invoice_type', '=', str(cbteasoc_tipo)),
-                        ('state', 'in', ['posted', 'paid']),
-                        ])
-                cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime('%Y-%m-%d')
-                if service != 'wsmtxca':
-                    cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-', '')
-                ws.AgregarCmpAsoc(tipo=cbteasoc_tipo, pto_vta=punto_vta,
-                    nro=cbteasoc_nro, cuit=self.company.party.tax_identifier.code,
-                    fecha=cbteasoc_fecha_cbte)
+                for cbteasoc in self.pyafipws_cmp_asoc:
+                    cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
+                    cbteasoc_nro = int(cbteasoc.number[-8:])
+                    cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime('%Y-%m-%d')
+                    if service != 'wsmtxca':
+                        cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-', '')
+                    ws.AgregarCmpAsoc(tipo=cbteasoc_tipo, pto_vta=punto_vta,
+                        nro=cbteasoc_nro, cuit=self.company.party.tax_identifier.code,
+                        fecha=cbteasoc_fecha_cbte)
 
             for tax_line in self.taxes:
                 tax = tax_line.tax
@@ -1636,10 +1639,11 @@ class Invoice(metaclass=PoolMeta):
                         export_license.license_id,
                         export_license.afip_country.code)
                 if int(tipo_cbte) in (20, 21):
-                    cbteasoc_tipo = 19
-                    cbteasoc_nro = int(self.reference[-8:])
-                    ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
-                        cbteasoc_nro, self.company.party.tax_identifier.code)
+                    for cbteasoc in self.pyafipws_cmp_asoc:
+                        cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
+                        cbteasoc_nro = int(cbteasoc.number[-8:])
+                        ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
+                            cbteasoc_nro, self.company.party.tax_identifier.code)
                 if not self.lines:
                     codigo = 0
                     ds = '-'
@@ -2007,3 +2011,13 @@ class CreditInvoice(metaclass=PoolMeta):
                 pyafipws_anulacion=self.start.pyafipws_anulacion):
             action, data = super(CreditInvoice, self).do_credit(action)
         return action, data
+
+
+class InvoiceCmpAsoc(ModelSQL):
+    'Invoice - CmpAsoc (Invoice)'
+    __name__ = 'account.invoice-cmp.asoc'
+    _table = 'account_invoice_cmp_asoc'
+    invoice = fields.Many2One('account.invoice', 'Invoice',
+        ondelete='CASCADE', select=True, required=True)
+    cmp_asoc = fields.Many2One('account.invoice', 'Cmp Asoc',
+        ondelete='RESTRICT', required=True)
