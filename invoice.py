@@ -973,6 +973,8 @@ class Invoice(metaclass=PoolMeta):
         pool = Pool()
         Pos = pool.get('account.pos')
         Date = pool.get('ir.date')
+        Period = pool.get('account.period')
+
         invoices_in = [i for i in invoices if i.type == 'in']
         invoices_out = [i for i in invoices if i.type == 'out']
 
@@ -993,6 +995,10 @@ class Invoice(metaclass=PoolMeta):
 
         invoices_nowsfe = invoices_out.copy()
         for invoice in invoices_out:
+            # raise an exception if no period is found.
+            Period.find(invoice.company.id,
+                date=invoice.accounting_date or invoice.invoice_date)
+
             invoice.check_invoice_type()
             if (invoice.pos and invoice.pos.pos_type == 'electronic'
                     and invoice.pos.pyafipws_electronic_invoice_service == 'wsfe'
