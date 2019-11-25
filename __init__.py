@@ -21,6 +21,7 @@ def register():
         invoice.InvoiceLine,
         invoice.InvoiceExportLicense,
         invoice.CreditInvoiceStart,
+        invoice.InvoiceCmpAsoc,
         company.Company,
         invoice.AfipWSTransaction,
         bank.BankAccount,

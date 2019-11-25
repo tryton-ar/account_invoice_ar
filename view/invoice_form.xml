@@ -13,6 +13,7 @@
             <label name="pyafipws_imp_trib"/>
             <field name="pyafipws_imp_trib"/>
             <newline />
+            <field name="pyafipws_cmp_asoc" colspan="4"/>
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
             <label name="pyafipws_cbu"/>
