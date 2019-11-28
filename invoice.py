@@ -1787,19 +1787,17 @@ class InvoiceReport(metaclass=PoolMeta):
     @classmethod
     def get_context(cls, records, data):
         pool = Pool()
-        User = pool.get('res.user')
         Invoice = pool.get('account.invoice')
 
         report_context = super(InvoiceReport, cls).get_context(records, data)
         invoice = records[0]
 
-        user = User(Transaction().user)
-        report_context['company'] = user.company
+        report_context['company'] = invoice.company
         report_context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
             invoice)
-        report_context['condicion_iva'] = cls._get_condicion_iva(user.company)
-        report_context['iibb_type'] = cls._get_iibb_type(user.company)
-        report_context['vat_number'] = cls._get_vat_number(user.company)
+        report_context['condicion_iva'] = cls._get_condicion_iva(invoice.company)
+        report_context['iibb_type'] = cls._get_iibb_type(invoice.company)
+        report_context['vat_number'] = cls._get_vat_number(invoice.company)
         report_context['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice,
             invoice)
         report_context['nombre_comprobante'] = cls._get_nombre_comprobante(
