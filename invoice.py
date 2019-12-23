@@ -787,19 +787,9 @@ class Invoice:
 
     @classmethod
     def set_number(cls, invoices):
-        super(Invoice, cls).set_number(invoices)
-
-        for invoice in invoices:
-            # Posted and paid invoices are tested by check_modify so we can
-            # not modify tax_identifier nor number
-            if invoice.state in {'posted', 'paid'}:
-                continue
-            # Generated invoice may not fill the party iva_condition
-            if not invoice.party_iva_condition and invoice.type == 'out':
-                invoice.party_iva_condition = invoice.party.iva_condition
-        cls.save(invoices)
-
-    def get_next_number(self, pattern=None):
+        '''
+        Set number to the invoice
+        '''
         pool = Pool()
         Period = pool.get('account.period')
         SequenceStrict = pool.get('ir.sequence.strict')
@@ -813,6 +803,9 @@ class Invoice:
                 continue
             if not invoice.tax_identifier:
                 invoice.tax_identifier = invoice.get_tax_identifier()
+            # Generated invoice may not fill the party iva_condition
+            if not invoice.party_iva_condition and invoice.type == 'out':
+                invoice.party_iva_condition = invoice.party.iva_condition
 
             if invoice.number:
                 continue
