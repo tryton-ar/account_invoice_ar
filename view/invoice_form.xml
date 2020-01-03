@@ -2,17 +2,11 @@
 <data>
     <xpath expr="/form/notebook/page[@id='payment']" position="after">
         <page string="Factura Electronica Argentina" id="electronic_invoice">
-            <label name="pyafipws_imp_neto"/>
-            <field name="pyafipws_imp_neto"/>
-            <label name="pyafipws_imp_tot_conc"/>
-            <field name="pyafipws_imp_tot_conc"/>
-            <label name="pyafipws_imp_op_ex"/>
-            <field name="pyafipws_imp_op_ex"/>
-            <label name="pyafipws_imp_iva"/>
-            <field name="pyafipws_imp_iva"/>
-            <label name="pyafipws_imp_trib"/>
-            <field name="pyafipws_imp_trib"/>
-            <newline />
+            <group col="-1" colspan="2" id="checkboxes">
+                <label name="pyafipws_anulacion"/>
+                <field name="pyafipws_anulacion" xexpand="0" width="25"/>
+                <!-- Add here some checkboxes ! -->
+            </group>
             <field name="pyafipws_cmp_asoc" colspan="4"/>
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
@@ -75,7 +69,21 @@
     <xpath
         expr="/form/notebook/page[@id='info']/field[@name='cancel_move']"
         position="after">
+        <newline />
+        <label string="Facturación Argentina"
+            id="invoice_ar" colspan="4" yalign="0.0" xalign="0.0"
+            xexpand="1"/>
         <label name="currency_rate"/>
         <field name="currency_rate"/>
+        <label name="pyafipws_imp_neto"/>
+        <field name="pyafipws_imp_neto"/>
+        <label name="pyafipws_imp_tot_conc"/>
+        <field name="pyafipws_imp_tot_conc"/>
+        <label name="pyafipws_imp_op_ex"/>
+        <field name="pyafipws_imp_op_ex"/>
+        <label name="pyafipws_imp_iva"/>
+        <field name="pyafipws_imp_iva"/>
+        <label name="pyafipws_imp_trib"/>
+        <field name="pyafipws_imp_trib"/>
     </xpath>
 </data>
