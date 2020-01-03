@@ -323,7 +323,7 @@ class Invoice:
             'numbers.type': 'cbu',
             },
         depends=_DEPENDS + ['company_party'])
-    pyafipws_anulacion = fields.Boolean(u'FCE Anulación', states=_STATES,
+    pyafipws_anulacion = fields.Boolean(u'FCE MiPyme anulación', states=_STATES,
         depends=_DEPENDS)
     pyafipws_cmp_asoc = fields.Many2Many('account.invoice-cmp.asoc',
         'invoice', 'cmp_asoc', 'Cmp Asoc', states=_STATES,
@@ -765,6 +765,8 @@ class Invoice:
 
         credit.reference = '%s' % self.number
         credit.pyafipws_cmp_asoc = [self.id]
+        credit.pyafipws_anulacion = Transaction().context.get(
+            'pyafipws_anulacion', False)
         return credit
 
     @classmethod
@@ -1186,7 +1188,8 @@ class Invoice:
         fecha_venc_pago = fecha_serv_desde = fecha_serv_hasta = None
         fecha_pago = None
         if (int(concepto) != 1 or
-                self.invoice_type.invoice_type in ('201', '206', '211')):
+                self.invoice_type.invoice_type in ('201', '202', '203', '206',
+                    '207', '208', '211', '212', '213')):
             payments = []
             if self.payment_term:
                 payments = self.payment_term.compute(self.total_amount,
@@ -1203,6 +1206,11 @@ class Invoice:
 
             if service == 'wsfex' and self.invoice_type.invoice_type == '19':
                 fecha_pago = fecha_venc_pago
+
+            if self.invoice_type.invoice_type in ('202', '203', '207',
+                    '208', '212', '213'):
+                if not self.pyafipws_anulacion:
+                    fecha_venc_pago = None
 
         if int(concepto) != 1:
             if self.pyafipws_billing_start_date:
@@ -1364,7 +1372,7 @@ class Invoice:
                     # ws.AgregarOpcional(2102, "tryton")  # alias del cbu
                 if self.invoice_type.invoice_type in ('202', '203', '207',
                         '208', '212', '213'):
-                    if Transaction().context.get('pyafipws_anulacion', False):
+                    if self.pyafipws_anulacion:
                         ws.AgregarOpcional(22, 'S')
                     else:
                         ws.AgregarOpcional(22, 'N')
@@ -1799,12 +1807,13 @@ class InvoiceReport:
         output.close()
         return image
 
+
 class CreditInvoiceStart:
     __name__ = 'account.invoice.credit.start'
     __metaclass__ = PoolMeta
 
     from_fce = fields.Boolean('From FCE', readonly=True)
-    pyafipws_anulacion = fields.Boolean(u'Anulación',
+    pyafipws_anulacion = fields.Boolean(u'FCE MiPyme anulación',
         states={
             'invisible': ~Bool(Eval('from_fce')),
             },
@@ -1816,7 +1825,7 @@ class CreditInvoiceStart:
         states = {'invisible': ~Bool(Eval('from_fce'))}
         return [
             ('/form//image[@name="tryton-dialog-warning"]', 'states', states),
-            ('/form//label[@id="credit_contract"]', 'states', states),
+            ('/form//label[@id="credit_fce"]', 'states', states),
             ]
 
 
