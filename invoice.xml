@@ -45,11 +45,19 @@
         </record>
 
         <record model="ir.action.report" id="account_invoice.report_invoice">
+            <field name="active" eval="False"/>
+        </record>
+
+        <record model="ir.action.report" id="report_invoice">
             <field name="name">Invoice</field>
             <field name="model">account.invoice</field>
             <field name="report_name">account.invoice</field>
             <field name="report">account_invoice_ar/invoice.fodt</field>
-              <field name="active" eval="True"/>
+        </record>
+        <record model="ir.action.keyword" id="report_invoice_keyword">
+            <field name="keyword">form_print</field>
+            <field name="model">account.invoice,-1</field>
+            <field name="action" ref="report_invoice"/>
         </record>
     </data>
 </tryton>
