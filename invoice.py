@@ -521,9 +521,9 @@ class Invoice(metaclass=PoolMeta):
 
         for line in self.lines:
             if line.taxes:
-                imp_neto += abs(line.amount)
+                imp_neto += line.amount
 
-        return imp_neto
+        return abs(imp_neto)
 
     @fields.depends('company', 'untaxed_amount', 'lines')
     def on_change_with_pyafipws_imp_tot_conc(self, name=None):
@@ -534,9 +534,9 @@ class Invoice(metaclass=PoolMeta):
 
         for line in self.lines:
             if not line.taxes and not line.pyafipws_exento:
-                imp_tot_conc += abs(line.amount)
+                imp_tot_conc += line.amount
 
-        return imp_tot_conc
+        return abs(imp_tot_conc)
 
     @fields.depends('company', 'untaxed_amount', 'lines')
     def on_change_with_pyafipws_imp_op_ex(self, name=None):
@@ -547,27 +547,27 @@ class Invoice(metaclass=PoolMeta):
 
         for line in self.lines:
             if not line.taxes and line.pyafipws_exento:
-                imp_op_ex += abs(line.amount)
+                imp_op_ex += line.amount
 
-        return imp_op_ex
+        return abs(imp_op_ex)
 
     @fields.depends('taxes', 'lines')
     def on_change_with_pyafipws_imp_trib(self, name=None):
         imp_trib = _ZERO
         for tax_line in self.taxes:
             if tax_line.tax and tax_line.tax.group.afip_kind != 'gravado':
-                imp_trib += abs(tax_line.amount)
+                imp_trib += tax_line.amount
 
-        return imp_trib
+        return abs(imp_trib)
 
     @fields.depends('taxes', 'lines')
     def on_change_with_pyafipws_imp_iva(self, name=None):
         imp_iva = _ZERO
         for tax_line in self.taxes:
             if tax_line.tax and tax_line.tax.group.afip_kind == 'gravado':
-                imp_iva += abs(tax_line.amount)
+                imp_iva += tax_line.amount
 
-        return imp_iva
+        return abs(imp_iva)
 
     @fields.depends('pos')
     def on_change_with_pos_pos_daily_report(self, name=None):
