@@ -6,6 +6,7 @@ from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
 from pyafipws.pyi25 import PyI25
 from io import BytesIO
+import stdnum.ar.cuit as cuit
 
 from collections import defaultdict
 import logging
@@ -1797,42 +1798,49 @@ class InvoiceReport(metaclass=PoolMeta):
         pool = Pool()
         Invoice = pool.get('account.invoice')
 
-        report_context = super(InvoiceReport, cls).get_context(records, data)
-        invoice = records[0]
-
-        report_context['company'] = invoice.company
-        report_context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
+        context = super(InvoiceReport, cls).get_context(records, data)
+        invoice = context['record']
+        context['company'] = invoice.company
+        context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
             invoice)
-        report_context['condicion_iva'] = cls._get_condicion_iva(invoice.company)
-        report_context['iibb_type'] = cls._get_iibb_type(invoice.company)
-        report_context['vat_number'] = cls._get_vat_number(invoice.company)
-        report_context['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice,
+        context['condicion_iva'] = cls._get_condicion_iva(invoice.company)
+        context['iibb_type'] = cls._get_iibb_type(invoice.company)
+        context['vat_number'] = cls._get_vat_number(invoice)
+        context['tipo_comprobante'] = cls._get_tipo_comprobante(Invoice,
             invoice)
-        report_context['nombre_comprobante'] = cls._get_nombre_comprobante(
+        context['nombre_comprobante'] = cls._get_nombre_comprobante(
             Invoice, invoice)
-        report_context['codigo_comprobante'] = cls._get_codigo_comprobante(
+        context['codigo_comprobante'] = cls._get_codigo_comprobante(
             Invoice, invoice)
-        report_context['condicion_iva_cliente'] = (
+        context['condicion_iva_cliente'] = (
             cls._get_condicion_iva_cliente(Invoice, invoice))
-        report_context['vat_number_cliente'] = cls._get_vat_number_cliente(
+        context['vat_number_cliente'] = cls._get_vat_number_cliente(
             Invoice, invoice)
-        report_context['dni_number_cliente'] = cls._get_dni_number_cliente(
+        context['dni_number_cliente'] = cls._get_dni_number_cliente(
             Invoice, invoice)
-        report_context['get_impuestos'] = cls.get_impuestos
-        report_context['get_line_amount'] = cls.get_line_amount
-        report_context['get_taxes'] = cls.get_taxes
-        report_context['get_subtotal'] = cls.get_subtotal
-        return report_context
+        context['get_impuestos'] = cls.get_impuestos
+        context['get_line_amount'] = cls.get_line_amount
+        context['get_taxes'] = cls.get_taxes
+        context['get_subtotal'] = cls.get_subtotal
+        return context
 
     @classmethod
-    def get_line_amount(cls, line_amount, line_taxes):
-        amount = abs(line_amount)
+    def get_line_amount(cls, line_amount, line_taxes, invoice_type=None):
+
+        def is_credit_note(invoice_type):
+            if (invoice_type and invoice_type.invoice_type in
+                    ('3', '8', '13', '21', '203', '208', '213')):
+                return True
+            return False
+
+        if is_credit_note(invoice_type):
+            line_amount = abs(line_amount)
         Tax = Pool().get('account.tax')
         line_taxes = cls.get_line_taxes(line_taxes)
         for line_tax in line_taxes:
-            values, = Tax.compute([line_tax.tax], abs(amount), 1)
-            amount = values['amount'] + values['base']
-        return amount
+            values, = Tax.compute([line_tax.tax], line_amount, 1)
+            line_amount = values['amount'] + values['base']
+        return line_amount
 
     @classmethod
     def get_subtotal(cls, invoice):
@@ -1889,15 +1897,18 @@ class InvoiceReport(metaclass=PoolMeta):
 
     @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
-        return dict(invoice.party._fields['iva_condition'].selection)[
-            invoice.party.iva_condition]
+        if not invoice.party_iva_condition:
+            return invoice.party.iva_condition_string
+        return invoice.party_iva_condition_string
 
     @classmethod
     def _get_vat_number_cliente(cls, Invoice, invoice):
-        value = invoice.party.vat_number
-        if value:
-            return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
-        return ''
+        value = ''
+        if invoice.party_tax_identifier:
+            value = invoice.party_tax_identifier.code
+        elif invoice.party.vat_number:
+            value = invoice.party.vat_number
+        return cuit.format(value)
 
     @classmethod
     def _get_dni_number_cliente(cls, Invoice, invoice):
@@ -1909,36 +1920,36 @@ class InvoiceReport(metaclass=PoolMeta):
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type'):
-            return dict(invoice.invoice_type._fields[
-                'invoice_type'].selection)[
-                invoice.invoice_type.invoice_type][-1]
+        if invoice.invoice_type:
+            return invoice.invoice_type.invoice_type_string[-1]
         else:
             return ''
 
     @classmethod
     def _get_nombre_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type_string'):
-            return invoice.invoice_type.rec_name
+        if invoice.invoice_type:
+            return invoice.invoice_type.invoice_type_string
         else:
             return ''
 
     @classmethod
     def _get_codigo_comprobante(cls, Invoice, invoice):
-        if hasattr(invoice.invoice_type, 'invoice_type'):
+        if invoice.invoice_type:
             return invoice.invoice_type.invoice_type
         else:
             return ''
 
     @classmethod
-    def _get_vat_number(cls, company):
-        value = company.party.vat_number
-        return '%s-%s-%s' % (value[:2], value[2:-1], value[-1])
+    def _get_vat_number(cls, invoice):
+        if invoice.tax_identifier:
+            value = invoice.tax_identifier.code
+        else:
+            value = invoice.company.party.vat_number
+        return cuit.format(value)
 
     @classmethod
     def _get_condicion_iva(cls, company):
-        return dict(company.party._fields['iva_condition'].selection)[
-                company.party.iva_condition]
+        return company.party.iva_condition_string
 
     @classmethod
     def _get_iibb_type(cls, company):
