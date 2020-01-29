@@ -1822,6 +1822,7 @@ class InvoiceReport(metaclass=PoolMeta):
         context['get_line_amount'] = cls.get_line_amount
         context['get_taxes'] = cls.get_taxes
         context['get_subtotal'] = cls.get_subtotal
+        context['discrimina_impuestos'] = cls.discrimina_impuestos(invoice)
         return context
 
     @classmethod
@@ -1896,6 +1897,16 @@ class InvoiceReport(metaclass=PoolMeta):
         return res
 
     @classmethod
+    def discrimina_impuestos(cls, invoice):
+        invoice_type_string = ''
+        if invoice.invoice_type:
+            invoice_type_string = invoice.invoice_type.invoice_type_string[-1]
+
+        if invoice_type_string == 'A':
+            return True
+        return False
+
+    @classmethod
     def _get_condicion_iva_cliente(cls, Invoice, invoice):
         if not invoice.party_iva_condition:
             return invoice.party.iva_condition_string
@@ -1928,7 +1939,7 @@ class InvoiceReport(metaclass=PoolMeta):
     @classmethod
     def _get_nombre_comprobante(cls, Invoice, invoice):
         if invoice.invoice_type:
-            return invoice.invoice_type.invoice_type_string
+            return invoice.invoice_type.rec_name
         else:
             return ''
 
