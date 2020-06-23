@@ -454,6 +454,8 @@ class Invoice(metaclass=PoolMeta):
             'fce_10168_cbu_emisor':
                 'Si el tipo de comprobante es MiPyme (FCE) es obligatorio '
                 'informar CBU.',
+            'missing_cuit_pais':
+                'Es requisito que el tercero "%s" tenga CUIT Pais.',
             })
 
     @classmethod
@@ -1343,6 +1345,10 @@ class Invoice(metaclass=PoolMeta):
         tipo_cbte = self.invoice_type.invoice_type
         punto_vta = self.pos.number
         service = self.pos.pyafipws_electronic_invoice_service
+
+        if service == 'wsfex' and not self.party.vat_number_afip_foreign:
+            logger.error('missing_cuit_pais: %s', self.party.rec_name)
+            self.raise_user_error('missing_cuit_pais', self.party.rec_name)
 
         # get the last 8 digit of the invoice number
         if self.number:
