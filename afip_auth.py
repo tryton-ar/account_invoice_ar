@@ -60,7 +60,7 @@ def authenticate(service, certificate, private_key, force=False,
             # cryptographically sing the access ticket
             cms = wsaa.SignTRA(tra, certificate, private_key)
             # connect to the webservice:
-            wsaa.Conectar(cache, wsdl, proxy)
+            wsaa.Conectar(cache, wsdl, proxy, cacert=True)
             # call the remote method
             ta = wsaa.LoginCMS(cms)
             if not ta:
@@ -79,7 +79,7 @@ def authenticate(service, certificate, private_key, force=False,
             # cryptographically sing the access ticket
             cms = wsaa.SignTRA(tra, certificate, private_key)
             # connect to the webservice:
-            wsaa.Conectar(cache, wsdl, proxy)
+            wsaa.Conectar(cache, wsdl, proxy, cacert=True)
             # call the remote method
             ta = wsaa.LoginCMS(cms)
             if not ta:

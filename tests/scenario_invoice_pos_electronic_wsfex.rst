@@ -191,7 +191,7 @@ SetUp webservice AFIP::
     >>> wsfexv1.Cuit = company.party.vat_number
     >>> wsfexv1.Token = auth_data['token']
     >>> wsfexv1.Sign = auth_data['sign']
-    >>> wsfexv1.Conectar(wsdl=URL_WSFEXv1, cache=cache)
+    >>> wsfexv1.Conectar(wsdl=URL_WSFEXv1, cache=cache, cacert=True)
     True
 
 GetLastCMP and configure sequences::

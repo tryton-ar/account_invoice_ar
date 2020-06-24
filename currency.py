@@ -88,7 +88,7 @@ class Rate(metaclass=PoolMeta):
         cache_dir = afip_auth.get_cache_dir()
         ws.LanzarExcepciones = True
         try:
-            ws.Conectar(wsdl=wsdl, cache=cache_dir)
+            ws.Conectar(wsdl=wsdl, cache=cache_dir, cacert=True)
         except Exception as e:
             msg = ws.Excepcion + ' ' + str(e)
             logger.error('WSAA connecting to afip: %s' % msg)
