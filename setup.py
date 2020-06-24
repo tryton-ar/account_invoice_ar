@@ -55,6 +55,7 @@ requires.append('Pillow>=2.8.1')
 requires.append('httplib2')
 requires.append('pyafipws')
 requires.append('pysimplesoap')
+requires.append('certifi>=2020.4.5.1')
 #requires.append('suds>=0.4')
 
 tests_require = [get_require_version('proteus'), 'pytz']

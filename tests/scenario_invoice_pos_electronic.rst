@@ -179,7 +179,7 @@ SetUp webservice AFIP::
     >>> wsfev1.Cuit = company.party.vat_number
     >>> wsfev1.Token = auth_data['token']
     >>> wsfev1.Sign = auth_data['sign']
-    >>> wsfev1.Conectar(wsdl=URL_WSFEv1, cache=cache)
+    >>> wsfev1.Conectar(wsdl=URL_WSFEv1, cache=cache, cacert=True)
     True
 
 Get CompUltimoAutorizado and configure sequences::
