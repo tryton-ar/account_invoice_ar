@@ -9,17 +9,22 @@ import re
 from configparser import ConfigParser
 from setuptools import setup, find_packages
 
+MODULE2PREFIX = {
+    'account_ar': 'trytonar',
+    'bank_ar': 'trytonar',
+    'party_ar': 'trytonar',
+    }
 
-def read(fname, slice=None):
-    content = io.open(
+
+def read(fname):
+    return io.open(
         os.path.join(os.path.dirname(__file__), fname),
         'r', encoding='utf-8').read()
-    if slice:
-        content = '\n'.join(content.splitlines()[slice])
-    return content
 
 
 def get_require_version(name):
+    if name in LINKS:
+        return '%s @ %s' % (name, LINKS[name])
     if minor_version % 2:
         require = '%s >= %s.%s.dev0, < %s.%s'
     else:
@@ -30,7 +35,7 @@ def get_require_version(name):
 
 
 config = ConfigParser()
-config.read_file(open(os.path.join(os.path.dirname(__file__), 'tryton.cfg')))
+config.read_file(open('tryton.cfg'))
 info = dict(config.items('tryton'))
 for key in ('depends', 'extras_depend', 'xml'):
     if key in info:
@@ -45,9 +50,8 @@ download_url = 'https://github.com/tryton-ar/account_invoice_ar/tree/%s.%s' % (
     major_version, minor_version)
 if minor_version % 2:
     version = '%s.%s.dev0' % (major_version, minor_version)
-    download_url = (
-        'git+http://github.com/tryton-ar/%s#egg=%s-%s' % (
-            name.replace('trytonar','trytond'), name, version))
+    download_url = 'git+http://github.com/tryton-ar/%s#egg=%s-%s' % (
+        name.replace('trytonar', 'trytond'), name, version)
 local_version = []
 for build in ['CI_BUILD_NUMBER', 'CI_JOB_NUMBER', 'CI_JOB_ID']:
     if os.environ.get(build):
@@ -55,35 +59,28 @@ for build in ['CI_BUILD_NUMBER', 'CI_JOB_NUMBER', 'CI_JOB_ID']:
 if local_version:
     version += '+' + '.'.join(local_version)
 
+LINKS = {
+    'trytonar_account_ar': ('git+https://github.com/tryton-ar/'
+        'account_ar.git@%s.%s#egg=trytonar_account_ar-%s.%s' %
+        (major_version, minor_version, major_version, minor_version)),
+    'trytonar_bank_ar': ('git+https://github.com/tryton-ar/'
+        'bank_ar.git@%s.%s#egg=trytonar_bank_ar-%s.%s' %
+        (major_version, minor_version, major_version, minor_version)),
+    'trytonar_party_ar': ('git+https://github.com/tryton-ar/'
+        'party_ar.git@%s.%s#egg=trytonar_party_ar-%s.%s' %
+        (major_version, minor_version, major_version, minor_version)),
+    }
+
 requires = []
 for dep in info.get('depends', []):
-    if dep == 'party_ar':
-        requires.append('trytonar_party_ar @ git+https://github.com/tryton-ar/party_ar.git@%s.%s#egg=trytonar_party_ar-%s.%s' % (major_version, minor_version, major_version, minor_version))
-    elif dep == 'bank_ar':
-        requires.append('trytonar_bank_ar @ git+https://github.com/tryton-ar/bank_ar.git@%s.%s#egg=trytonar_bank_ar-%s.%s' % (major_version, minor_version, major_version, minor_version))
-    elif dep == 'account_ar':
-        requires.append('trytonar_account_ar @ git+https://github.com/tryton-ar/account_ar.git@%s.%s#egg=trytonar_account_ar-%s.%s' % (major_version, minor_version, major_version, minor_version))
-    elif not re.match(r'(ir|res)(\W|$)', dep):
-        requires.append(get_require_version('trytond_%s' % dep))
+    if not re.match(r'(ir|res)(\W|$)', dep):
+        module_name = '%s_%s' % (MODULE2PREFIX.get(dep, 'trytond'), dep)
+        requires.append(get_require_version(module_name))
+
 requires.append(get_require_version('trytond'))
-requires.append('M2Crypto>=0.22.3')
-requires.append('Pillow>=2.8.1')
-requires.append('httplib2')
-requires.append('pyafipws @ git+https://github.com/reingart/pyafipws.git@py3k#egg=pyafipws-py3k')
-requires.append('pysimplesoap @ git+https://github.com/pysimplesoap/pysimplesoap.git@stable_py3k#egg=pysimplesoap-stable_py3k')
-requires.append('certifi>=2020.4.5.1')
-# requires.append('pycurl')
-#requires.append('suds>=0.4')
 
 tests_require = [get_require_version('proteus'), 'pytz']
-dependency_links = [
-    'git+https://github.com/tryton-ar/party_ar.git@%s.%s#egg=trytonar_party_ar-%s.%s' \
-        % (major_version, minor_version, major_version, minor_version),
-    'git+https://github.com/tryton-ar/bank_ar.git@%s.%s#egg=trytonar_bank_ar-%s.%s' \
-        % (major_version, minor_version, major_version, minor_version),
-    'git+https://github.com/tryton-ar/account_ar.git@%s.%s#egg=trytonar_account_ar-%s.%s' \
-        % (major_version, minor_version, major_version, minor_version),
-    ]
+dependency_links = list(LINKS.values())
 
 setup(name=name,
     version=version,
@@ -101,14 +98,14 @@ setup(name=name,
     keywords='tryton, invoice, account, argentina, afip',
     package_dir={'trytond.modules.account_invoice_ar': '.'},
     packages=(
-        ['trytond.modules.account_invoice_ar']
-        + ['trytond.modules.account_invoice_ar.%s' % p
+        ['trytond.modules.account_invoice_ar'] +
+        ['trytond.modules.account_invoice_ar.%s' % p
             for p in find_packages()]
         ),
     package_data={
-        'trytond.modules.account_invoice_ar': (info.get('xml', [])
-            + ['tryton.cfg', 'view/*.xml', 'locale/*.po', '*.fodt',
-                'tests/*.rst', 'tests/*.key', 'tests/*.crt']),
+        'trytond.modules.account_invoice_ar': (info.get('xml', []) + [
+            'tryton.cfg', 'view/*.xml', 'locale/*.po', '*.fodt',
+            'tests/*.rst', 'tests/*.key', 'tests/*.crt']),
         },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -117,8 +114,8 @@ setup(name=name,
         'Intended Audience :: Developers',
         'Intended Audience :: Financial and Insurance Industry',
         'Intended Audience :: Legal Industry',
-        'License :: OSI Approved :: '
-        'GNU General Public License v3 or later (GPLv3+)',
+        'License :: OSI Approved :: GNU General Public License v3 or later'
+        ' (GPLv3+)',
         'Natural Language :: English',
         'Natural Language :: Spanish',
         'Operating System :: OS Independent',
@@ -140,7 +137,7 @@ setup(name=name,
     entry_points="""
     [trytond.modules]
     account_invoice_ar = trytond.modules.account_invoice_ar
-    """,  # noqa: E501
+    """,
     test_suite='tests',
     test_loader='trytond.test_loader:Loader',
     tests_require=tests_require,
