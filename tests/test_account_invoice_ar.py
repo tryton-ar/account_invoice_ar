@@ -8,6 +8,7 @@ from trytond.tests.test_tryton import suite as test_suite
 from trytond.tests.test_tryton import doctest_teardown
 from trytond.tests.test_tryton import doctest_checker
 
+
 class AccountInvoiceArTestCase(ModuleTestCase):
     'Test module'
     module = 'account_invoice_ar'

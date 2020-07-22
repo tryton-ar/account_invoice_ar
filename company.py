@@ -26,9 +26,9 @@ class Company(metaclass=PoolMeta):
         ('homologacion', 'Homologación'),
         ('produccion', 'Producción'),
         ], 'Modo de certificacion',
-        help='El objetivo de Homologación (testing), es facilitar las '
+        help=('El objetivo de Homologación (testing), es facilitar las '
             'pruebas. Los certificados de Homologación y Producción son '
-            'distintos.')
+            'distintos.'))
 
     @staticmethod
     def default_pyafipws_mode_cert():

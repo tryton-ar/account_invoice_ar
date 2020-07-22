@@ -10,7 +10,7 @@ this repository contains the full copyright notices and license terms. -->
     <field name="company"/>
     <label name="pyafipws_electronic_invoice_service"/>
     <field name="pyafipws_electronic_invoice_service"/>
-    <group string="POS Options" id="checkboxes_group" colspan="4">
+    <group id="checkboxes_group" colspan="4" col="6" string="POS Options">
       <label name="active"/>
       <field name="active"/>
       <label name="pos_daily_report"/>

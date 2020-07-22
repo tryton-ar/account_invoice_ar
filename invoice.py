@@ -93,24 +93,24 @@ INVOICE_CREDIT_AFIP_CODE = {
         '19': ('21', '21-Nota de Crédito E'),
         '20': ('21', '21-Nota de Crédito E'),
         '21': ('20', '20-Nota de Débito E'),
-        '27': ('48','48-Nota de Credito Liquidacion CLASE A'),
-        '28': ('43','43-Nota de Credito Liquidacion CLASE B'),
-        '29': ('44','44-Nota de Credito Liquidacion CLASE C'),
-        '51':  ('53','53-NotaS de Credito M'),
-        '81': ('112','112-Tique Nota de Credito A'),
-        '82': ('113','113-Tique Nota de Credito B'),
-        '83': ('110','110-Tique Nota de Credito'),
-        '111': ('114','114-Tique Nota de Credito C'),
-        '118': ('119','119-Tique Nota de Credito M'),
-        '201': ('203','203-Nota de Credito Electronica MiPyMEs (FCE) A'),
-        '202': ('203','203-Nota de Credito Electronica MiPyMEs (FCE) A'),
-        '203': ('202','202-Nota de Debito Electronica MiPyMEs (FCE) A'),
-        '206': ('208','208-Nota de Credito Electronica MiPyMEs (FCE) B'),
-        '207': ('208','208-Nota de Credito Electronica MiPyMEs (FCE) B'),
-        '208': ('207','207-Nota de Debito Electronica MiPyMEs (FCE) B'),
-        '211': ('213','213- Nota de Credito Electronica MiPyMEs (FCE) C'),
-        '212': ('213','213- Nota de Credito Electronica MiPyMEs (FCE) C'),
-        '213': ('212','212- Nota de Debito Electronica MiPyMEs (FCE) C'),
+        '27': ('48', '48-Nota de Credito Liquidacion CLASE A'),
+        '28': ('43', '43-Nota de Credito Liquidacion CLASE B'),
+        '29': ('44', '44-Nota de Credito Liquidacion CLASE C'),
+        '51': ('53', '53-NotaS de Credito M'),
+        '81': ('112', '112-Tique Nota de Credito A'),
+        '82': ('113', '113-Tique Nota de Credito B'),
+        '83': ('110', '110-Tique Nota de Credito'),
+        '111': ('114', '114-Tique Nota de Credito C'),
+        '118': ('119', '119-Tique Nota de Credito M'),
+        '201': ('203', '203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+        '202': ('203', '203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+        '203': ('202', '202-Nota de Debito Electronica MiPyMEs (FCE) A'),
+        '206': ('208', '208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+        '207': ('208', '208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+        '208': ('207', '207-Nota de Debito Electronica MiPyMEs (FCE) B'),
+        '211': ('213', '213- Nota de Credito Electronica MiPyMEs (FCE) C'),
+        '212': ('213', '213- Nota de Credito Electronica MiPyMEs (FCE) C'),
+        '213': ('212', '212- Nota de Debito Electronica MiPyMEs (FCE) C'),
         }
 
 INCOTERMS = [
@@ -280,7 +280,7 @@ class Invoice(metaclass=PoolMeta):
                         '19', '20', '201', '202', '206', '207', '211', '212'],
                     ['3', '8', '13', '21', '203', '208', '213']),
                 )],
-        states=_POS_STATES, depends=_DEPENDS + ['pos','invoice_type',
+        states=_POS_STATES, depends=_DEPENDS + ['pos', 'invoice_type',
             'total_amount'])
     invoice_type_tree = fields.Function(fields.Selection(INVOICE_TYPE_POS,
             'Tipo comprobante'), 'get_comprobante',
@@ -332,11 +332,13 @@ class Invoice(metaclass=PoolMeta):
             'readonly': Eval('state') != 'draft',
         }), 'get_ref_subfield', setter='set_ref_subfield')
     pos_pos_daily_report = fields.Function(
-        fields.Boolean('account.pos', "POS Daily Report"),
+        fields.Boolean("POS Daily Report"),
         'on_change_with_pos_pos_daily_report')
-    ref_number_from = fields.Char('From number', size=13, states=_REF_NUMBERS_STATES,
+    ref_number_from = fields.Char('From number', size=13,
+        states=_REF_NUMBERS_STATES,
         depends=['pos_pos_daily_report', 'state'])
-    ref_number_to = fields.Char('To number', size=13, states=_REF_NUMBERS_STATES,
+    ref_number_to = fields.Char('To number', size=13,
+        states=_REF_NUMBERS_STATES,
         depends=['pos_pos_daily_report', 'state'])
     annulled = fields.Function(fields.Boolean('Annulled', states={
         'invisible': Eval('total_amount', -1) <= 0,
@@ -393,8 +395,9 @@ class Invoice(metaclass=PoolMeta):
         })
         cls.number.depends = ['pos_pos_daily_report', 'state']
         cls.number.states.update({
-            'invisible': And(Eval('pos_pos_daily_report', False) == True,
-            Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
+            'invisible': And(
+                Bool(Eval('pos_pos_daily_report', False)),
+                Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
         })
 
     @classmethod
@@ -580,8 +583,8 @@ class Invoice(metaclass=PoolMeta):
         return lines
 
     def check_unique_daily_report(self):
-        if (self.type == 'out' and self.pos
-        and self.pos.pos_daily_report == True):
+        if (self.type == 'out' and self.pos and
+                self.pos.pos_daily_report is True):
             if int(self.ref_number_from) > int(self.ref_number_to):
                 raise UserError(gettext(
                     'account_invoice_ar.msg_invalid_ref_from_to'))
@@ -609,16 +612,16 @@ class Invoice(metaclass=PoolMeta):
     def view_attributes(cls):
         return super(Invoice, cls).view_attributes() + [
             ('/form/notebook/page[@id="electronic_invoice"]', 'states', {
-                    'invisible': Eval('type') == 'in',
-                    }),
+                'invisible': Eval('type') == 'in',
+                }),
             ('/form/notebook/page[@id="electronic_invoice_incoterms"]',
                 'states', {
                     'invisible': Eval('type') == 'in',
                     }),
             ('/tree/field[@name="tipo_comprobante"]', 'tree_invisible',
-                    Eval('type') == 'out'),
+                Eval('type') == 'out'),
             ('/tree/field[@name="invoice_type_tree"]', 'tree_invisible',
-                    Eval('type') == 'in'),
+                Eval('type') == 'in'),
             ]
 
     def get_comprobante(self, name):
@@ -644,9 +647,11 @@ class Invoice(metaclass=PoolMeta):
         for invoice in invoices:
             if invoice.type == 'in':
                 if name == 'ref_pos_number':
-                    reference = '%05d-%08d' % (int(value or 0), int(invoice.ref_voucher_number or 0))
+                    reference = '%05d-%08d' % (int(value or 0),
+                        int(invoice.ref_voucher_number or 0))
                 elif name == 'ref_voucher_number':
-                    reference = '%05d-%08d' % (int(invoice.ref_pos_number or 0), int(value or 0))
+                    reference = '%05d-%08d' % (
+                        int(invoice.ref_pos_number or 0), int(value or 0))
                 invoice.reference = reference
         cls.save(invoices)
 
@@ -902,8 +907,8 @@ class Invoice(metaclass=PoolMeta):
         pattern.setdefault('fiscalyear', fiscalyear.id)
         pattern.setdefault('period', period.id)
         invoice_type = self.type
-        if (all(l.amount < 0 for l in self.lines if l.product)
-                and self.total_amount < 0):
+        if (all(l.amount < 0 for l in self.lines if l.product) and
+                self.total_amount < 0):
             invoice_type += '_credit_note'
         else:
             invoice_type += '_invoice'
@@ -971,10 +976,10 @@ class Invoice(metaclass=PoolMeta):
                 date=invoice.accounting_date or invoice.invoice_date)
 
             invoice.check_invoice_type()
-            if (invoice.pos and invoice.pos.pos_type == 'electronic'
-                    and invoice.pos.pyafipws_electronic_invoice_service == 'wsfe'
-                    and invoice.invoice_type.invoice_type not in
-                    ['201', '202', '206', '211', '212', '203', '208', '213']):
+            if (invoice.pos and invoice.pos.pos_type == 'electronic' and
+                    invoice.pos.pyafipws_electronic_invoice_service == 'wsfe' and
+                    invoice.invoice_type.invoice_type not in [
+                    '201', '202', '206', '211', '212', '203', '208', '213']):
                 # web service == wsfe invoices go throw batch.
                 if invoice.number and invoice.pyafipws_cae:
                     invoices_wsfe_to_recover.append(invoice)
@@ -1057,8 +1062,6 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def consultar_and_recover(cls, invoices):
-        pool = Pool()
-        AFIP_Transaction = pool.get('account_invoice_ar.afip_transaction')
         for invoice in invoices:
             ws = cls.get_ws_afip(invoice=invoice)
             if not invoice.invoice_date:
@@ -1081,10 +1084,11 @@ class Invoice(metaclass=PoolMeta):
                             if c.isdigit()])
                     bars = ''.join([str(ws.Cuit), '%03d' % int(tipo_cbte),
                             '%05d' % int(punto_vta), str(cae), cae_due])
-                    bars = bars + invoice.pyafipws_verification_digit_modulo10(bars)
+                    bars += invoice.pyafipws_verification_digit_modulo10(bars)
                     pyafipws_cae_due_date = vto or None
-                    if not '-' in vto:
-                        pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
+                    if '-' not in vto:
+                        pyafipws_cae_due_date = '-'.join(
+                            [vto[:4], vto[4:6], vto[6:8]])
                     invoice.pyafipws_barcode = bars
                     invoice.pyafipws_cae_due_date = pyafipws_cae_due_date
             else:
@@ -1187,7 +1191,6 @@ class Invoice(metaclass=PoolMeta):
         Date = Pool().get('ir.date')
         ws = cls.get_ws_afip(batch=True)
         reg_x_req = ws.CompTotXRequest()    # cant max. comprobantes
-        cant_invoices = len(invoices)
         pre_approved_invoices = []
         approved_invoices = []
         pre_rejected_invoice = None
@@ -1208,7 +1211,7 @@ class Invoice(metaclass=PoolMeta):
             else:
                 pre_approved_invoices.append(invoice)
 
-        tmp_ = [pre_approved_invoices[i:i+reg_x_req] for i in
+        tmp_ = [pre_approved_invoices[i:i + reg_x_req] for i in
             range(0, len(pre_approved_invoices), reg_x_req)]
         for chunk_invoices in tmp_:
             ws.IniciarFacturasX()
@@ -1223,7 +1226,8 @@ class Invoice(metaclass=PoolMeta):
             # CAESolicitarX
             try:
                 cant_solicitadax = ws.CAESolicitarX()
-                logger.info('wsfe batch invoices posted: %s' % cant_solicitadax)
+                logger.info('wsfe batch invoices posted: %s' %
+                    cant_solicitadax)
             except Exception as e:
                 logger.error('CAESolicitarX msg: %s' % str(e))
 
@@ -1244,7 +1248,8 @@ class Invoice(metaclass=PoolMeta):
                         logger.error(
                             'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
                             'XmlResponse: %s\n', rejected_invoice.id,
-                            rejected_invoice.type, rejected_invoice.party.rec_name,
+                            rejected_invoice.type,
+                            rejected_invoice.party.rec_name,
                             repr(ws.XmlRequest), repr(ws.XmlResponse))
 
             if chunk_with_errors:
@@ -1274,7 +1279,7 @@ class Invoice(metaclass=PoolMeta):
             """
             try:
                 text = unicode(text, 'utf-8')
-            except (TypeError, NameError): # unicode is a default on python 3
+            except (TypeError, NameError):  # unicode is a default on python 3
                 pass
             text = normalize('NFD', text)
             text = text.encode('ascii', 'ignore')
@@ -1400,7 +1405,6 @@ class Invoice(metaclass=PoolMeta):
                 if service != 'wsmtxca':
                     fecha_serv_hasta = fecha_serv_hasta.replace('-', '')
 
-
         # customer tax number:
         nro_doc = None
         if self.party.vat_number:
@@ -1417,7 +1421,7 @@ class Invoice(metaclass=PoolMeta):
 
         # invoice amount totals:
         imp_total = str('%.2f' % abs(self.total_amount))
-        imp_subtotal = str('%.2f' % abs(self.untaxed_amount)) # TODO
+        imp_subtotal = str('%.2f' % abs(self.untaxed_amount))  # TODO
         imp_tot_conc = self.pyafipws_imp_tot_conc
         imp_neto = self.pyafipws_imp_neto
         imp_iva = self.pyafipws_imp_iva
@@ -1533,14 +1537,16 @@ class Invoice(metaclass=PoolMeta):
 
         # analyze VAT (IVA) and other taxes (tributo):
         if service in ('wsfe', 'wsmtxca'):
-            if (self.invoice_type.invoice_type in ('201', '202','203',
+            if (self.invoice_type.invoice_type in ('201', '202', '203',
                     '206', '207', '208', '211', '212', '213')):
                 if self.invoice_type.invoice_type in ('201', '206', '211'):
-                    self.pyafipws_cbu = self.pyafipws_cbu or self.get_pyafipws_cbu()
+                    self.pyafipws_cbu = (self.pyafipws_cbu or
+                        self.get_pyafipws_cbu())
                     if not self.pyafipws_cbu:
                         raise UserError(gettext(
                             'account_invoice_ar.msg_fce_10168_cbu_emisor'))
-                    ws.AgregarOpcional(2101, self.pyafipws_cbu.get_cbu_number())  # CBU
+                    ws.AgregarOpcional(2101,
+                        self.pyafipws_cbu.get_cbu_number())  # CBU
                     # ws.AgregarOpcional(2102, "tryton")  # alias del cbu
                 if self.invoice_type.invoice_type in ('202', '203', '207',
                         '208', '212', '213'):
@@ -1553,11 +1559,14 @@ class Invoice(metaclass=PoolMeta):
                 for cbteasoc in self.pyafipws_cmp_asoc:
                     cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
                     cbteasoc_nro = int(cbteasoc.number[-8:])
-                    cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime('%Y-%m-%d')
+                    cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime(
+                        '%Y-%m-%d')
                     if service != 'wsmtxca':
-                        cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-', '')
+                        cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-',
+                            '')
                     ws.AgregarCmpAsoc(tipo=cbteasoc_tipo, pto_vta=punto_vta,
-                        nro=cbteasoc_nro, cuit=self.company.party.tax_identifier.code,
+                        nro=cbteasoc_nro,
+                        cuit=self.company.party.tax_identifier.code,
                         fecha=cbteasoc_fecha_cbte)
 
             for tax_line in self.taxes:
@@ -1632,7 +1641,8 @@ class Invoice(metaclass=PoolMeta):
                         cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
                         cbteasoc_nro = int(cbteasoc.number[-8:])
                         ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
-                            cbteasoc_nro, self.company.party.tax_identifier.code)
+                            cbteasoc_nro,
+                            self.company.party.tax_identifier.code)
                 if not self.lines:
                     codigo = 0
                     ds = '-'
@@ -1707,7 +1717,7 @@ class Invoice(metaclass=PoolMeta):
                     '%05d' % int(punto_vta), str(ws.CAE), cae_due])
             bars = bars + self.pyafipws_verification_digit_modulo10(bars)
             pyafipws_cae_due_date = vto or None
-            if not '-' in vto:
+            if '-' not in vto:
                 pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
             self.pyafipws_cae = ws.CAE
             self.pyafipws_barcode = bars
@@ -2014,8 +2024,6 @@ class CreditInvoice(metaclass=PoolMeta):
         return default
 
     def do_credit(self, action):
-        Invoice = Pool().get('account.invoice')
-
         with Transaction().set_context(
                 pyafipws_anulacion=self.start.pyafipws_anulacion):
             action, data = super(CreditInvoice, self).do_credit(action)

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from trytond.model import fields
 from trytond.pool import Pool, PoolMeta
-from trytond.pyson import Eval, Bool, Or
+from trytond.pyson import Eval, Or
 from trytond.transaction import Transaction
 
 __all__ = ['Party']
@@ -17,10 +17,13 @@ class Party(metaclass=PoolMeta):
             'readonly': ~Eval('active', True),
             }, depends=['active'])
     pyafipws_fce_amount = fields.Numeric('MiPyme FCE Amount',
-            digits=(16, Eval('pyafipws_fce_amount_digits', 2)),
+        digits=(16, Eval('pyafipws_fce_amount_digits', 2)),
         states={
-            'readonly': Or(~Eval('pyafipws_fce', False), ~Eval('active', True)),
-            }, depends=['active', 'pyafipws_fce_amount_digits'])
+            'readonly': Or(
+                ~Eval('pyafipws_fce', False),
+                ~Eval('active', True)),
+            },
+        depends=['active', 'pyafipws_fce_amount_digits', 'pyafipws_fce'])
     pyafipws_fce_amount_digits = fields.Function(fields.Integer(
             'Currency Digits'), 'get_pyafipws_fce_amount_digits')
 

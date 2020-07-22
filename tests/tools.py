@@ -82,7 +82,6 @@ def get_pos(company=None, type='manual', number=1, config=None):
 
 def get_invoice_types(company=None, pos=None, config=None):
     "Return invoices types per pos and company"
-    Account = Model.get('account.account', config=config)
     PosSequence = Model.get('account.pos.sequence', config=config)
 
     if not company:

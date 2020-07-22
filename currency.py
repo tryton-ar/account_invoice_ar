@@ -1,17 +1,19 @@
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
+import logging
 from decimal import Decimal
 import datetime
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
-from . import afip_auth
 
 from trytond.model import fields
-from trytond.pyson import Eval, If, In
 from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
+from . import afip_auth
+
+logger = logging.getLogger(__name__)
 
 __all__ = ['Currency', 'Rate']
 
@@ -103,9 +105,6 @@ class Rate(metaclass=PoolMeta):
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
 
-        if not date:
-            Date = pool.get('ir.date')
-            today = Date.today().strftime("%Y%m%d")
         if not self.currency.afip_code:
             logger.error('AFIP code is empty %s', self.currency.code)
             raise UserError(gettext(
