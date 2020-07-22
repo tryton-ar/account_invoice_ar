@@ -32,7 +32,7 @@ Create company::
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
     >>> tax_identifier.type = 'ar_cuit'
-    >>> tax_identifier.code = '11111111113'
+    >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
 
@@ -90,6 +90,6 @@ Post invoice without period::
     >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
-    UserError: ...
+    trytond.modules.account.exceptions.PeriodNotFoundError: ...
     >>> invoice.state
     'draft'

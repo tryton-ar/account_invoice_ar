@@ -315,7 +315,7 @@ Credit invoice with refund::
     True
     >>> invoice.reload()
     >>> invoice.state
-    'paid'
+    'cancel'
     >>> invoice.reconciled == today
     True
     >>> receivable.reload()
@@ -378,7 +378,7 @@ Test post when clear tax_identifier type::
     >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
-    UserError: ...
+    trytond.model.modelstorage.DomainValidationError: ...
     >>> invoice.state
     'draft'
 

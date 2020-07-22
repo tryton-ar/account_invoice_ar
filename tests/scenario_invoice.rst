@@ -31,7 +31,7 @@ Create company::
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
     >>> tax_identifier.type = 'ar_cuit'
-    >>> tax_identifier.code = '11111111113'
+    >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
 
@@ -198,7 +198,7 @@ Post invoice::
     >>> invoice.state
     'posted'
     >>> invoice.tax_identifier.code
-    '11111111113'
+    '30710158254'
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
@@ -260,7 +260,7 @@ Credit invoice with refund::
     True
     >>> invoice.reload()
     >>> invoice.state
-    'paid'
+    'cancel'
     >>> invoice.reconciled == today
     True
     >>> receivable.reload()
