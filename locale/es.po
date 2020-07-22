@@ -2,110 +2,6 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
-msgctxt "error:account.invoice:"
-msgid "\"From number\" must be smaller than \"To number\""
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "AFIP web service is unknown"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "AFIP webservice %s is not yet supported!"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "Debe configurar la cotización de la moneda."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid ""
-"Debe establecer el valor de Incoterms si desea realizar un tipo de \"Factura"
-" E\"."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid ""
-"Debe establecer los valores \"Fecha desde\" y \"Fecha hasta\" en el Diario, "
-"correspondientes al servicio que se está facturando"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "El campo \"Tipo de factura\" en \"Factura\" es requerido."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "El impuesto (%s) debe tener un grupo asignado (iibb, municipal, iva)."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "El numero de factura ya ha sido ingresado en el sistema."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid ""
-"El número de la factura (%d), no coincide con el que espera la AFIP (%d). "
-"Modifique la secuencia del diario"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "Error CAESolicitarX: (%s)"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid ""
-"Este diario (%s) no tiene establecido los datos necesaios para facturar "
-"electrónicamente"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "Existe mas de una secuencia para facturas del tipo: %s"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "Los campos \"Referencia\" y \"Comprobante\" son requeridos."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "No existe una secuencia para facturas del tipo: %s"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid ""
-"No fue posible obtener el CAE de la factura \"%(invoice)s\" para la entidad "
-"\"%(party)s\". Mensaje: \"%(msg)s\""
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "The company is not defined"
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "The iva condition on company \"%(company)s\" is missing."
-msgstr "La condición de IVA de la empresa \"%(company)s\" está faltando."
-
-msgctxt "error:account.invoice:"
-msgid "The iva condition on party \"%(party)s\" is missing."
-msgstr "La condición de IVA del cliente \"%(party)s\" está faltando."
-
-msgctxt "error:account.invoice:"
-msgid "The value \"%(ref_value)s\" is not a number."
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid ""
-"There was a problem at invoices IDs \"%(invoices)s\".\n"
-"Check out error messages: \"%(msg)s\""
-msgstr ""
-
-msgctxt "error:account.invoice:"
-msgid "There was a problem to connect webservice WSAA: (%s)"
-msgstr ""
-
-msgctxt "error:company.company:"
-msgid "Problemas de Certificado: \"%(message)s\"."
-msgstr ""
-
 msgctxt "field:account.invoice,annulled:"
 msgid "Annulled"
 msgstr "Anulada"
@@ -467,6 +363,138 @@ msgstr "Factura"
 msgctxt "model:ir.action,name:act_account_pos"
 msgid "Points of Sale"
 msgstr "Puntos de Venta"
+
+msgctxt "model:ir.message,text:msg_company_not_defined"
+msgid "The company is not defined"
+msgstr "Empresa no definida"
+
+msgctxt "model:ir.message,text:msg_error_caesolicitarx"
+msgid "Error CAESolicitarX: (%s)"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_fce_10168_cbu_emisor"
+msgid "Si el tipo de comprobante es MiPyme (FCE) es obligatorio informar CBU."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_in_invoice_validate_failed"
+msgid "Los campos \"Referencia\" y \"Comprobante\" son requeridos."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_invalid_currency_rate"
+msgid "Cotización no válida para AFIP. Deber ser: %(afip_ctz)s"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_invalid_invoice_number"
+msgid ""
+"El número de la factura (%(cbte_nro)d), no coincide con el que espera la "
+"AFIP (%(cbte_nro_next)d). Modifique la secuencia del diario"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_invalid_journal"
+msgid ""
+"Este diario (%s) no tiene establecido los datos necesaios para facturar "
+"electrónicamente"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_invalid_ref_number"
+msgid "The value \"%(ref_value)s\" is not a number."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_invalid_ref_type"
+msgid "El tipo de comprobante en referencia no corresponde"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_miss_tax_identifier"
+msgid "La empresa no tiene configurado el identificador impositivo"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_company_iva_condition"
+msgid "The iva condition on company \"%(company)s\" is missing."
+msgstr "La condición de IVA de la empresa \"%(company)s\" está faltando."
+
+msgctxt "model:ir.message,text:msg_missing_currency_rate"
+msgid "Debe configurar la cotización de la moneda."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_invoice_date"
+msgid "Falta fecha factura"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_party_iva_condition"
+msgid "The iva condition on party \"%(party)s\" is missing."
+msgstr "La condición de IVA del cliente \"%(party)s\" está faltando."
+
+msgctxt "model:ir.message,text:msg_missing_pyafipws_billing_date"
+msgid ""
+"Debe establecer los valores \"Fecha desde\" y \"Fecha hasta\" en el Diario, "
+"correspondientes al servicio que se está facturando"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_pyafipws_concept"
+msgid "The \"concept\" is required if pos type is electronic"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_pyafipws_incoterms"
+msgid ""
+"Debe establecer el valor de Incoterms si desea realizar un tipo de \"Factura"
+" E\"."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_ref"
+msgid "Falta completar referencia"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_sequence"
+msgid "No existe una secuencia para facturas del tipo: %(invoice_type)s"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_not_cae"
+msgid ""
+"No fue posible obtener el CAE de la factura \"%(invoice)s\" para la entidad "
+"\"%(party)s\". Mensaje: \"%(msg)s\""
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_not_invoice_type"
+msgid "El campo \"Tipo de factura\" en \"Factura\" es requerido."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_reference_unique"
+msgid "El numero de factura ya ha sido ingresado en el sistema."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_rejected_invoices"
+msgid ""
+"There was a problem at invoice ID \"%(invoices)s\".\\nCheck out error "
+"message:\\n\"%(msg)s\""
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_reprocesar_invoice_dif"
+msgid "Existen diferencias entre el comprobante de AFIP y el del sistema"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_tax_without_group"
+msgid "El impuesto (%s) debe tener un grupo asignado (iibb, municipal, iva)."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_too_many_sequences"
+msgid "Existe mas de una secuencia para facturas del tipo: %(invoice_type)s"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_webservice_not_supported"
+msgid "AFIP webservice %(service)s is not yet supported!"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_webservice_unknown"
+msgid "AFIP web service is unknown"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_wrong_pyafipws_mode"
+msgid "Problemas de Certificado: \"%(message)s\"."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_wsaa_error"
+msgid "There was a problem to connect webservice WSAA: (%(msg)s)"
+msgstr ""
 
 msgctxt "model:ir.ui.menu,name:menu_main_point_of_sale"
 msgid "Points of Sale"

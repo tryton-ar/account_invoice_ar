@@ -21,6 +21,8 @@ from trytond.tools import cursor_dict
 from trytond.pyson import Eval, And, If, Bool
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
+from trytond.exceptions import UserError
+from trytond.i18n import gettext
 from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
 from . import afip_auth
 
@@ -394,69 +396,6 @@ class Invoice(metaclass=PoolMeta):
             'invisible': And(Eval('pos_pos_daily_report', False) == True,
             Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
         })
-        cls._error_messages.update({
-            'missing_pyafipws_concept':
-                'The "concept" is required if pos type is electronic',
-            'missing_pyafipws_billing_date':
-                'Debe establecer los valores "Fecha desde" y "Fecha hasta" '
-                'en el Diario, correspondientes al servicio que se está '
-                'facturando',
-            'invalid_invoice_number':
-                'El número de la factura (%d), no coincide con el que espera '
-                'la AFIP (%d). Modifique la secuencia del diario',
-            'not_cae':
-                'No fue posible obtener el CAE de la factura "%(invoice)s" '
-                'para la entidad "%(party)s". Mensaje: "%(msg)s"',
-            'invalid_journal':
-                'Este diario (%s) no tiene establecido los datos necesaios '
-                'para facturar electrónicamente',
-            'missing_sequence':
-                'No existe una secuencia para facturas del tipo: %s',
-            'too_many_sequences':
-                'Existe mas de una secuencia para facturas del tipo: %s',
-            'missing_company_iva_condition': 'The iva condition on company '
-                '"%(company)s" is missing.',
-            'missing_party_iva_condition': 'The iva condition on party '
-                '"%(party)s" is missing.',
-            'not_invoice_type':
-                'El campo "Tipo de factura" en "Factura" es requerido.',
-            'miss_tax_identifier':
-                'La empresa no tiene configurado el identificador impositivo',
-            'missing_currency_rate':
-                'Debe configurar la cotización de la moneda.',
-            'missing_pyafipws_incoterms':
-                'Debe establecer el valor de Incoterms si desea realizar '
-                'un tipo de "Factura E".',
-            'reference_unique':
-                'El numero de factura ya ha sido ingresado en el sistema.',
-            'tax_without_group':
-                'El impuesto (%s) debe tener un grupo asignado '
-                '(gravado, nacional, provincila, municipal, interno u otros).',
-            'in_invoice_validate_failed':
-                'Los campos "Referencia" y "Comprobante" son requeridos.',
-            'rejected_invoices':
-                'There was a problem at invoices IDs "%(invoices)s".\n'
-                'Check out error messages: "%(msg)s"',
-            'webservice_unknown':
-                'AFIP web service is unknown',
-            'webservice_not_supported':
-                'AFIP webservice %s is not yet supported!',
-            'company_not_defined':
-                'The company is not defined',
-            'wsaa_error':
-                'There was a problem to connect webservice WSAA: (%s)',
-            'error_caesolicitarx':
-                'Error CAESolicitarX: (%s)',
-            'invalid_ref_number':
-                'The value "%(ref_value)s" is not a number.',
-            'invalid_ref_from_to':
-                '"From number" must be smaller than "To number"',
-            'fce_10168_cbu_emisor':
-                'Si el tipo de comprobante es MiPyme (FCE) es obligatorio '
-                'informar CBU.',
-            'missing_cuit_pais':
-                'Es requisito que el tercero "%s" tenga CUIT Pais.',
-            })
 
     @classmethod
     def __register__(cls, module_name):
@@ -644,22 +583,27 @@ class Invoice(metaclass=PoolMeta):
         if (self.type == 'out' and self.pos
         and self.pos.pos_daily_report == True):
             if int(self.ref_number_from) > int(self.ref_number_to):
-                self.raise_user_error('invalid_ref_from_to')
-            else:
-                invoices = self.search([
-                    ('id', '!=', self.id),
-                    ('type', '=', self.type),
-                    ('pos', '=', self.pos),
-                    ('invoice_type', '=', self.invoice_type),
-                    ('state', '!=', 'cancel'),
-                    ])
-                for invoice in invoices:
-                    if (invoice.ref_number_to != None and invoice.ref_number_from != None
-                    and (int(self.ref_number_from) >= int(invoice.ref_number_from)
-                    and int(self.ref_number_from) <= int(invoice.ref_number_to))
-                    or (int(self.ref_number_to) <= int(invoice.ref_number_to)
-                    and int(self.ref_number_to) >= int(invoice.ref_number_from))):
-                        self.raise_user_error('reference_unique')
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_invalid_ref_from_to'))
+            invoices = self.search([
+                ('id', '!=', self.id),
+                ('type', '=', self.type),
+                ('pos', '=', self.pos),
+                ('invoice_type', '=', self.invoice_type),
+                ('state', '!=', 'cancel'),
+                ])
+            for invoice in invoices:
+                if (invoice.ref_number_to is None or
+                        invoice.ref_number_from is None):
+                    continue
+                ref_number_from = int(invoice.ref_number_from)
+                ref_number_to = int(invoice.ref_number_to)
+                if ((int(self.ref_number_from) >= ref_number_from and
+                     int(self.ref_number_from) <= ref_number_to) or
+                    (int(self.ref_number_to) >= ref_number_from and
+                     int(self.ref_number_to) <= ref_number_to)):
+                    raise UserError(gettext(
+                        'account_invoice_ar.msg_reference_unique'))
 
     @classmethod
     def view_attributes(cls):
@@ -693,9 +637,9 @@ class Invoice(metaclass=PoolMeta):
     @classmethod
     def set_ref_subfield(cls, invoices, name, value):
         if value and not value.isdigit():
-            cls.raise_user_error('invalid_ref_number', {
-                    'ref_value': value,
-                })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_invalid_ref_number',
+                ref_value=value))
         reference = None
         for invoice in invoices:
             if invoice.type == 'in':
@@ -720,20 +664,23 @@ class Invoice(metaclass=PoolMeta):
 
     def check_invoice_type(self):
         if not self.company.party.iva_condition:
-            self.raise_user_error('missing_company_iva_condition', {
-                    'company': self.company.rec_name,
-                    })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_company_iva_condition',
+                company=self.company.rec_name))
         if not self.party.iva_condition:
-            self.raise_user_error('missing_party_iva_condition', {
-                    'party': self.party.rec_name,
-                    })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_party_iva_condition',
+                party=self.party.rec_name))
         if not self.invoice_type:
-            self.raise_user_error('not_invoice_type')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_not_invoice_type'))
         if not self.get_tax_identifier():
-            self.raise_user_error('miss_tax_identifier')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_miss_tax_identifier'))
         if (self.get_tax_identifier() and
                 not self.company.party.tax_identifier.type == 'ar_cuit'):
-            self.raise_user_error('miss_tax_identifier')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_miss_tax_identifier'))
 
     def check_unique_reference(self):
         invoice = self.search([
@@ -745,11 +692,13 @@ class Invoice(metaclass=PoolMeta):
             ('state', '!=', 'cancel'),
             ])
         if len(invoice) > 0:
-            self.raise_user_error('reference_unique')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_reference_unique'))
 
     def pre_validate_fields(self):
         if not self.reference and not self.tipo_comprobante:
-            self.raise_user_error('in_invoice_validate_failed')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_in_invoice_validate_failed'))
 
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
     def on_change_reference(self):
@@ -819,9 +768,12 @@ class Invoice(metaclass=PoolMeta):
             ('invoice_type', '=', invoice_type)
             ])
         if len(sequences) == 0:
-            self.raise_user_error('missing_sequence', invoice_type_desc)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_sequence', invoice_type_desc))
         elif len(sequences) > 1:
-            self.raise_user_error('too_many_sequences', invoice_type_desc)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_too_many_sequences',
+                invoice_type_desc))
         else:
             sequence, = sequences
         return sequence.id
@@ -888,9 +840,12 @@ class Invoice(metaclass=PoolMeta):
             ('invoice_type', '=', invoice_type)
             ])
         if len(sequences) == 0:
-            self.raise_user_error('missing_sequence', invoice_type_desc)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_sequence', invoice_type_desc))
         elif len(sequences) > 1:
-            self.raise_user_error('too_many_sequences', invoice_type_desc)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_too_many_sequences',
+                invoice_type_desc))
         else:
             credit.invoice_type = sequences[0]
 
@@ -959,10 +914,11 @@ class Invoice(metaclass=PoolMeta):
                     invoice_sequence, '%s_sequence' % invoice_type)
                 break
         else:
-            self.raise_user_error('no_invoice_sequence', {
-                    'invoice': self.rec_name,
-                    'fiscalyear': fiscalyear.rec_name,
-                    })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_no_invoice_sequence',
+                invoice=self.rec_name,
+                fiscalyear=fiscalyear.rec_name
+                ))
         with Transaction().set_context(date=self.invoice_date):
             if self.type == 'out':
                 number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
@@ -1082,19 +1038,22 @@ class Invoice(metaclass=PoolMeta):
                 last_invoice.type, last_invoice.party.rec_name,
                 str(last_invoice.transactions[-1].pyafipws_xml_request),
                 str(last_invoice.transactions[-1].pyafipws_xml_response))
-            cls.raise_user_error('rejected_invoices', {
-                'invoices': ','.join([str(i.id) for i in error_invoices]),
-                'msg': ','.join([i.transactions[-1].pyafipws_message for i \
-                            in error_invoices if i.transactions]),
-                })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_rejected_invoices',
+                invoices=','.join([str(i.id) for i in error_invoices]),
+                msg=','.join([i.transactions[-1].pyafipws_message
+                    for i in error_invoices if i.transactions]),
+                ))
         if error_pre_afip_invoices:
             last_invoice = error_pre_afip_invoices[-1]
             logger.error('Factura: %s, %s\nEntidad: %s', last_invoice.id,
                 last_invoice.type, last_invoice.party.rec_name)
-            cls.raise_user_error('rejected_invoices', {
-                'invoices': ','.join([str(i.id) for i in error_pre_afip_invoices]),
-                'msg': '',
-                })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_rejected_invoices',
+                invoices=','.join([str(i.id)
+                    for i in error_pre_afip_invoices]),
+                msg='',
+                ))
 
     @classmethod
     def consultar_and_recover(cls, invoices):
@@ -1103,7 +1062,8 @@ class Invoice(metaclass=PoolMeta):
         for invoice in invoices:
             ws = cls.get_ws_afip(invoice=invoice)
             if not invoice.invoice_date:
-                cls.raise_user_error('missing_invoice_date')
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_missing_invoice_date'))
             ws.Reprocesar = True
             ws, error = invoice.create_pyafipws_invoice(ws)
             cbte_nro = int(invoice.number[-8:])
@@ -1131,7 +1091,8 @@ class Invoice(metaclass=PoolMeta):
                 # raise error, los datos enviados no existen en AFIP.
                 logger.error('diferencias entre el comprobante %s '
                     'que tiene AFIP y el de tryton.', invoice.id)
-                cls.raise_user_error('reprocesar_invoice_dif')
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_reprocesar_invoice_dif'))
         return invoices
 
     @classmethod
@@ -1150,7 +1111,8 @@ class Invoice(metaclass=PoolMeta):
             service = 'wsfe'
         else:
             logger.error('AFIP web service is unknown')
-            cls.raise_user_error('webservice_unknown')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_webservice_unknown'))
 
         (company, auth_data) = cls.authenticate_afip(service=service)
         # TODO: get wsdl url from DictField?
@@ -1170,7 +1132,9 @@ class Invoice(metaclass=PoolMeta):
                     'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
         else:
             logger.critical('AFIP ws is not yet supported! %s', service)
-            cls.raise_user_error('webservice_not_supported', service)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_webservice_not_supported',
+                service=service))
 
         ws = cls.conect_afip(ws, WSDL, company.party.vat_number, auth_data)
         ws.Reprocesar = False
@@ -1186,7 +1150,8 @@ class Invoice(metaclass=PoolMeta):
         company_id = Transaction().context.get('company')
         if not company_id:
             logger.error('The company is not defined')
-            cls.raise_user_error('company_not_defined')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_company_not_defined'))
         company = Company(company_id)
         # authenticate against AFIP:
         auth_data = company.pyafipws_authenticate(service=service)
@@ -1204,7 +1169,8 @@ class Invoice(metaclass=PoolMeta):
         except Exception as e:
             msg = ws.Excepcion + ' ' + str(e)
             logger.error('WSAA connecting to afip: %s' % msg)
-            cls.raise_user_error('wsaa_error', msg)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_wsaa_error', msg=msg))
         ws.Cuit = vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
@@ -1327,7 +1293,8 @@ class Invoice(metaclass=PoolMeta):
                 logger.error('missing_pyafipws_concept:field pyafipws_concept '
                     'is missing at invoice "%s"' % self.rec_name)
                 return (ws, True)
-            self.raise_user_error('missing_pyafipws_concept')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_pyafipws_concept'))
         if (self.pyafipws_concept in ['2', '3'] and not
                 (self.pyafipws_billing_start_date or
                     self.pyafipws_billing_end_date)):
@@ -1335,7 +1302,8 @@ class Invoice(metaclass=PoolMeta):
                     logger.error('missing_pyafipws_billing_date:billing_dates '
                         'fields are missing at invoice "%s"' % self.rec_name)
                     return (ws, True)
-                self.raise_user_error('missing_pyafipws_billing_date')
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_missing_pyafipws_billing_date'))
         # get the electronic invoice type, point of sale and service:
         pool = Pool()
         Sequence = pool.get('ir.sequence')
@@ -1348,7 +1316,8 @@ class Invoice(metaclass=PoolMeta):
 
         if service == 'wsfex' and not self.party.vat_number_afip_foreign:
             logger.error('missing_cuit_pais: %s', self.party.rec_name)
-            self.raise_user_error('missing_cuit_pais', self.party.rec_name)
+            raise UserError(gettext('account_invoice_ar.msg_missing_cuit_pais',
+                party=self.party.rec_name))
 
         # get the last 8 digit of the invoice number
         if self.number:
@@ -1375,8 +1344,9 @@ class Invoice(metaclass=PoolMeta):
                         'assign invoice number: %d when AFIP is waiting for '
                         '%d' % (self.id, cbte_nro, cbte_nro_next))
                     return (ws, True)
-                self.raise_user_error('invalid_invoice_number', (cbte_nro,
-                    cbte_nro_next))
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_invalid_invoice_number',
+                    cbte_nro=cbte_nro, cbte_nro_next=cbte_nro_next))
 
         # invoice number range (from - to) and date:
         cbte_nro = cbt_desde = cbt_hasta = cbte_nro_next
@@ -1461,7 +1431,8 @@ class Invoice(metaclass=PoolMeta):
                 logger.error('missing_currency_afip_code: Invoice: %s, '
                     'currency afip code is not setted.' % self.id)
                 return (ws, True)
-            self.raise_user_error('missing_currency_afip_code')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_currency_afip_code'))
 
         if moneda_id != "PES":
             ctz = self.currency_rate
@@ -1472,7 +1443,8 @@ class Invoice(metaclass=PoolMeta):
                         logger.error('missing_currency_rate: Invoice: %s, '
                             'rate is not setted.' % self.id)
                         return (ws, True)
-                    self.raise_user_error('missing_currency_rate')
+                    raise UserError(gettext(
+                        'account_invoice_ar.msg_missing_currency_rate'))
                 else:
                     ctz = 1
             elif self.company.currency.rate == Decimal('1'):
@@ -1494,7 +1466,8 @@ class Invoice(metaclass=PoolMeta):
                 logger.error('missing_pyafipws_incoterms: Invoice: %s '
                     'field is not setted.' % self.id)
                 return (ws, True)
-            self.raise_user_error('missing_pyafipws_incoterms')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_missing_pyafipws_incoterms'))
 
         if int(tipo_cbte) == 19 and tipo_expo == 1:
             permiso_existente = 'N' or 'S'  # not used now
@@ -1565,7 +1538,8 @@ class Invoice(metaclass=PoolMeta):
                 if self.invoice_type.invoice_type in ('201', '206', '211'):
                     self.pyafipws_cbu = self.pyafipws_cbu or self.get_pyafipws_cbu()
                     if not self.pyafipws_cbu:
-                        self.raise_user_error('fce_10168_cbu_emisor')
+                        raise UserError(gettext(
+                            'account_invoice_ar.msg_fce_10168_cbu_emisor'))
                     ws.AgregarOpcional(2101, self.pyafipws_cbu.get_cbu_number())  # CBU
                     # ws.AgregarOpcional(2102, "tryton")  # alias del cbu
                 if self.invoice_type.invoice_type in ('202', '203', '207',
@@ -1593,9 +1567,9 @@ class Invoice(metaclass=PoolMeta):
                         logger.error('tax_without_group: Invoice: %s, tax: %s'
                             % (self.id, tax.name))
                         return (ws, True)
-                    self.raise_user_error('tax_without_group', {
-                            'tax': tax.name,
-                            })
+                    raise UserError(gettext(
+                        'account_invoice_ar.msg_tax_without_group',
+                        tax=tax.name))
                 if tax.group.afip_kind == 'gravado':
                     iva_id = tax.iva_code
                     base_imp = ('%.2f' % abs(tax_line.base))

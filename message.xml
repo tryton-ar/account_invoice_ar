@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
+this repository contains the full copyright notices and license terms. -->
+<tryton>
+    <data group="1">
+        <record model="ir.message" id="msg_wrong_pyafipws_mode">
+            <field name="text">Problemas de Certificado: "%(message)s".</field>
+        </record>
+        <record model="ir.message" id="msg_missing_pyafipws_billing_date">
+            <field name="text">Debe establecer los valores "Fecha desde" y "Fecha hasta" en el Diario, correspondientes al servicio que se está facturando</field>
+        </record>
+        <record model="ir.message" id="msg_invalid_invoice_number">
+            <field name="text">El número de la factura (%(cbte_nro)d), no coincide con el que espera la AFIP (%(cbte_nro_next)d). Modifique la secuencia del diario</field>
+        </record>
+        <record model="ir.message" id="msg_not_cae">
+            <field name="text">No fue posible obtener el CAE de la factura "%(invoice)s" para la entidad "%(party)s". Mensaje: "%(msg)s"</field>
+        </record>
+        <record model="ir.message" id="msg_invalid_journal">
+            <field name="text">Este diario (%s) no tiene establecido los datos necesaios para facturar electrónicamente</field>
+        </record>
+        <record model="ir.message" id="msg_missing_sequence">
+            <field name="text">No existe una secuencia para facturas del tipo: %(invoice_type)s</field>
+        </record>
+        <record model="ir.message" id="msg_too_many_sequences">
+            <field name="text">Existe mas de una secuencia para facturas del tipo: %(invoice_type)s</field>
+        </record>
+        <record model="ir.message" id="msg_missing_company_iva_condition">
+            <field name="text">The iva condition on company "%(company)s" is missing.</field>
+        </record>
+        <record model="ir.message" id="msg_missing_party_iva_condition">
+            <field name="text">The iva condition on party "%(party)s" is missing.</field>
+        </record>
+        <record model="ir.message" id="msg_not_invoice_type">
+            <field name="text">El campo "Tipo de factura" en "Factura" es requerido.</field>
+        </record>
+        <record model="ir.message" id="msg_missing_currency_rate">
+            <field name="text">Debe configurar la cotización de la moneda.</field>
+        </record>
+        <record model="ir.message" id="msg_invalid_currency_rate">
+            <field name="text">Cotización no válida para AFIP. Deber ser: %(afip_ctz)s</field>
+        </record>
+        <record model="ir.message" id="msg_missing_pyafipws_incoterms">
+            <field name="text">Debe establecer el valor de Incoterms si desea realizar un tipo de "Factura E".</field>
+        </record>
+        <record model="ir.message" id="msg_reference_unique">
+            <field name="text">El numero de factura ya ha sido ingresado en el sistema.</field>
+        </record>
+        <record model="ir.message" id="msg_tax_without_group">
+            <field name="text">El impuesto (%s) debe tener un grupo asignado (iibb, municipal, iva).</field>
+        </record>
+        <record model="ir.message" id="msg_in_invoice_validate_failed">
+            <field name="text">Los campos "Referencia" y "Comprobante" son requeridos.</field>
+        </record>
+        <record model="ir.message" id="msg_rejected_invoices">
+            <field name="text">There was a problem at invoice ID "%(invoices)s".\nCheck out error message:\n"%(msg)s"</field>
+        </record>
+        <record model="ir.message" id="msg_webservice_unknown">
+            <field name="text">AFIP web service is unknown</field>
+        </record>
+        <record model="ir.message" id="msg_webservice_not_supported">
+            <field name="text">AFIP webservice %(service)s is not yet supported!</field>
+        </record>
+        <record model="ir.message" id="msg_company_not_defined">
+            <field name="text">The company is not defined</field>
+        </record>
+        <record model="ir.message" id="msg_wsaa_error">
+            <field name="text">There was a problem to connect webservice WSAA: (%(msg)s)</field>
+        </record>
+        <record model="ir.message" id="msg_error_caesolicitarx">
+            <field name="text">Error CAESolicitarX: (%s)</field>
+        </record>
+        <record model="ir.message" id="msg_invalid_ref_number">
+            <field name="text">The value "%(ref_value)s" is not a number.</field>
+        </record>
+        <record model="ir.message" id="msg_miss_tax_identifier">
+            <field name="text">La empresa no tiene configurado el identificador impositivo</field>
+        </record>
+        <record model="ir.message" id="msg_missing_pyafipws_concept">
+            <field name="text">The "concept" is required if pos type is electronic</field>
+        </record>
+        <record model="ir.message" id="msg_fce_10168_cbu_emisor">
+            <field name="text">Si el tipo de comprobante es MiPyme (FCE) es obligatorio informar CBU.</field>
+        </record>
+        <record model="ir.message" id="msg_invalid_ref_type">
+            <field name="text">El tipo de comprobante en referencia no corresponde</field>
+        </record>
+        <record model="ir.message" id="msg_missing_ref">
+            <field name="text">Falta completar referencia</field>
+        </record>
+        <record model="ir.message" id="msg_missing_invoice_date">
+            <field name="text">Falta fecha factura</field>
+        </record>
+        <record model="ir.message" id="msg_reprocesar_invoice_dif">
+            <field name="text">Existen diferencias entre el comprobante de AFIP y el del sistema</field>
+        </record>
+        <record model="ir.message" id="msg_missing_cuit_pais">
+            <field name="text">Es requisito que el tercero "%(party)s" tenga CUIT Pais.</field>
+        </record>
+    </data>
+</tryton>

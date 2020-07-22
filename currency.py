@@ -10,6 +10,8 @@ from trytond.model import fields
 from trytond.pyson import Eval, If, In
 from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
+from trytond.exceptions import UserError
+from trytond.i18n import gettext
 
 __all__ = ['Currency', 'Rate']
 
@@ -62,7 +64,8 @@ class Rate(metaclass=PoolMeta):
         company_id = Transaction().context.get('company')
         if not company_id:
             logger.error('The company is not defined')
-            cls.raise_user_error('company_not_defined')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_company_not_defined'))
         company = Company(company_id)
         # authenticate against AFIP:
         auth_data = company.pyafipws_authenticate(service=service)
@@ -83,7 +86,9 @@ class Rate(metaclass=PoolMeta):
                     'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
         else:
             logger.critical('AFIP ws is not yet supported! %s', service)
-            cls.raise_user_error('webservice_not_supported', service)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_webservice_not_supported',
+                service=service))
 
         cache_dir = afip_auth.get_cache_dir()
         ws.LanzarExcepciones = True
@@ -92,7 +97,8 @@ class Rate(metaclass=PoolMeta):
         except Exception as e:
             msg = ws.Excepcion + ' ' + str(e)
             logger.error('WSAA connecting to afip: %s' % msg)
-            cls.raise_user_error('wsaa_error', msg)
+            raise UserError(gettext(
+                'account_invoice_ar.msg_wsaa_error', msg=msg))
         ws.Cuit = vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
@@ -102,7 +108,8 @@ class Rate(metaclass=PoolMeta):
             today = Date.today().strftime("%Y%m%d")
         if not self.currency.afip_code:
             logger.error('AFIP code is empty %s', self.currency.code)
-            cls.raise_user_error('afip_code_empty')
+            raise UserError(gettext(
+                'account_invoice_ar.msg_afip_code_empty'))
 
         self.rate = Decimal(ws.GetParamCtz('DOL'))
         self.date = datetime.datetime.strptime(ws.FchCotiz, '%Y%m%d').date()

@@ -6,6 +6,8 @@ import logging
 
 from trytond.model import fields
 from trytond.pool import PoolMeta
+from trytond.exceptions import UserError
+from trytond.i18n import gettext
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +35,6 @@ class Company(metaclass=PoolMeta):
         return ''
 
     @classmethod
-    def __setup__(cls):
-        super(Company, cls).__setup__()
-        cls._error_messages.update({
-            'wrong_pyafipws_mode': ('Problemas de Certificado: '
-                    '"%(message)s".'),
-        })
-
-    @classmethod
     def validate(cls, companies):
         super(Company, cls).validate(companies)
         for company in companies:
@@ -52,9 +46,9 @@ class Company(metaclass=PoolMeta):
 
         auth_data = self.pyafipws_authenticate(service='wsfe', force=False)
         if auth_data['err_msg'] is not None:
-            self.raise_user_error('wrong_pyafipws_mode', {
-                'message': auth_data['err_msg'],
-                })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_wrong_pyafipws_mode',
+                message=auth_data['err_msg']))
 
     def pyafipws_authenticate(self, service='wsfe', force=False, cache=''):
         'Authenticate against AFIP, returns token, sign, err_msg (dict)'
@@ -68,10 +62,10 @@ class Company(metaclass=PoolMeta):
         elif self.pyafipws_mode_cert == 'produccion':
             WSAA_URL = 'https://wsaa.afip.gov.ar/ws/services/LoginCms?wsdl'
         else:
-            self.raise_user_error('wrong_pyafipws_mode', {
-                'message': 'El modo de certificación no es ni producción, ni '
-                    'homologación. Configure su Empresa',
-                })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_wrong_pyafipws_mode',
+                message=('El modo de certificación no es ni producción, ni '
+                    'homologación. Configure su Empresa')))
 
         # call the helper function to obtain the access ticket:
         auth = afip_auth.authenticate(service, certificate, private_key,
@@ -79,7 +73,8 @@ class Company(metaclass=PoolMeta):
         auth_data.update(auth)
         if not auth_data.get('token'):
             logger.error('Error webservice WSAA: %s', auth_data.get('err_msg'))
-            self.raise_user_error('wrong_pyafipws_mode', {
-                'message': auth_data.get('err_msg'),
-                })
+            raise UserError(gettext(
+                'account_invoice_ar.msg_wrong_pyafipws_mode',
+                message=auth_data.get('err_msg'),
+                ))
         return auth_data
