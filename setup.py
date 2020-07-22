@@ -84,7 +84,8 @@ dependency_links = list(LINKS.values())
 
 setup(name=name,
     version=version,
-    description='',
+    description=('Tryton module to add account invoice (electronic/manual) '
+        'localization for Argentina (AFIP)'),
     long_description=read('README.rst'),
     author='tryton-ar',
     url='https://github.com/tryton-ar/account_invoice_ar',
