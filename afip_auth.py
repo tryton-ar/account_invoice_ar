@@ -66,10 +66,14 @@ def authenticate(service, certificate, private_key, force=False,
             if not ta:
                 raise RuntimeError()
             # write the access ticket for further consumption
-            open(fn, 'w').write(ta)
+            f = open(fn, 'w')
+            f.write(ta)
+            f.close()
         else:
             # get the access ticket from the previously written file
-            ta = open(fn, 'r').read()
+            f = open(fn, 'r')
+            ta = f.read()
+            f.close()
         # force to connect against WSAA
         if force:
             tra = None
@@ -85,7 +89,9 @@ def authenticate(service, certificate, private_key, force=False,
             if not ta:
                 raise RuntimeError()
             # write the access ticket for further consumption
-            open(fn, 'w').write(ta)
+            f = open(fn, 'w')
+            f.write(ta)
+            f.close()
         # analyze the access ticket xml and extract the relevant fields
         wsaa.AnalizarXml(xml=ta)
         token = wsaa.ObtenerTagXml('token')

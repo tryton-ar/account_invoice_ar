@@ -95,13 +95,13 @@ class Rate(metaclass=PoolMeta):
         cache_dir = afip_auth.get_cache_dir()
         ws.LanzarExcepciones = True
         try:
-            ws.Conectar(wsdl=wsdl, cache=cache_dir, cacert=True)
+            ws.Conectar(wsdl=WSDL, cache=cache_dir, cacert=True)
         except Exception as e:
             msg = ws.Excepcion + ' ' + str(e)
             logger.error('WSAA connecting to afip: %s' % msg)
             raise UserError(gettext(
                 'account_invoice_ar.msg_wsaa_error', msg=msg))
-        ws.Cuit = vat_number
+        ws.Cuit = company.party.vat_number
         ws.Token = auth_data['token']
         ws.Sign = auth_data['sign']
 

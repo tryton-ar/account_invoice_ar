@@ -381,9 +381,12 @@ class Invoice(metaclass=PoolMeta):
     pyafipws_cmp_asoc = fields.Many2Many('account.invoice-cmp.asoc',
         'invoice', 'cmp_asoc', 'Cmp Asoc', states=_STATES,
         domain=[
-            ('type', '=', 'out'),
-            ('state', 'in', ['posted', 'paid']),
             ('company', '=', Eval('company', -1)),
+            ('type', '=', 'out'),
+            ['OR',
+                ('state', 'in', ['posted', 'paid']),
+                ('id', 'in', Eval('pyafipws_cmp_asoc')),
+                ],
             ],
         depends=_DEPENDS + ['company', 'type'])
 
@@ -1689,12 +1692,18 @@ class Invoice(metaclass=PoolMeta):
         AFIP_Transaction = Pool().get('account_invoice_ar.afip_transaction')
         message = '\n'.join([ws.Obs or '', ws.ErrMsg or '', msg])
         message = message.encode('ascii', 'ignore').strip()
+        xml_request = ws.XmlRequest
+        if not isinstance(xml_request, str):
+            xml_request = xml_request.decode('utf-8')
+        xml_response = ws.XmlResponse.decode('utf-8')
+        if not isinstance(xml_response, str):
+            xml_response = xml_response.decode('utf-8')
         afip_tr = AFIP_Transaction()
         afip_tr.invoice = self
         afip_tr.pyafipws_result = ws.Resultado
         afip_tr.pyafipws_message = message.decode('utf-8')
-        afip_tr.pyafipws_xml_request = ws.XmlRequest.decode('utf-8')
-        afip_tr.pyafipws_xml_response = ws.XmlResponse.decode('utf-8')
+        afip_tr.pyafipws_xml_request = xml_request
+        afip_tr.pyafipws_xml_response = xml_response
         afip_tr.save()
 
     def process_afip_result(self, ws, msg=''):
