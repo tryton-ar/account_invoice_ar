@@ -16,14 +16,22 @@ msgstr "Tipo de factura"
 
 msgctxt "field:account.invoice,invoice_type_tree:"
 msgid "Tipo comprobante"
-msgstr ""
+msgstr "Tipo comprobante"
+
+msgctxt "field:account.invoice,party_iva_condition:"
+msgid "Condicion ante IVA"
+msgstr "Condición ante IVA"
 
 msgctxt "field:account.invoice,pos:"
 msgid "Point of Sale"
 msgstr "Punto de Venta"
 
 msgctxt "field:account.invoice,pos_pos_daily_report:"
-msgid "account.pos"
+msgid "POS Daily Report"
+msgstr "Punto de Venta con cierre diario"
+
+msgctxt "field:account.invoice,pyafipws_anulacion:"
+msgid "FCE MiPyme anulación"
 msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_barcode:"
@@ -46,8 +54,36 @@ msgctxt "field:account.invoice,pyafipws_cae_due_date:"
 msgid "Vencimiento CAE"
 msgstr ""
 
+msgctxt "field:account.invoice,pyafipws_cbu:"
+msgid "CBU del Emisor"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_cmp_asoc:"
+msgid "Cmp Asoc"
+msgstr ""
+
 msgctxt "field:account.invoice,pyafipws_concept:"
 msgid "Concepto"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_imp_iva:"
+msgid "Imp. IVA"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_imp_neto:"
+msgid "Gravado"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_imp_op_ex:"
+msgid "Exento"
+msgstr "Exento"
+
+msgctxt "field:account.invoice,pyafipws_imp_tot_conc:"
+msgid "No Gravado"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_imp_trib:"
+msgid "Imp. Tributo"
 msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_incoterms:"
@@ -86,17 +122,57 @@ msgctxt "field:account.invoice,transactions:"
 msgid "Transacciones"
 msgstr "Transacciones WS"
 
+msgctxt "field:account.invoice-cmp.asoc,cmp_asoc:"
+msgid "Cmp Asoc"
+msgstr ""
+
+msgctxt "field:account.invoice-cmp.asoc,create_date:"
+msgid "Create Date"
+msgstr "Fecha creación"
+
+msgctxt "field:account.invoice-cmp.asoc,create_uid:"
+msgid "Create User"
+msgstr "Usuario creación"
+
+msgctxt "field:account.invoice-cmp.asoc,id:"
+msgid "ID"
+msgstr "ID"
+
+msgctxt "field:account.invoice-cmp.asoc,invoice:"
+msgid "Invoice"
+msgstr "Factura"
+
+msgctxt "field:account.invoice-cmp.asoc,rec_name:"
+msgid "Record Name"
+msgstr "Nombre"
+
+msgctxt "field:account.invoice-cmp.asoc,write_date:"
+msgid "Write Date"
+msgstr "Fecha modificación"
+
+msgctxt "field:account.invoice-cmp.asoc,write_uid:"
+msgid "Write User"
+msgstr "Usuario modificación"
+
+msgctxt "field:account.invoice.credit.start,from_fce:"
+msgid "From FCE"
+msgstr ""
+
+msgctxt "field:account.invoice.credit.start,pyafipws_anulacion:"
+msgid "FCE MiPyme anulación"
+msgstr ""
+
 msgctxt "field:account.invoice.export.license,afip_country:"
 msgid "AFIP Country"
 msgstr "País AFIP"
 
 msgctxt "field:account.invoice.export.license,create_date:"
 msgid "Create Date"
-msgstr "Fecha de creación"
+msgstr "Fecha creación"
 
 msgctxt "field:account.invoice.export.license,create_uid:"
 msgid "Create User"
-msgstr "Usuario de creación"
+msgstr "Usuario creación"
 
 msgctxt "field:account.invoice.export.license,id:"
 msgid "ID"
@@ -122,6 +198,10 @@ msgctxt "field:account.invoice.export.license,write_uid:"
 msgid "Write User"
 msgstr "Usuario modificación"
 
+msgctxt "field:account.invoice.line,pyafipws_exento:"
+msgid "Exento"
+msgstr "Exento"
+
 msgctxt "field:account.pos,active:"
 msgid "Active"
 msgstr "Activo"
@@ -132,11 +212,11 @@ msgstr "Empresa"
 
 msgctxt "field:account.pos,create_date:"
 msgid "Create Date"
-msgstr "Fecha de creación"
+msgstr "Fecha creación"
 
 msgctxt "field:account.pos,create_uid:"
 msgid "Create User"
-msgstr "Usuario de creación"
+msgstr "Usuario creación"
 
 msgctxt "field:account.pos,id:"
 msgid "ID"
@@ -176,11 +256,11 @@ msgstr "Usuario modificación"
 
 msgctxt "field:account.pos.sequence,create_date:"
 msgid "Create Date"
-msgstr "Fecha de creación"
+msgstr "Fecha creación"
 
 msgctxt "field:account.pos.sequence,create_uid:"
 msgid "Create User"
-msgstr "Usuario de creación"
+msgstr "Usuario creación"
 
 msgctxt "field:account.pos.sequence,id:"
 msgid "ID"
@@ -212,11 +292,11 @@ msgstr "Usuario modificación"
 
 msgctxt "field:account_invoice_ar.afip_transaction,create_date:"
 msgid "Create Date"
-msgstr "Fecha de creación"
+msgstr "Fecha creación"
 
 msgctxt "field:account_invoice_ar.afip_transaction,create_uid:"
 msgid "Create User"
-msgstr "Usuario de creación"
+msgstr "Usuario creación"
 
 msgctxt "field:account_invoice_ar.afip_transaction,id:"
 msgid "ID"
@@ -254,6 +334,10 @@ msgctxt "field:account_invoice_ar.afip_transaction,write_uid:"
 msgid "Write User"
 msgstr "Usuario modificación"
 
+msgctxt "field:bank.account,pyafipws_cbu:"
+msgid "CBU del Emisor"
+msgstr ""
+
 msgctxt "field:company.company,pyafipws_certificate:"
 msgid "Certificado AFIP WS"
 msgstr ""
@@ -266,9 +350,21 @@ msgctxt "field:company.company,pyafipws_private_key:"
 msgid "Clave Privada AFIP WS"
 msgstr ""
 
-msgctxt "help:account.invoice,pos_pos_daily_report:"
-msgid "POS Daily Report"
-msgstr "Punto de Venta con cierre diario"
+msgctxt "field:currency.currency,afip_code:"
+msgid "AFIP Code"
+msgstr "Código AFIP"
+
+msgctxt "field:party.party,pyafipws_fce:"
+msgid "MiPyme FCE"
+msgstr ""
+
+msgctxt "field:party.party,pyafipws_fce_amount:"
+msgid "MiPyme FCE Amount"
+msgstr ""
+
+msgctxt "field:party.party,pyafipws_fce_amount_digits:"
+msgid "Currency Digits"
+msgstr "Decimales de la moneda"
 
 msgctxt "help:account.invoice,pyafipws_barcode:"
 msgid "Código de barras para usar en la impresión"
@@ -292,6 +388,10 @@ msgstr ""
 
 msgctxt "help:account.invoice,pyafipws_number:"
 msgid "Número de factura informado a la AFIP"
+msgstr ""
+
+msgctxt "help:account.invoice.credit.start,pyafipws_anulacion:"
+msgid "If true, the FCE was anulled from the customer."
 msgstr ""
 
 msgctxt "help:account.pos,number:"
@@ -332,12 +432,16 @@ msgid ""
 "certificados de Homologación y Producción son distintos."
 msgstr ""
 
-msgctxt "help:company.company,pyafipws_passphrase:"
-msgid "Contraseña de la Clave Privada (en caso de tenerla)"
-msgstr ""
-
 msgctxt "help:company.company,pyafipws_private_key:"
 msgid "Clave Privada (.key) de la empresa para webservices AFIP"
+msgstr ""
+
+msgctxt "help:currency.currency,afip_code:"
+msgid "The 3 digits AFIP currency code."
+msgstr ""
+
+msgctxt "model:account.invoice-cmp.asoc,name:"
+msgid "Invoice - CmpAsoc (Invoice)"
 msgstr ""
 
 msgctxt "model:account.invoice.export.license,name:"
@@ -356,13 +460,13 @@ msgctxt "model:account_invoice_ar.afip_transaction,name:"
 msgid "AFIP WS Transaction"
 msgstr "Transacciones WS AFIP"
 
-msgctxt "model:ir.action,name:account_invoice_ar_report_invoice"
-msgid "Invoice"
-msgstr "Factura"
-
 msgctxt "model:ir.action,name:act_account_pos"
 msgid "Points of Sale"
 msgstr "Puntos de Venta"
+
+msgctxt "model:ir.action,name:report_invoice"
+msgid "Invoice"
+msgstr "Factura"
 
 msgctxt "model:ir.message,text:msg_company_not_defined"
 msgid "The company is not defined"
@@ -549,6 +653,18 @@ msgid "Domicilio:"
 msgstr ""
 
 msgctxt "report:account.invoice:"
+msgid "Exento"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "FACTURA BORRADOR"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "FACTURA PROFORMA"
+msgstr ""
+
+msgctxt "report:account.invoice:"
 msgid "Fecha"
 msgstr ""
 
@@ -557,7 +673,7 @@ msgid "Fecha Vto. CAE:"
 msgstr ""
 
 msgctxt "report:account.invoice:"
-msgid "Fecha de Vencimiento Pago:"
+msgid "Gravado"
 msgstr ""
 
 msgctxt "report:account.invoice:"
@@ -573,6 +689,10 @@ msgid "Inicio de Actividad:"
 msgstr ""
 
 msgctxt "report:account.invoice:"
+msgid "No gravado"
+msgstr ""
+
+msgctxt "report:account.invoice:"
 msgid "N°:"
 msgstr ""
 
@@ -583,6 +703,10 @@ msgstr ""
 msgctxt "report:account.invoice:"
 msgid "Payment Term"
 msgstr "Plazo de pago"
+
+msgctxt "report:account.invoice:"
+msgid "Percepciones"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "Periodo Facturado:"
@@ -621,15 +745,7 @@ msgid "s"
 msgstr "s"
 
 msgctxt "report:account.invoice:"
-msgid "­"
-msgstr ""
-
-msgctxt "report:account.invoice:"
 msgid "í"
-msgstr ""
-
-msgctxt "selection:account.invoice,invoice_type_tree:"
-msgid ""
 msgstr ""
 
 msgctxt "selection:account.invoice,invoice_type_tree:"
@@ -697,12 +813,64 @@ msgid "20-Nota de Débito E"
 msgstr ""
 
 msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "201-Factura de Crédito Electrónica MiPyMEs A"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "202-Nota de Débito Electrónica MiPyMEs A"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "203-Nota de Crédito Electrónica MiPyMEs A"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "206-Factura de Crédito Electrónica MiPyMEs B"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "207-Nota de Débito Electrónica MiPyMEs B"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "208-Nota de Crédito Electrónica MiPyMEs B"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
 msgid "21-Nota de Crédito E"
 msgstr ""
 
-msgctxt "selection:account.invoice,pyafipws_concept:"
-msgid ""
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "211-Factura de Crédito Electrónica MiPyMEs C"
 msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "212-Nota de Débito Electrónica MiPyMEs C"
+msgstr ""
+
+msgctxt "selection:account.invoice,invoice_type_tree:"
+msgid "213-Nota de Crédito Electrónica MiPyMEs C"
+msgstr ""
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Consumidor Final"
+msgstr "Consumidor Final"
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Exento"
+msgstr "Exento"
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Monotributo"
+msgstr "Monotributo"
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "No alcanzado"
+msgstr "No alcanzado"
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Responsable Inscripto"
+msgstr "Responsable Inscripto"
 
 msgctxt "selection:account.invoice,pyafipws_concept:"
 msgid "1-Productos"
@@ -713,15 +881,11 @@ msgid "2-Servicios"
 msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_concept:"
-msgid "3-Productos y Servicios (mercado interno)"
+msgid "3-Productos y Servicios"
 msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_concept:"
 msgid "4-Otros (exportación)"
-msgstr ""
-
-msgctxt "selection:account.invoice,pyafipws_incoterms:"
-msgid ""
 msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_incoterms:"
@@ -782,10 +946,6 @@ msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_incoterms:"
 msgid "FREE ON BOARD"
-msgstr ""
-
-msgctxt "selection:account.invoice,tipo_comprobante:"
-msgid ""
 msgstr ""
 
 msgctxt "selection:account.invoice,tipo_comprobante:"
@@ -1148,10 +1308,6 @@ msgid "Manual"
 msgstr "Manual"
 
 msgctxt "selection:account.pos,pyafipws_electronic_invoice_service:"
-msgid ""
-msgstr ""
-
-msgctxt "selection:account.pos,pyafipws_electronic_invoice_service:"
 msgid "Bono Fiscal -con detalle- RG2557 (WSMTXCA)"
 msgstr ""
 
@@ -1161,10 +1317,6 @@ msgstr ""
 
 msgctxt "selection:account.pos,pyafipws_electronic_invoice_service:"
 msgid "Mercado interno -sin detalle- RG2485 (WSFEv1)"
-msgstr ""
-
-msgctxt "selection:account.pos.sequence,invoice_type:"
-msgid ""
 msgstr ""
 
 msgctxt "selection:account.pos.sequence,invoice_type:"
@@ -1232,7 +1384,43 @@ msgid "20-Nota de Débito E"
 msgstr ""
 
 msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "201-Factura de Crédito Electrónica MiPyMEs A"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "202-Nota de Débito Electrónica MiPyMEs A"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "203-Nota de Crédito Electrónica MiPyMEs A"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "206-Factura de Crédito Electrónica MiPyMEs B"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "207-Nota de Débito Electrónica MiPyMEs B"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "208-Nota de Crédito Electrónica MiPyMEs B"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
 msgid "21-Nota de Crédito E"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "211-Factura de Crédito Electrónica MiPyMEs C"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "212-Nota de Débito Electrónica MiPyMEs C"
+msgstr ""
+
+msgctxt "selection:account.pos.sequence,invoice_type:"
+msgid "213-Nota de Crédito Electrónica MiPyMEs C"
 msgstr ""
 
 msgctxt "selection:account_invoice_ar.afip_transaction,pyafipws_result:"
@@ -1263,9 +1451,15 @@ msgctxt "selection:company.company,pyafipws_mode_cert:"
 msgid "n/a"
 msgstr ""
 
+msgctxt "view:account.invoice.credit.start:"
+msgid ""
+"Those/this invoice(s) have been generated from FCE. Customer has annulled "
+"them?"
+msgstr ""
+
 msgctxt "view:account.invoice:"
 msgid "-"
-msgstr ""
+msgstr "-"
 
 msgctxt "view:account.invoice:"
 msgid "Factura Electronica Argentina"
@@ -1276,20 +1470,12 @@ msgid "Factura Electronica Incoterms"
 msgstr "Incoterms"
 
 msgctxt "view:account.invoice:"
-msgid "From/to #"
+msgid "Facturación Argentina"
 msgstr ""
 
-msgctxt "view:account.journal:"
-msgid "Invoicing"
-msgstr "Facturación"
-
-msgctxt "view:account.pos.sequence:"
-msgid "Sequence"
-msgstr "Secuencia"
-
-msgctxt "view:account.pos.sequence:"
-msgid "Sequences"
-msgstr "Secuencias"
+msgctxt "view:account.invoice:"
+msgid "From/to #"
+msgstr ""
 
 msgctxt "view:account.pos:"
 msgid "POS Options"
@@ -1324,9 +1510,5 @@ msgid "Modo de Certificacion"
 msgstr "Modo de Certificación"
 
 msgctxt "view:party.party:"
-msgid "Empresa"
+msgid "MiPyme FCE Amount"
 msgstr ""
-
-msgctxt "view:party.party:"
-msgid "Informacion Fiscal"
-msgstr "Información Fiscal"
