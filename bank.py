@@ -9,9 +9,4 @@ __all__ = ['BankAccount']
 
 class BankAccount(metaclass=PoolMeta):
     __name__ = 'bank.account'
-    pyafipws_cbu = fields.Boolean('CBU del Emisor',
-        states={
-            'required': If(In(Eval('party_company'), Eval('owners', [])),
-                True, False),
-            },
-        depends=['owners', 'party_company'])
+    pyafipws_cbu = fields.Boolean('CBU del Emisor')
