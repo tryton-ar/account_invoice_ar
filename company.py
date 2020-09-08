@@ -36,7 +36,7 @@ class Company(metaclass=PoolMeta):
 
     @classmethod
     def validate(cls, companies):
-        super(Company, cls).validate(companies)
+        super().validate(companies)
         for company in companies:
             company.check_pyafipws_mode_cert()
 

@@ -94,7 +94,7 @@ class Pos(ModelSQL, ModelView):
         table = TableHandler(cls, module_name)
         exist = table.column_exist('company')
 
-        super(Pos, cls).__register__(module_name)
+        super().__register__(module_name)
 
         # Migration from 4.2: company is required
         if not exist:
@@ -156,7 +156,7 @@ class PosSequence(ModelSQL, ModelView):
         table = TableHandler(cls, module_name)
         exist = table.column_exist('invoice_sequence')
 
-        super(PosSequence, cls).__register__(module_name)
+        super().__register__(module_name)
 
         # Migration from 4.2: set invoice_sequence
         if not exist and TableHandler.table_exist(property_table):

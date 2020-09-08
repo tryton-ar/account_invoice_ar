@@ -392,7 +392,7 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def __setup__(cls):
-        super(Invoice, cls).__setup__()
+        super().__setup__()
         cls.reference.states.update({
             'readonly': Eval('type') == 'in',
         })
@@ -405,7 +405,7 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def __register__(cls, module_name):
-        super(Invoice, cls).__register__(module_name)
+        super().__register__(module_name)
         cursor = Transaction().connection.cursor()
         cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'001\' '
             'WHERE tipo_comprobante = \'fca\';')
@@ -449,8 +449,7 @@ class Invoice(metaclass=PoolMeta):
         return _ZERO
 
     def on_change_party(self):
-        super(Invoice, self).on_change_party()
-
+        super().on_change_party()
         if self.party and self.party.iva_condition:
             self.party_iva_condition = self.party.iva_condition
 
@@ -562,11 +561,11 @@ class Invoice(metaclass=PoolMeta):
         default['ref_voucher_number'] = None
         default['reference'] = None
         default['tipo_comprobante'] = None
-        return super(Invoice, cls).copy(invoices, default=default)
+        return super().copy(invoices, default=default)
 
     @classmethod
     def validate(cls, invoices):
-        super(Invoice, cls).validate(invoices)
+        super().validate(invoices)
         for invoice in invoices:
             invoice.check_unique_daily_report()
 
@@ -613,7 +612,7 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def view_attributes(cls):
-        return super(Invoice, cls).view_attributes() + [
+        return super().view_attributes() + [
             ('/form/notebook/page[@id="electronic_invoice"]', 'states', {
                 'invisible': Eval('type') == 'in',
                 }),
@@ -668,7 +667,7 @@ class Invoice(metaclass=PoolMeta):
             elif invoice.type == 'in':
                 invoice.pre_validate_fields()
                 invoice.check_unique_reference()
-        super(Invoice, cls).validate_invoice(invoices)
+        super().validate_invoice(invoices)
 
     def check_invoice_type(self):
         if not self.company.party.iva_condition:
@@ -724,7 +723,7 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def _tax_identifier_types(cls):
-        types = super(Invoice, cls)._tax_identifier_types()
+        types = super()._tax_identifier_types()
         types.append('ar_cuit')
         return types
 
@@ -877,8 +876,7 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def set_number(cls, invoices):
-        super(Invoice, cls).set_number(invoices)
-
+        super().set_number(invoices)
         for invoice in invoices:
             # Posted and paid invoices are tested by check_modify so we can
             # not modify tax_identifier nor number
@@ -935,10 +933,10 @@ class Invoice(metaclass=PoolMeta):
 
     def get_move(self):
         with Transaction().set_context(currency_rate=self.currency_rate):
-            return super(Invoice, self).get_move()
+            return super().get_move()
 
     def _get_move_line(self, date, amount):
-        line = super(Invoice, self)._get_move_line(date, amount)
+        line = super()._get_move_line(date, amount)
         ref_number = self.number if self.type == 'out' else self.reference
         line.description = '%s Nro. %s' % (self.party.name, ref_number)
         if self.description:
@@ -1035,7 +1033,7 @@ class Invoice(metaclass=PoolMeta):
         if invoices_in:
             invoices_nowsfe.extend(invoices_in)
         cls.save(invoices)
-        super(Invoice, cls).post(invoices_nowsfe)
+        super().post(invoices_nowsfe)
         Transaction().commit()
         if error_invoices:
             last_invoice = error_invoices[-1]
@@ -1768,7 +1766,7 @@ class InvoiceExportLicense(ModelSQL, ModelView):
 
     @classmethod
     def __register__(cls, module_name):
-        super(InvoiceExportLicense, cls).__register__(module_name)
+        super().__register__(module_name)
         TableHandler = backend.get('TableHandler')
         pool = Pool()
         afip_country = pool.get('afip.country').__table__()
@@ -1797,7 +1795,7 @@ class InvoiceReport(metaclass=PoolMeta):
         pool = Pool()
         Invoice = pool.get('account.invoice')
 
-        context = super(InvoiceReport, cls).get_context(records, data)
+        context = super().get_context(records, data)
         invoice = context['record']
         context['company'] = invoice.company
         context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
@@ -2020,7 +2018,7 @@ class CreditInvoice(metaclass=PoolMeta):
     def default_start(self, fields):
         Invoice = Pool().get('account.invoice')
 
-        default = super(CreditInvoice, self).default_start(fields)
+        default = super().default_start(fields)
         default.update({
             'from_fce': False,
             'pyafipws_anulacion': False,

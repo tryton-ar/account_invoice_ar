@@ -31,8 +31,7 @@ class Currency(metaclass=PoolMeta):
 
         currency_rate = Transaction().context.get('currency_rate')
         if not currency_rate:
-            return super(Currency, cls).compute(from_currency, amount,
-                to_currency, round)
+            return super().compute(from_currency, amount, to_currency, round)
 
         if to_currency == from_currency:
             if round:
