@@ -28,37 +28,7 @@ from . import afip_auth
 
 logger = logging.getLogger(__name__)
 
-_STATES = {
-    'readonly': Eval('state') != 'draft',
-    }
-_DEPENDS = ['state']
-
 _ZERO = Decimal('0.0')
-
-_REF_NUMBERS_STATES = _STATES.copy()
-_REF_NUMBERS_STATES.update({
-    'invisible': ~Eval('pos_pos_daily_report', False),
-    'required': Eval('pos_pos_daily_report', False),
-})
-
-_BILLING_STATES = _STATES.copy()
-_BILLING_STATES.update({
-    'required': Eval('pyafipws_concept').in_(['2', '3']),
-    })
-
-_POS_STATES = _STATES.copy()
-_POS_STATES.update({
-    'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
-    'invisible': Eval('type') == 'in',
-    })
-
-IVA_AFIP_CODE = defaultdict(lambda: 0)
-IVA_AFIP_CODE.update({
-    Decimal('0'): 3,
-    Decimal('0.105'): 4,
-    Decimal('0.21'): 5,
-    Decimal('0.27'): 6,
-    })
 
 INVOICE_TYPE_AFIP_CODE = {
         ('out', False, 'A', False): ('1', '01-Factura A'),
@@ -246,14 +216,14 @@ class AfipWSTransaction(ModelSQL, ModelView):
 
 class InvoiceLine(metaclass=PoolMeta):
     __name__ = 'account.invoice.line'
-    _states = {
-        'readonly': Eval('invoice_state') != 'draft',
-        }
-    _depends = ['invoice_state']
 
-    pyafipws_exento = fields.Boolean('Exento', states={
-        'readonly': _states['readonly'] | Bool(Eval('taxes')),
-        }, depends=_depends + ['taxes'])
+    pyafipws_exento = fields.Boolean('Exento',
+        states={
+            'readonly': Or(
+                Eval('invoice_state') != 'draft',
+                Bool(Eval('taxes'))),
+            },
+        depends=['invoice_state', 'taxes'])
 
     @fields.depends('taxes', 'pyafipws_exento')
     def on_change_with_pyafipws_exento(self, name=None):
@@ -265,37 +235,60 @@ class InvoiceLine(metaclass=PoolMeta):
 class Invoice(metaclass=PoolMeta):
     __name__ = 'account.invoice'
 
+    _states = {'readonly': Eval('state') != 'draft'}
+    _depends = ['state']
+
     pos = fields.Many2One('account.pos', 'Point of Sale',
         domain=[('company', '=', Eval('company'))],
-        states=_POS_STATES, depends=_DEPENDS + ['company'])
+        states={
+            'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
+            'invisible': Eval('type') == 'in',
+            'readonly': Eval('state') != 'draft',
+            },
+        depends=['type', 'state', 'company'])
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
-        domain=[('pos', '=', Eval('pos')),
+        domain=[
+            ('pos', '=', Eval('pos')),
             ('invoice_type', 'in',
                 If(Eval('total_amount', -1) >= 0,
                     ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15',
                         '19', '20', '201', '202', '206', '207', '211', '212'],
                     ['3', '8', '13', '21', '203', '208', '213']),
                 )],
-        states=_POS_STATES, depends=_DEPENDS + ['pos', 'invoice_type',
-            'total_amount'])
+        states={
+            'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
+            'invisible': Eval('type') == 'in',
+            'readonly': Eval('state') != 'draft',
+            },
+        depends=['type', 'state', 'pos', 'total_amount'])
     invoice_type_tree = fields.Function(fields.Selection(INVOICE_TYPE_POS,
-            'Tipo comprobante'), 'get_comprobante',
-        searcher='search_comprobante')
+        'Tipo comprobante'), 'get_comprobante', searcher='search_comprobante')
     pyafipws_concept = fields.Selection([
         ('1', '1-Productos'),
         ('2', '2-Servicios'),
         ('3', '3-Productos y Servicios'),
         ('4', '4-Otros (exportación)'),
         ('', ''),
-        ], 'Concepto', select=True, depends=['state'], states={
+        ], 'Concepto', select=True,
+        states={
+            #'required': Eval('_parent_pos', {}).get(
+            #    'pos_type') == 'electronic',
             'readonly': Eval('state') != 'draft',
-            'required': Eval('pos.pos_type') == 'electronic',
-            })
+            },
+        depends=['pos', 'state'])
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
-        states=_BILLING_STATES, depends=_DEPENDS,
+        states={
+            'required': Eval('pyafipws_concept').in_(['2', '3']),
+            'readonly': Eval('state') != 'draft',
+            },
+        depends=['pyafipws_concept', 'state'],
         help='Seleccionar fecha de fin de servicios - Sólo servicios')
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
-        states=_BILLING_STATES, depends=_DEPENDS,
+        states={
+            'required': Eval('pyafipws_concept').in_(['2', '3']),
+            'readonly': Eval('state') != 'draft',
+            },
+        depends=['pyafipws_concept', 'state'],
         help='Seleccionar fecha de inicio de servicios - Sólo servicios')
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
         help='Código de Autorización Electrónico, devuelto por AFIP')
@@ -308,37 +301,50 @@ class Invoice(metaclass=PoolMeta):
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
         'invoice', 'Transacciones', readonly=True)
     tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
-        select=True, depends=['state', 'type'], states={
+        select=True, states={
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
-            })
+            },
+        depends=['state', 'type'])
     tipo_comprobante_string = tipo_comprobante.translated('tipo_comprobante')
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
-    ref_pos_number = fields.Function(fields.Char('POS Number', size=5, states={
-        'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
-        'invisible': Eval('type') == 'out',
-        'readonly': Eval('state') != 'draft',
-        }), 'get_ref_subfield', setter='set_ref_subfield')
+    ref_pos_number = fields.Function(fields.Char('POS Number', size=5,
+        states={
+            'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
+            'invisible': Eval('type') == 'out',
+            'readonly': Eval('state') != 'draft',
+            },
+        depends=['type', 'state']),
+        'get_ref_subfield', setter='set_ref_subfield')
     ref_voucher_number = fields.Function(fields.Char('Voucher Number', size=8,
         states={
             'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
-        }), 'get_ref_subfield', setter='set_ref_subfield')
-    pos_pos_daily_report = fields.Function(
-        fields.Boolean("POS Daily Report"),
+            },
+        depends=['type', 'state']),
+        'get_ref_subfield', setter='set_ref_subfield')
+    pos_pos_daily_report = fields.Function(fields.Boolean("POS Daily Report"),
         'on_change_with_pos_pos_daily_report')
     ref_number_from = fields.Char('From number', size=13,
-        states=_REF_NUMBERS_STATES,
+        states={
+            'required': Eval('pos_pos_daily_report', False),
+            'invisible': ~Eval('pos_pos_daily_report', False),
+            'readonly': Eval('state') != 'draft',
+            },
         depends=['pos_pos_daily_report', 'state'])
     ref_number_to = fields.Char('To number', size=13,
-        states=_REF_NUMBERS_STATES,
+        states={
+            'required': Eval('pos_pos_daily_report', False),
+            'invisible': ~Eval('pos_pos_daily_report', False),
+            'readonly': Eval('state') != 'draft',
+            },
         depends=['pos_pos_daily_report', 'state'])
-    annulled = fields.Function(fields.Boolean('Annulled', states={
-        'invisible': Eval('total_amount', -1) <= 0,
-        }, depends=['total_amount']), 'get_annulled')
+    annulled = fields.Function(fields.Boolean('Annulled',
+        states={'invisible': Eval('total_amount', -1) <= 0},
+        depends=['total_amount']), 'get_annulled')
     party_iva_condition = fields.Selection([
         ('', ''),
         ('responsable_inscripto', 'Responsable Inscripto'),
@@ -346,11 +352,11 @@ class Invoice(metaclass=PoolMeta):
         ('consumidor_final', 'Consumidor Final'),
         ('monotributo', 'Monotributo'),
         ('no_alcanzado', 'No alcanzado'),
-        ], 'Condicion ante IVA', states=_STATES, depends=_DEPENDS)
+        ], 'Condicion ante IVA',
+        states=_states, depends=_depends)
     party_iva_condition_string = party_iva_condition.translated(
         'party_iva_condition')
     pyafipws_cbu = fields.Many2One('bank.account', 'CBU del Emisor',
-        states=_STATES,
         domain=[
             ('owners', '=', Eval('company_party')),
             ('numbers.type', '=', 'cbu'),
@@ -359,23 +365,23 @@ class Invoice(metaclass=PoolMeta):
             'owners': Eval('company_party'),
             'numbers.type': 'cbu',
             },
-        depends=_DEPENDS + ['company_party'])
-    pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación', states=_STATES,
-        depends=_DEPENDS)
+        states=_states, depends=_depends + ['company_party'])
+    pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación',
+        states=_states, depends=_depends)
     currency_rate = fields.Numeric('Currency rate', digits=(12, 6),
-        states={'readonly': Eval('state') != 'draft'}, depends=['state'])
+        states=_states, depends=_depends)
     pyafipws_imp_neto = fields.Function(fields.Numeric('Gravado',
-            digits=(12, 2)), 'on_change_with_pyafipws_imp_neto')
+        digits=(12, 2)), 'on_change_with_pyafipws_imp_neto')
     pyafipws_imp_tot_conc = fields.Function(fields.Numeric('No Gravado',
-            digits=(12, 2)), 'on_change_with_pyafipws_imp_tot_conc')
+        digits=(12, 2)), 'on_change_with_pyafipws_imp_tot_conc')
     pyafipws_imp_op_ex = fields.Function(fields.Numeric('Exento',
-            digits=(12, 2)), 'on_change_with_pyafipws_imp_op_ex')
+        digits=(12, 2)), 'on_change_with_pyafipws_imp_op_ex')
     pyafipws_imp_iva = fields.Function(fields.Numeric('Imp. IVA',
-            digits=(12, 2)), 'on_change_with_pyafipws_imp_iva')
+        digits=(12, 2)), 'on_change_with_pyafipws_imp_iva')
     pyafipws_imp_trib = fields.Function(fields.Numeric('Imp. Tributo',
-            digits=(12, 2)), 'on_change_with_pyafipws_imp_trib')
+        digits=(12, 2)), 'on_change_with_pyafipws_imp_trib')
     pyafipws_cmp_asoc = fields.Many2Many('account.invoice-cmp.asoc',
-        'invoice', 'cmp_asoc', 'Cmp Asoc', states=_STATES,
+        'invoice', 'cmp_asoc', 'Comprobantes asociados',
         domain=[
             ('company', '=', Eval('company', -1)),
             ('type', '=', 'out'),
@@ -384,7 +390,10 @@ class Invoice(metaclass=PoolMeta):
                 ('id', 'in', Eval('pyafipws_cmp_asoc')),
                 ],
             ],
-        depends=_DEPENDS + ['company', 'type'])
+        states=_states,
+        depends=_depends + ['company', 'pyafipws_cmp_asoc'])
+
+    del _states, _depends
 
     @classmethod
     def __setup__(cls):
@@ -1991,11 +2000,10 @@ class InvoiceReport(metaclass=PoolMeta):
 
 class CreditInvoiceStart(metaclass=PoolMeta):
     __name__ = 'account.invoice.credit.start'
+
     from_fce = fields.Boolean('From FCE', readonly=True)
     pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación',
-        states={
-            'invisible': ~Bool(Eval('from_fce')),
-            },
+        states={'invisible': ~Bool(Eval('from_fce'))},
         depends=['from_fce'],
         help='If true, the FCE was anulled from the customer.')
 

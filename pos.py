@@ -10,11 +10,6 @@ from trytond.pyson import Eval
 from trytond.pool import Pool
 from trytond.transaction import Transaction
 
-STATES = {
-    'readonly': ~Eval('active', True),
-}
-DEPENDS = ['active']
-
 INVOICE_TYPE_POS = [
     ('', ''),
     ('1', '01-Factura A'),
@@ -50,23 +45,26 @@ class Pos(ModelSQL, ModelView):
     'Point of Sale'
     __name__ = 'account.pos'
 
+    _states = {'readonly': ~Eval('active', True)}
+    _depends = ['active']
+
     company = fields.Many2One('company.company', 'Company', required=True,
-        states=STATES, depends=DEPENDS)
+        states=_states, depends=_depends)
     number = fields.Integer('Punto de Venta AFIP', required=True,
-        states=STATES, depends=DEPENDS,
+        states=_states, depends=_depends,
         help='Prefijo de emisión habilitado en AFIP')
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
         'Point of Sale', context={'company': Eval('company', -1)},
-        depends=['company', 'active'], states=STATES)
+        states=_states, depends=['company', 'active'])
     pos_type = fields.Selection([
         ('manual', 'Manual'),
         ('electronic', 'Electronic'),
         ('fiscal_printer', 'Fiscal Printer'),
-        ], 'Pos Type', required=True, states=STATES, depends=DEPENDS)
+        ], 'Pos Type', required=True,
+        states=_states, depends=_depends)
     pos_type_string = pos_type.translated('pos_type')
-    pos_daily_report = fields.Boolean('Cierre diario (ZETA)', states={
-            'invisible': Eval('pos_type') != 'fiscal_printer'
-            },
+    pos_daily_report = fields.Boolean('Cierre diario (ZETA)',
+        states={'invisible': Eval('pos_type') != 'fiscal_printer'},
         depends=['pos_type'])
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
@@ -74,13 +72,17 @@ class Pos(ModelSQL, ModelView):
         #('wsmtxca', 'Mercado interno -con detalle- RG2904 (WSMTXCA)'),
         ('wsbfe', 'Bono Fiscal -con detalle- RG2557 (WSMTXCA)'),
         ('wsfex', 'Exportación -con detalle- RG2758 (WSFEXv1)'),
-        ], 'AFIP Web Service', depends=['pos_type', 'active'], states={
-            'invisible': Eval('pos_type') != 'electronic',
+        ], 'AFIP Web Service',
+        states={
             'required': Eval('pos_type') == 'electronic',
+            'invisible': Eval('pos_type') != 'electronic',
             'readonly': ~Eval('active', True),
             },
+        depends=['pos_type', 'active'],
         help='Habilita la facturación electrónica por webservices AFIP')
     active = fields.Boolean('Active', select=True)
+
+    del _states, _depends
 
     @classmethod
     def __register__(cls, module_name):
