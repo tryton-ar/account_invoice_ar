@@ -736,17 +736,17 @@ class Invoice(metaclass=PoolMeta):
         Set invoice type field.
         require: pos field must be set first.
         '''
+        pool = Pool()
+        PosSequence = pool.get('account.pos.sequence')
+
         if not self.pos or not self.party:
             return None
 
-        PosSequence = Pool().get('account.pos.sequence')
-        client_iva = company_iva = None
-        fce = credit_note = False
-
-        if self.party:
-            client_iva = self.party.iva_condition
-        if self.company:
-            company_iva = self.company.party.iva_condition
+        company_iva = (self.company_party and
+            self.company_party.iva_condition or None)
+        client_iva = self.party and self.party.iva_condition or None
+        credit_note = False
+        fce = False
         total_amount = self.total_amount or Decimal('0')
         if total_amount < 0:
             credit_note = True
@@ -826,12 +826,11 @@ class Invoice(metaclass=PoolMeta):
         self.pyafipws_billing_end_date = date(year, month,
             monthrange(year, month)[1])
 
-    def _credit(self):
+    def _credit(self, **values):
         pool = Pool()
         PosSequence = pool.get('account.pos.sequence')
-        Date = pool.get('ir.date')
 
-        credit = super(Invoice, self)._credit()
+        credit = super()._credit(**values)
         credit.currency_rate = self.currency_rate
         if self.type == 'in':
             invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
@@ -842,7 +841,6 @@ class Invoice(metaclass=PoolMeta):
             return credit
 
         credit.pos = self.pos
-        credit.invoice_date = Date.today()
         invoice_type, invoice_type_desc = INVOICE_CREDIT_AFIP_CODE[
             (self.invoice_type.invoice_type)
             ]
@@ -857,8 +855,7 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_too_many_sequences',
                 invoice_type_desc))
-        else:
-            credit.invoice_type = sequences[0]
+        credit.invoice_type = sequences[0]
 
         if self.pos.pos_type == 'electronic':
             credit.pyafipws_concept = self.pyafipws_concept
@@ -874,8 +871,6 @@ class Invoice(metaclass=PoolMeta):
 
         credit.reference = '%s' % self.number
         credit.pyafipws_cmp_asoc = [self.id]
-        credit.pyafipws_anulacion = Transaction().context.get(
-            'pyafipws_anulacion', False)
         return credit
 
     @classmethod
@@ -893,47 +888,16 @@ class Invoice(metaclass=PoolMeta):
 
     def get_next_number(self, pattern=None):
         pool = Pool()
-        SequenceStrict = pool.get('ir.sequence.strict')
         Sequence = pool.get('ir.sequence')
-        Period = pool.get('account.period')
 
-        if pattern is None:
-            pattern = {}
-        else:
-            pattern = pattern.copy()
+        number, sequence = super().get_next_number(pattern)
 
-        period_id = Period.find(
-            self.company.id, date=self.accounting_date or self.invoice_date,
-            test_state=self.type != 'in')
-
-        period = Period(period_id)
-        fiscalyear = period.fiscalyear
-        pattern.setdefault('company', self.company.id)
-        pattern.setdefault('fiscalyear', fiscalyear.id)
-        pattern.setdefault('period', period.id)
-        invoice_type = self.type
-        if (all(l.amount < 0 for l in self.lines if l.product) and
-                self.total_amount < 0):
-            invoice_type += '_credit_note'
-        else:
-            invoice_type += '_invoice'
-
-        for invoice_sequence in fiscalyear.invoice_sequences:
-            if invoice_sequence.match(pattern):
-                sequence = getattr(
-                    invoice_sequence, '%s_sequence' % invoice_type)
-                break
-        else:
-            raise UserError(gettext(
-                'account_invoice_ar.msg_no_invoice_sequence',
-                invoice=self.rec_name,
-                fiscalyear=fiscalyear.rec_name
-                ))
-        with Transaction().set_context(date=self.invoice_date):
-            if self.type == 'out':
+        if self.type == 'out':
+            accounting_date = self.accounting_date or self.invoice_date
+            with Transaction().set_context(date=accounting_date):
                 number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
-                return '%05d-%08d' % (self.pos.number, int(number))
-            return SequenceStrict.get_id(sequence.id)
+                number = '%05d-%08d' % (self.pos.number, int(number))
+        return number, sequence
 
     def get_move(self):
         with Transaction().set_context(currency_rate=self.currency_rate):
@@ -2014,12 +1978,15 @@ class CreditInvoice(metaclass=PoolMeta):
     __name__ = 'account.invoice.credit'
 
     def default_start(self, fields):
-        Invoice = Pool().get('account.invoice')
+        pool = Pool()
+        Invoice = pool.get('account.invoice')
+        Date = pool.get('ir.date')
 
         default = super().default_start(fields)
         default.update({
             'from_fce': False,
             'pyafipws_anulacion': False,
+            'invoice_date': Date.today(),
             })
         for invoice in Invoice.browse(Transaction().context['active_ids']):
             if (invoice.type == 'out' and invoice.invoice_type.invoice_type in
@@ -2029,9 +1996,21 @@ class CreditInvoice(metaclass=PoolMeta):
         return default
 
     def do_credit(self, action):
-        with Transaction().set_context(
-                pyafipws_anulacion=self.start.pyafipws_anulacion):
-            action, data = super(CreditInvoice, self).do_credit(action)
+        pool = Pool()
+        Invoice = pool.get('account.invoice')
+
+        credit_options = dict(
+            refund=self.start.with_refund,
+            invoice_date=self.start.invoice_date,
+            pyafipws_anulacion=self.start.pyafipws_anulacion,
+            )
+        invoices = Invoice.browse(Transaction().context['active_ids'])
+
+        credit_invoices = Invoice.credit(invoices, **credit_options)
+
+        data = {'res_id': [i.id for i in credit_invoices]}
+        if len(credit_invoices) == 1:
+            action['views'].reverse()
         return action, data
 
 
