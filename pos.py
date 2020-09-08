@@ -10,7 +10,6 @@ from trytond.pyson import Eval
 from trytond.pool import Pool
 from trytond.transaction import Transaction
 
-__all__ = ['Pos', 'PosSequence']
 STATES = {
     'readonly': ~Eval('active', True),
 }

@@ -10,8 +10,6 @@ from . import bank
 from . import party
 from . import currency
 
-__all__ = ['register']
-
 
 def register():
     Pool.register(

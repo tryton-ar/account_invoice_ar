@@ -15,8 +15,6 @@ from . import afip_auth
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['Currency', 'Rate']
-
 
 class Currency(metaclass=PoolMeta):
     __name__ = 'currency.currency'

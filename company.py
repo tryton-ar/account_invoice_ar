@@ -11,8 +11,6 @@ from trytond.i18n import gettext
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['Company']
-
 
 class Company(metaclass=PoolMeta):
     __name__ = 'company.company'
