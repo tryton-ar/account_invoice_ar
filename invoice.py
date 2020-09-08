@@ -15,7 +15,6 @@ from calendar import monthrange
 from unicodedata import normalize
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
-from trytond import backend
 from trytond.pool import Pool, PoolMeta
 from trytond.pyson import Eval, And, If, Bool, Or
 from trytond.transaction import Transaction
@@ -1767,14 +1766,14 @@ class InvoiceExportLicense(ModelSQL, ModelView):
     @classmethod
     def __register__(cls, module_name):
         super().__register__(module_name)
-        TableHandler = backend.get('TableHandler')
-        pool = Pool()
-        afip_country = pool.get('afip.country').__table__()
-        table = cls.__table__()
         cursor = Transaction().connection.cursor()
-        table_handler = TableHandler(cls, module_name)
+        afip_country = Pool().get('afip.country').__table__()
+        table = cls.__table__()
+
+        table_h = cls.__table_handler__(module_name)
+
         # Migration legacy: country -> afip_country
-        if table_handler.column_exist('country'):
+        if table_h.column_exist('country'):
             cursor.execute(*table.select(table.id, table.country))
             for id, country in cursor.fetchall():
                 if country != '':
@@ -1784,7 +1783,7 @@ class InvoiceExportLicense(ModelSQL, ModelView):
                     cursor.execute(*table.update(
                         [table.afip_country], [row['id']],
                         where=(table.id == id)))
-            table_handler.drop_column('country')
+            table_h.drop_column('country')
 
 
 class InvoiceReport(metaclass=PoolMeta):

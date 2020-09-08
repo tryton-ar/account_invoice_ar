@@ -4,10 +4,9 @@
 # the full copyright notices and license terms.
 from sql import Null
 
-from trytond import backend
 from trytond.model import ModelView, ModelSQL, fields
-from trytond.pyson import Eval
 from trytond.pool import Pool
+from trytond.pyson import Eval
 from trytond.transaction import Transaction
 
 INVOICE_TYPE_POS = [
@@ -87,18 +86,16 @@ class Pos(ModelSQL, ModelView):
     @classmethod
     def __register__(cls, module_name):
         cursor = Transaction().connection.cursor()
-        pool = Pool()
         pos_table = cls.__table__()
-        company_table = pool.get('company.company').__table__()
+        company_table = Pool().get('company.company').__table__()
 
-        TableHandler = backend.get('TableHandler')
-        table = TableHandler(cls, module_name)
-        exist = table.column_exist('company')
+        table_h = cls.__table_handler__(module_name)
+        company_exist = table_h.column_exist('company')
 
         super().__register__(module_name)
 
         # Migration from 4.2: company is required
-        if not exist:
+        if not company_exist:
             cursor.execute(*company_table.select(company_table.id,
                 where=company_table.parent == Null))
             company = cursor.fetchone()
@@ -153,14 +150,14 @@ class PosSequence(ModelSQL, ModelView):
         property_table = 'ir_property'
         pos_sequence_table = cls._table
 
-        TableHandler = backend.get('TableHandler')
-        table = TableHandler(cls, module_name)
-        exist = table.column_exist('invoice_sequence')
+        table_h = cls.__table_handler__(module_name)
+        invoice_sequence_exist = table_h.column_exist('invoice_sequence')
+        property_table_exist = table_h.table_exist(property_table)
 
         super().__register__(module_name)
 
         # Migration from 4.2: set invoice_sequence
-        if not exist and TableHandler.table_exist(property_table):
+        if not invoice_sequence_exist and property_table_exist:
             cursor.execute('UPDATE "' + pos_sequence_table + '" '
                 'SET invoice_sequence = ('
                     'SELECT split_part(value, \',\', 2) '
