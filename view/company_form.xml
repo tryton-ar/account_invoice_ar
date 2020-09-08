@@ -2,11 +2,11 @@
 <data>
     <xpath expr="/form/notebook/page[@id='reports']" position="after">
         <page string="Afip WS" id="afip" col="1">
-            <separator string="Modo de Certificacion" id='modo'/>
+            <separator string="Modo de Certificacion" id="modo"/>
             <field name="pyafipws_mode_cert"/>
-            <separator string="Certificado AFIP WS" id='certificate'/>
+            <separator string="Certificado AFIP WS" id="certificate"/>
             <field name="pyafipws_certificate"/>
-            <separator string="Clave Privada AFIP WS" id='pass'/>
+            <separator string="Clave Privada AFIP WS" id="pass"/>
             <field name="pyafipws_private_key"/>
         </page>
     </xpath>

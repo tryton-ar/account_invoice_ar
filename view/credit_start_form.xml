@@ -1,14 +1,11 @@
 <?xml version="1.0"?>
-<!-- The COPYRIGHT file at the top level of this repository contains the full
-     copyright notices and license terms. -->
 <data>
     <xpath expr="/form" position="inside">
         <group col="2" name="from_fce" string="" colspan="2">
             <image name="tryton-dialog-warning" xexpand="0"
                 xfill="0" states=""/>
-            <label string="Those/this invoice(s) have been generated from FCE. Customer has annulled them?"
-                id="credit_fce" colspan="2" yalign="0.0" xalign="0.0"
-                xexpand="1"/>
+            <label id="credit_fce" colspan="2" yalign="0.0" xalign="0.0" xexpand="1"
+                string="Those/this invoice(s) have been generated from FCE. Customer has annulled them?"/>
             <label name="pyafipws_anulacion"/>
             <field name="pyafipws_anulacion"/>
         </group>

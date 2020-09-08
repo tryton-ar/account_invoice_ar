@@ -1,6 +1,4 @@
 <?xml version="1.0"?>
-<!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
-this repository contains the full copyright notices and license terms. -->
 <form>
     <label name="number"/>
     <field name="number"/>
@@ -11,10 +9,10 @@ this repository contains the full copyright notices and license terms. -->
     <label name="pyafipws_electronic_invoice_service"/>
     <field name="pyafipws_electronic_invoice_service"/>
     <group id="checkboxes_group" colspan="4" col="6" string="POS Options">
-      <label name="active"/>
-      <field name="active"/>
-      <label name="pos_daily_report"/>
-      <field name="pos_daily_report"/>
+        <label name="active"/>
+        <field name="active"/>
+        <label name="pos_daily_report"/>
+        <field name="pos_daily_report"/>
     </group>
     <field name="pos_sequences" colspan="4"/>
 </form>

@@ -1,11 +1,10 @@
 <?xml version="1.0"?>
 <data>
     <xpath expr="/form/notebook/page[@id='payment']" position="after">
-        <page string="Factura Electronica Argentina" id="electronic_invoice">
+        <page id="electronic_invoice" string="Factura Electronica Argentina">
             <group col="-1" colspan="2" id="checkboxes">
                 <label name="pyafipws_anulacion"/>
                 <field name="pyafipws_anulacion" xexpand="0" width="25"/>
-                <!-- Add here some checkboxes ! -->
             </group>
             <field name="pyafipws_cmp_asoc" colspan="4"/>
             <label name="pyafipws_concept"/>
@@ -23,14 +22,16 @@
             <field name="transactions" colspan="4"/>
         </page>
     </xpath>
-    <xpath expr="/form/notebook/page[@id='electronic_invoice']" position="after">
-        <page string="Factura Electronica Incoterms" id="electronic_invoice_incoterms">
+    <xpath
+        expr="/form/notebook/page[@id='electronic_invoice']"
+        position="after">
+        <page id="electronic_invoice_incoterms"
+            string="Factura Electronica Incoterms">
             <label name="pyafipws_incoterms"/>
             <field name="pyafipws_incoterms"/>
             <field name="pyafipws_licenses" colspan="4"/>
         </page>
     </xpath>
-
     <xpath expr="/form/field[@name='party_tax_identifier']" position="after">
         <label name="pos"/>
         <field name="pos" widget="selection"/>
@@ -42,14 +43,13 @@
             <field name="ref_number_to"/>
         </group>
     </xpath>
-
     <xpath expr="/form/label[@name='description']" position="replace"/>
     <xpath expr="/form/field[@name='description']" position="replace"/>
-
     <xpath expr="/form/field[@name='reference']" position="replace">
         <group id="reference">
             <field name="ref_pos_number"/>
-            <label name="ref_pos_number" string="-" xalign="0.0" xexpand="1" xfill="1"/>
+            <label name="ref_pos_number" string="-"
+                xalign="0.0" xexpand="1" xfill="1"/>
             <field name="ref_voucher_number"/>
             <field name="reference"/>
         </group>
@@ -60,19 +60,16 @@
             <field name="tipo_comprobante"/>
         </group>
     </xpath>
-
     <xpath expr="/form//group[@id='reconciled_state']" position="inside">
         <label name="annulled"/>
         <field name="annulled" xexpand="0"/>
     </xpath>
-
     <xpath
         expr="/form/notebook/page[@id='info']/field[@name='cancel_move']"
         position="after">
         <newline />
-        <label string="Facturación Argentina"
-            id="invoice_ar" colspan="4" yalign="0.0" xalign="0.0"
-            xexpand="1"/>
+        <label id="invoice_ar" string="Facturación Argentina"
+            colspan="4" xexpand="1" yalign="0.0" xalign="0.0"/>
         <label name="currency_rate"/>
         <field name="currency_rate"/>
         <label name="pyafipws_imp_neto"/>
