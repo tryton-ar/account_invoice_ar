@@ -7,7 +7,6 @@ from pyafipws.wsfexv1 import WSFEXv1
 from pyafipws.pyi25 import PyI25
 from io import BytesIO
 import stdnum.ar.cuit as cuit
-
 from collections import defaultdict
 import logging
 from decimal import Decimal
@@ -17,86 +16,87 @@ from unicodedata import normalize
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond import backend
-from trytond.tools import cursor_dict
-from trytond.pyson import Eval, And, If, Bool
-from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
+from trytond.pyson import Eval, And, If, Bool, Or
+from trytond.transaction import Transaction
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
-from trytond.modules.account_invoice_ar.pos import INVOICE_TYPE_POS
 from . import afip_auth
+from trytond.tools import cursor_dict
+from .pos import INVOICE_TYPE_POS
 
 logger = logging.getLogger(__name__)
 
 _ZERO = Decimal('0.0')
 
 INVOICE_TYPE_AFIP_CODE = {
-        ('out', False, 'A', False): ('1', '01-Factura A'),
-        ('out', False, 'A', True): ('201', '201-Factura de Crédito MiPyme A'),
-        ('out', False, 'B', False): ('6', '06-Factura B'),
-        ('out', False, 'B', True): ('206', '206-Factura de Crédito MiPyme B'),
-        ('out', False, 'C', False): ('11', '11-Factura C'),
-        ('out', False, 'C', True): ('211', '211-Factura de Crédito MiPyme C'),
-        ('out', False, 'E', False): ('19', '19-Factura E'),
-        ('out', True, 'A', False): ('3', '03-Nota de Crédito A'),
-        ('out', True, 'A', True): ('203', '203-Nota de Crédito MiPyme A'),
-        ('out', True, 'B', False): ('8', '08-Nota de Crédito B'),
-        ('out', True, 'B', True): ('208', '208-Nota de Crédito MiPyme B'),
-        ('out', True, 'C', False): ('13', '13-Nota de Crédito C'),
-        ('out', True, 'C', True): ('213', '213-Nota de Crédito MiPyme C'),
-        ('out', True, 'E', False): ('21', '21-Nota de Crédito E'),
-        }
+    ('out', False, 'A', False): ('1', '01-Factura A'),
+    ('out', False, 'A', True): ('201', '201-Factura de Crédito MiPyme A'),
+    ('out', False, 'B', False): ('6', '06-Factura B'),
+    ('out', False, 'B', True): ('206', '206-Factura de Crédito MiPyme B'),
+    ('out', False, 'C', False): ('11', '11-Factura C'),
+    ('out', False, 'C', True): ('211', '211-Factura de Crédito MiPyme C'),
+    ('out', False, 'E', False): ('19', '19-Factura E'),
+    ('out', True, 'A', False): ('3', '03-Nota de Crédito A'),
+    ('out', True, 'A', True): ('203', '203-Nota de Crédito MiPyme A'),
+    ('out', True, 'B', False): ('8', '08-Nota de Crédito B'),
+    ('out', True, 'B', True): ('208', '208-Nota de Crédito MiPyme B'),
+    ('out', True, 'C', False): ('13', '13-Nota de Crédito C'),
+    ('out', True, 'C', True): ('213', '213-Nota de Crédito MiPyme C'),
+    ('out', True, 'E', False): ('21', '21-Nota de Crédito E'),
+    }
+
 INVOICE_CREDIT_AFIP_CODE = {
-        '1': ('3', '03-Nota de Crédito A'),
-        '2': ('3', '03-Nota de Crédito A'),
-        '3': ('2', '02-Nota de Débito A'),
-        '6': ('8', '08-Nota de Crédito B'),
-        '7': ('8', '08-Nota de Crédito B'),
-        '8': ('7', '07-Nota de Débito B'),
-        '11': ('13', '13-Nota de Crédito C'),
-        '12': ('13', '13-Nota de Crédito C'),
-        '13': ('12', '12-Nota de Débito C'),
-        '19': ('21', '21-Nota de Crédito E'),
-        '20': ('21', '21-Nota de Crédito E'),
-        '21': ('20', '20-Nota de Débito E'),
-        '27': ('48', '48-Nota de Credito Liquidacion CLASE A'),
-        '28': ('43', '43-Nota de Credito Liquidacion CLASE B'),
-        '29': ('44', '44-Nota de Credito Liquidacion CLASE C'),
-        '51': ('53', '53-NotaS de Credito M'),
-        '81': ('112', '112-Tique Nota de Credito A'),
-        '82': ('113', '113-Tique Nota de Credito B'),
-        '83': ('110', '110-Tique Nota de Credito'),
-        '111': ('114', '114-Tique Nota de Credito C'),
-        '118': ('119', '119-Tique Nota de Credito M'),
-        '201': ('203', '203-Nota de Credito Electronica MiPyMEs (FCE) A'),
-        '202': ('203', '203-Nota de Credito Electronica MiPyMEs (FCE) A'),
-        '203': ('202', '202-Nota de Debito Electronica MiPyMEs (FCE) A'),
-        '206': ('208', '208-Nota de Credito Electronica MiPyMEs (FCE) B'),
-        '207': ('208', '208-Nota de Credito Electronica MiPyMEs (FCE) B'),
-        '208': ('207', '207-Nota de Debito Electronica MiPyMEs (FCE) B'),
-        '211': ('213', '213- Nota de Credito Electronica MiPyMEs (FCE) C'),
-        '212': ('213', '213- Nota de Credito Electronica MiPyMEs (FCE) C'),
-        '213': ('212', '212- Nota de Debito Electronica MiPyMEs (FCE) C'),
-        }
+    '1': ('3', '03-Nota de Crédito A'),
+    '2': ('3', '03-Nota de Crédito A'),
+    '3': ('2', '02-Nota de Débito A'),
+    '6': ('8', '08-Nota de Crédito B'),
+    '7': ('8', '08-Nota de Crédito B'),
+    '8': ('7', '07-Nota de Débito B'),
+    '11': ('13', '13-Nota de Crédito C'),
+    '12': ('13', '13-Nota de Crédito C'),
+    '13': ('12', '12-Nota de Débito C'),
+    '19': ('21', '21-Nota de Crédito E'),
+    '20': ('21', '21-Nota de Crédito E'),
+    '21': ('20', '20-Nota de Débito E'),
+    '27': ('48', '48-Nota de Credito Liquidacion CLASE A'),
+    '28': ('43', '43-Nota de Credito Liquidacion CLASE B'),
+    '29': ('44', '44-Nota de Credito Liquidacion CLASE C'),
+    '51': ('53', '53-NotaS de Credito M'),
+    '81': ('112', '112-Tique Nota de Credito A'),
+    '82': ('113', '113-Tique Nota de Credito B'),
+    '83': ('110', '110-Tique Nota de Credito'),
+    '111': ('114', '114-Tique Nota de Credito C'),
+    '118': ('119', '119-Tique Nota de Credito M'),
+    '201': ('203', '203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+    '202': ('203', '203-Nota de Credito Electronica MiPyMEs (FCE) A'),
+    '203': ('202', '202-Nota de Debito Electronica MiPyMEs (FCE) A'),
+    '206': ('208', '208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+    '207': ('208', '208-Nota de Credito Electronica MiPyMEs (FCE) B'),
+    '208': ('207', '207-Nota de Debito Electronica MiPyMEs (FCE) B'),
+    '211': ('213', '213- Nota de Credito Electronica MiPyMEs (FCE) C'),
+    '212': ('213', '213- Nota de Credito Electronica MiPyMEs (FCE) C'),
+    '213': ('212', '212- Nota de Debito Electronica MiPyMEs (FCE) C'),
+    }
 
 INCOTERMS = [
-        ('', ''),
-        ('EXW', 'EX WORKS'),
-        ('FCA', 'FREE CARRIER'),
-        ('FAS', 'FREE ALONGSIDE SHIP'),
-        ('FOB', 'FREE ON BOARD'),
-        ('CFR', 'COST AND FREIGHT'),
-        ('CIF', 'COST, INSURANCE AND FREIGHT'),
-        ('CPT', 'CARRIAGE PAID TO'),
-        ('CIP', 'CARRIAGE AND INSURANCE PAID TO'),
-        ('DAF', 'DELIVERED AT FRONTIER'),
-        ('DES', 'DELIVERED EX SHIP'),
-        ('DEQ', 'DELIVERED EX QUAY'),
-        ('DDU', 'DELIVERED DUTY UNPAID'),
-        ('DAT', 'Delivered At Terminal'),
-        ('DAP', 'Delivered At Place'),
-        ('DDP', 'Delivered Duty Paid'),
-        ]
+    ('', ''),
+    ('EXW', 'EX WORKS'),
+    ('FCA', 'FREE CARRIER'),
+    ('FAS', 'FREE ALONGSIDE SHIP'),
+    ('FOB', 'FREE ON BOARD'),
+    ('CFR', 'COST AND FREIGHT'),
+    ('CIF', 'COST, INSURANCE AND FREIGHT'),
+    ('CPT', 'CARRIAGE PAID TO'),
+    ('CIP', 'CARRIAGE AND INSURANCE PAID TO'),
+    ('DAF', 'DELIVERED AT FRONTIER'),
+    ('DES', 'DELIVERED EX SHIP'),
+    ('DEQ', 'DELIVERED EX QUAY'),
+    ('DDU', 'DELIVERED DUTY UNPAID'),
+    ('DAT', 'Delivered At Terminal'),
+    ('DAP', 'Delivered At Place'),
+    ('DDP', 'Delivered Duty Paid'),
+    ]
 
 TIPO_COMPROBANTE = [
     ('', ''),
@@ -400,13 +400,13 @@ class Invoice(metaclass=PoolMeta):
         super().__setup__()
         cls.reference.states.update({
             'readonly': Eval('type') == 'in',
-        })
-        cls.number.depends = ['pos_pos_daily_report', 'state']
+            })
         cls.number.states.update({
             'invisible': And(
                 Bool(Eval('pos_pos_daily_report', False)),
                 Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
-        })
+            })
+        cls.number.depends = ['pos_pos_daily_report', 'state']
 
     @classmethod
     def __register__(cls, module_name):
@@ -585,7 +585,7 @@ class Invoice(metaclass=PoolMeta):
                         ('reconciliation', '=', line.reconciliation),
                         ('id', '!=', line.id),
                         ('origin.total_amount', '<', 0, 'account.invoice'),
-                    ])) > 0
+                        ])) > 0
                     break
         return lines
 
@@ -982,42 +982,47 @@ class Invoice(metaclass=PoolMeta):
                 date=invoice.accounting_date or invoice.invoice_date)
 
             invoice.check_invoice_type()
-            if (invoice.pos and invoice.pos.pos_type == 'electronic' and
-                    invoice.pos.pyafipws_electronic_invoice_service == 'wsfe' and
+            if not invoice.pos:
+                continue
+            pos = invoice.pos
+            if (pos.pos_type == 'electronic' and
+                    pos.pyafipws_electronic_invoice_service == 'wsfe' and
                     invoice.invoice_type.invoice_type not in [
                     '201', '202', '206', '211', '212', '203', '208', '213']):
                 # web service == wsfe invoices go throw batch.
                 if invoice.number and invoice.pyafipws_cae:
                     invoices_wsfe_to_recover.append(invoice)
                 else:
-                    invoices_wsfe[str(invoice.pos.number)][
+                    invoices_wsfe[str(pos.number)][
                         invoice.invoice_type.invoice_type].append(invoice)
                 invoices_nowsfe.remove(invoice)
 
         invoices_recover = cls.consultar_and_recover(invoices_wsfe_to_recover)
 
         for invoice in invoices_nowsfe:
-            if invoice.pos:
-                if invoice.pos.pos_type == 'electronic':
-                    if invoice.pyafipws_cae:
-                        continue
-                    ws = cls.get_ws_afip(invoice)
-                    (ws, error) = invoice.create_pyafipws_invoice(ws,
-                        batch=False)
-                    (ws, msg) = invoice.request_cae(ws)
-                    if not invoice.process_afip_result(ws, msg=msg):
-                        error_invoices.append(invoice)
-                        invoices_nowsfe.remove(invoice)
-                elif invoice.pos.pos_type == 'fiscal_printer':
-                    if invoice.pos.pos_daily_report:
-                        if not invoice.invoice_date:
-                            invoice.invoice_date = Date.today()
-                        invoice.number = '%05d-%08d:%d' % \
-                            (invoice.pos.number, int(invoice.ref_number_from),
-                             int(invoice.ref_number_to))
-                    else:
-                        #TODO: Implement fiscal printer integration
-                        cls.fiscal_printer_invoice_post()
+            if not invoice.pos:
+                continue
+            pos = invoice.pos
+            if pos.pos_type == 'electronic':
+                if invoice.pyafipws_cae:
+                    continue
+                ws = cls.get_ws_afip(invoice)
+                (ws, error) = invoice.create_pyafipws_invoice(ws,
+                    batch=False)
+                (ws, msg) = invoice.request_cae(ws)
+                if not invoice.process_afip_result(ws, msg=msg):
+                    error_invoices.append(invoice)
+                    invoices_nowsfe.remove(invoice)
+            elif pos.pos_type == 'fiscal_printer':
+                if pos.pos_daily_report:
+                    if not invoice.invoice_date:
+                        invoice.invoice_date = Date.today()
+                    invoice.number = '%05d-%08d:%d' % \
+                        (pos.number, int(invoice.ref_number_from),
+                         int(invoice.ref_number_to))
+                else:
+                    #TODO: Implement fiscal printer integration
+                    cls.fiscal_printer_invoice_post()
 
         for pos, value_dict in list(invoices_wsfe.items()):
             for key, invoices_by_type in list(value_dict.items()):
@@ -1053,8 +1058,7 @@ class Invoice(metaclass=PoolMeta):
                 'account_invoice_ar.msg_rejected_invoices',
                 invoices=','.join([str(i.id) for i in error_invoices]),
                 msg=','.join([i.transactions[-1].pyafipws_message
-                    for i in error_invoices if i.transactions]),
-                ))
+                    for i in error_invoices if i.transactions])))
         if error_pre_afip_invoices:
             last_invoice = error_pre_afip_invoices[-1]
             logger.error('Factura: %s, %s\nEntidad: %s', last_invoice.id,
@@ -1063,8 +1067,7 @@ class Invoice(metaclass=PoolMeta):
                 'account_invoice_ar.msg_rejected_invoices',
                 invoices=','.join([str(i.id)
                     for i in error_pre_afip_invoices]),
-                msg='',
-                ))
+                msg=''))
 
     @classmethod
     def consultar_and_recover(cls, invoices):
@@ -1600,14 +1603,6 @@ class Invoice(metaclass=PoolMeta):
                     ws.AgregarTributo(tributo_id, desc, base_imp, alic,
                         importe)
 
-                ## Agrego un item:
-                #codigo = 'PRO1'
-                #ds = 'Producto Tipo 1 Exportacion MERCOSUR ISO 9001'
-                #qty = 2
-                #precio = '150.00'
-                #umed = 1 # Ver tabla de parámetros (unidades de medida)
-                #bonif = '50.00'
-                #imp_total = '250.00'  # importe total final del artículo
         # analize line items - invoice detail
         # umeds
         # Parametros. Unidades de Medida, etc.
@@ -1627,8 +1622,8 @@ class Invoice(metaclass=PoolMeta):
                     importe_total = abs(line.amount)
                     bonif = None  # line.discount
                     #for tax in line.taxes:
-                    #    if tax.group.name == 'IVA':
-                    #        iva_id = IVA_AFIP_CODE[tax.rate]
+                    #    if tax.group.afip_kind == 'gravado':
+                    #        iva_id = tax.iva_code
                     #        imp_iva = importe * tax.rate
                     #if service == 'wsmtxca':
                     #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
@@ -2045,6 +2040,7 @@ class InvoiceCmpAsoc(ModelSQL):
     'Invoice - CmpAsoc (Invoice)'
     __name__ = 'account.invoice-cmp.asoc'
     _table = 'account_invoice_cmp_asoc'
+
     invoice = fields.Many2One('account.invoice', 'Invoice',
         ondelete='CASCADE', select=True, required=True)
     cmp_asoc = fields.Many2One('account.invoice', 'Cmp Asoc',

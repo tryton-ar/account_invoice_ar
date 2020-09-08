@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
 from decimal import Decimal
@@ -23,7 +25,7 @@ class Party(metaclass=PoolMeta):
             },
         depends=['active', 'pyafipws_fce_amount_digits', 'pyafipws_fce'])
     pyafipws_fce_amount_digits = fields.Function(fields.Integer(
-            'Currency Digits'), 'get_pyafipws_fce_amount_digits')
+        'Currency Digits'), 'get_pyafipws_fce_amount_digits')
 
     @staticmethod
     def default_pyafipws_fce_amount():
