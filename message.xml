@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <tryton>
-    <data group="1">
+    <data grouped="1">
         <record model="ir.message" id="msg_wrong_pyafipws_mode">
             <field name="text">Problemas de Certificado: "%(message)s".</field>
         </record>
