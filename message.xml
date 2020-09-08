@@ -79,11 +79,11 @@
         <record model="ir.message" id="msg_fce_10168_cbu_emisor">
             <field name="text">Si el tipo de comprobante es MiPyme (FCE) es obligatorio informar CBU.</field>
         </record>
-        <record model="ir.message" id="msg_invalid_ref_type">
-            <field name="text">El tipo de comprobante en referencia no corresponde</field>
+        <record model="ir.message" id="msg_missing_cmp_asoc">
+            <field name="text">Falta cargar el Comprobante asociado</field>
         </record>
-        <record model="ir.message" id="msg_missing_ref">
-            <field name="text">Falta completar referencia</field>
+        <record model="ir.message" id="msg_invalid_cmp_asoc">
+            <field name="text">El Comprobante asociado es incorrecto</field>
         </record>
         <record model="ir.message" id="msg_missing_invoice_date">
             <field name="text">Falta fecha factura</field>

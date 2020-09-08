@@ -78,6 +78,30 @@ INVOICE_CREDIT_AFIP_CODE = {
     '213': ('212', '212- Nota de Debito Electronica MiPyMEs (FCE) C'),
     }
 
+INVOICE_ASOC_AFIP_CODE = {
+    '1': [3],
+    '2': [1, 3],
+    '3': [1, 2],
+    '6': [8],
+    '7': [6, 8],
+    '8': [6, 7],
+    '11': [13],
+    '12': [11, 13],
+    '13': [11, 12],
+    '19': [21],
+    '20': [19, 21],
+    '21': [19, 20],
+    '201': [203],
+    '202': [201, 203],
+    '203': [201, 202],
+    '206': [208],
+    '207': [206, 208],
+    '208': [206, 207],
+    '211': [213],
+    '212': [211, 213],
+    '213': [211, 212],
+    }
+
 INCOTERMS = [
     ('', ''),
     ('EXW', 'EX WORKS'),
@@ -1427,7 +1451,7 @@ class Invoice(metaclass=PoolMeta):
                 ctz = 1 / self.currency.rate
             else:
                 ctz = self.company.currency.rate / self.currency.rate
-        moneda_ctz = "{:.{}f}".format(ctz, 6)
+        moneda_ctz = str('%.4f' % ctz)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
@@ -1528,8 +1552,15 @@ class Invoice(metaclass=PoolMeta):
                         ws.AgregarOpcional(22, 'N')
             if (self.invoice_type.invoice_type in ('2', '3', '7', '8', '12',
                     '13', '202', '203', '207', '208', '212', '213')):
+                if not self.pyafipws_cmp_asoc:
+                    raise UserError(gettext(
+                        'account_invoice_ar.msg_missing_cmp_asoc'))
                 for cbteasoc in self.pyafipws_cmp_asoc:
                     cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
+                    if cbteasoc_tipo not in INVOICE_ASOC_AFIP_CODE[
+                            self.invoice_type.invoice_type]:
+                        raise UserError(gettext(
+                            'account_invoice_ar.msg_invalid_cmp_asoc'))
                     cbteasoc_nro = int(cbteasoc.number[-8:])
                     cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime(
                         '%Y-%m-%d')
