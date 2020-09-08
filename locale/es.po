@@ -59,7 +59,7 @@ msgid "CBU del Emisor"
 msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_cmp_asoc:"
-msgid "Cmp Asoc"
+msgid "Comprobantes asociados"
 msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_concept:"
@@ -76,7 +76,7 @@ msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_imp_op_ex:"
 msgid "Exento"
-msgstr "Exento"
+msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_imp_tot_conc:"
 msgid "No Gravado"
@@ -112,7 +112,7 @@ msgstr ""
 
 msgctxt "field:account.invoice,ref_voucher_number:"
 msgid "Voucher Number"
-msgstr ""
+msgstr "Número"
 
 msgctxt "field:account.invoice,tipo_comprobante:"
 msgid "Comprobante"
@@ -126,33 +126,9 @@ msgctxt "field:account.invoice-cmp.asoc,cmp_asoc:"
 msgid "Cmp Asoc"
 msgstr ""
 
-msgctxt "field:account.invoice-cmp.asoc,create_date:"
-msgid "Create Date"
-msgstr "Fecha creación"
-
-msgctxt "field:account.invoice-cmp.asoc,create_uid:"
-msgid "Create User"
-msgstr "Usuario creación"
-
-msgctxt "field:account.invoice-cmp.asoc,id:"
-msgid "ID"
-msgstr "ID"
-
 msgctxt "field:account.invoice-cmp.asoc,invoice:"
 msgid "Invoice"
 msgstr "Factura"
-
-msgctxt "field:account.invoice-cmp.asoc,rec_name:"
-msgid "Record Name"
-msgstr "Nombre"
-
-msgctxt "field:account.invoice-cmp.asoc,write_date:"
-msgid "Write Date"
-msgstr "Fecha modificación"
-
-msgctxt "field:account.invoice-cmp.asoc,write_uid:"
-msgid "Write User"
-msgstr "Usuario modificación"
 
 msgctxt "field:account.invoice.credit.start,from_fce:"
 msgid "From FCE"
@@ -166,18 +142,6 @@ msgctxt "field:account.invoice.export.license,afip_country:"
 msgid "AFIP Country"
 msgstr "País AFIP"
 
-msgctxt "field:account.invoice.export.license,create_date:"
-msgid "Create Date"
-msgstr "Fecha creación"
-
-msgctxt "field:account.invoice.export.license,create_uid:"
-msgid "Create User"
-msgstr "Usuario creación"
-
-msgctxt "field:account.invoice.export.license,id:"
-msgid "ID"
-msgstr "ID"
-
 msgctxt "field:account.invoice.export.license,invoice:"
 msgid "Invoice"
 msgstr "Factura"
@@ -186,21 +150,9 @@ msgctxt "field:account.invoice.export.license,license_id:"
 msgid "License Id"
 msgstr "Id Permiso"
 
-msgctxt "field:account.invoice.export.license,rec_name:"
-msgid "Record Name"
-msgstr "Nombre"
-
-msgctxt "field:account.invoice.export.license,write_date:"
-msgid "Write Date"
-msgstr "Fecha modificación"
-
-msgctxt "field:account.invoice.export.license,write_uid:"
-msgid "Write User"
-msgstr "Usuario modificación"
-
 msgctxt "field:account.invoice.line,pyafipws_exento:"
 msgid "Exento"
-msgstr "Exento"
+msgstr ""
 
 msgctxt "field:account.pos,active:"
 msgid "Active"
@@ -209,18 +161,6 @@ msgstr "Activo"
 msgctxt "field:account.pos,company:"
 msgid "Company"
 msgstr "Empresa"
-
-msgctxt "field:account.pos,create_date:"
-msgid "Create Date"
-msgstr "Fecha creación"
-
-msgctxt "field:account.pos,create_uid:"
-msgid "Create User"
-msgstr "Usuario creación"
-
-msgctxt "field:account.pos,id:"
-msgid "ID"
-msgstr "ID"
 
 msgctxt "field:account.pos,number:"
 msgid "Punto de Venta AFIP"
@@ -242,30 +182,6 @@ msgctxt "field:account.pos,pyafipws_electronic_invoice_service:"
 msgid "AFIP Web Service"
 msgstr "Web Service AFIP"
 
-msgctxt "field:account.pos,rec_name:"
-msgid "Record Name"
-msgstr "Nombre"
-
-msgctxt "field:account.pos,write_date:"
-msgid "Write Date"
-msgstr "Fecha modificación"
-
-msgctxt "field:account.pos,write_uid:"
-msgid "Write User"
-msgstr "Usuario modificación"
-
-msgctxt "field:account.pos.sequence,create_date:"
-msgid "Create Date"
-msgstr "Fecha creación"
-
-msgctxt "field:account.pos.sequence,create_uid:"
-msgid "Create User"
-msgstr "Usuario creación"
-
-msgctxt "field:account.pos.sequence,id:"
-msgid "ID"
-msgstr "ID"
-
 msgctxt "field:account.pos.sequence,invoice_sequence:"
 msgid "Sequence"
 msgstr "Secuencia"
@@ -277,30 +193,6 @@ msgstr ""
 msgctxt "field:account.pos.sequence,pos:"
 msgid "Point of Sale"
 msgstr "Punto de Venta"
-
-msgctxt "field:account.pos.sequence,rec_name:"
-msgid "Record Name"
-msgstr "Nombre"
-
-msgctxt "field:account.pos.sequence,write_date:"
-msgid "Write Date"
-msgstr "Fecha modificación"
-
-msgctxt "field:account.pos.sequence,write_uid:"
-msgid "Write User"
-msgstr "Usuario modificación"
-
-msgctxt "field:account_invoice_ar.afip_transaction,create_date:"
-msgid "Create Date"
-msgstr "Fecha creación"
-
-msgctxt "field:account_invoice_ar.afip_transaction,create_uid:"
-msgid "Create User"
-msgstr "Usuario creación"
-
-msgctxt "field:account_invoice_ar.afip_transaction,id:"
-msgid "ID"
-msgstr "ID"
 
 msgctxt "field:account_invoice_ar.afip_transaction,invoice:"
 msgid "Invoice"
@@ -321,18 +213,6 @@ msgstr ""
 msgctxt "field:account_invoice_ar.afip_transaction,pyafipws_xml_response:"
 msgid "Respuesta XML"
 msgstr ""
-
-msgctxt "field:account_invoice_ar.afip_transaction,rec_name:"
-msgid "Record Name"
-msgstr "Nombre"
-
-msgctxt "field:account_invoice_ar.afip_transaction,write_date:"
-msgid "Write Date"
-msgstr "Fecha modificación"
-
-msgctxt "field:account_invoice_ar.afip_transaction,write_uid:"
-msgid "Write User"
-msgstr "Usuario modificación"
 
 msgctxt "field:bank.account,pyafipws_cbu:"
 msgid "CBU del Emisor"
@@ -484,6 +364,10 @@ msgctxt "model:ir.message,text:msg_in_invoice_validate_failed"
 msgid "Los campos \"Referencia\" y \"Comprobante\" son requeridos."
 msgstr ""
 
+msgctxt "model:ir.message,text:msg_invalid_cmp_asoc"
+msgid "El Comprobante asociado es incorrecto"
+msgstr ""
+
 msgctxt "model:ir.message,text:msg_invalid_currency_rate"
 msgid "Cotización no válida para AFIP. Deber ser: %(afip_ctz)s"
 msgstr ""
@@ -504,17 +388,21 @@ msgctxt "model:ir.message,text:msg_invalid_ref_number"
 msgid "The value \"%(ref_value)s\" is not a number."
 msgstr ""
 
-msgctxt "model:ir.message,text:msg_invalid_ref_type"
-msgid "El tipo de comprobante en referencia no corresponde"
-msgstr ""
-
 msgctxt "model:ir.message,text:msg_miss_tax_identifier"
 msgid "La empresa no tiene configurado el identificador impositivo"
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_missing_cmp_asoc"
+msgid "Falta cargar el Comprobante asociado"
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_missing_company_iva_condition"
 msgid "The iva condition on company \"%(company)s\" is missing."
 msgstr "La condición de IVA de la empresa \"%(company)s\" está faltando."
+
+msgctxt "model:ir.message,text:msg_missing_cuit_pais"
+msgid "Es requisito que el tercero \"%(party)s\" tenga CUIT Pais."
+msgstr ""
 
 msgctxt "model:ir.message,text:msg_missing_currency_rate"
 msgid "Debe configurar la cotización de la moneda."
@@ -542,10 +430,6 @@ msgctxt "model:ir.message,text:msg_missing_pyafipws_incoterms"
 msgid ""
 "Debe establecer el valor de Incoterms si desea realizar un tipo de \"Factura"
 " E\"."
-msgstr ""
-
-msgctxt "model:ir.message,text:msg_missing_ref"
-msgid "Falta completar referencia"
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_missing_sequence"
@@ -742,7 +626,7 @@ msgstr "Precio unitario"
 
 msgctxt "report:account.invoice:"
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "í"
@@ -854,23 +738,23 @@ msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "Consumidor Final"
-msgstr "Consumidor Final"
+msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "Exento"
-msgstr "Exento"
+msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "Monotributo"
-msgstr "Monotributo"
+msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "No alcanzado"
-msgstr "No alcanzado"
+msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "Responsable Inscripto"
-msgstr "Responsable Inscripto"
+msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_concept:"
 msgid "1-Productos"
