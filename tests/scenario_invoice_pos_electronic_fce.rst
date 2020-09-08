@@ -333,7 +333,7 @@ Credit invoice with refund::
 
     >>> credit = Wizard('account.invoice.credit', [invoice])
     >>> credit.form.with_refund = True
-    >>> credit.form.pyafipws_anulacion = False
+    >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
     >>> credit_note, = Invoice.find([
     ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])

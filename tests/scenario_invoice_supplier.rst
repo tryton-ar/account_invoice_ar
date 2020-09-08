@@ -201,6 +201,7 @@ Credit invoice::
 
     >>> credit = Wizard('account.invoice.credit', [invoice])
     >>> credit.form.with_refund = False
+    >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
     >>> credit_note, = Invoice.find(
     ...     [('type', '=', 'in'), ('id', '!=', invoice.id)])
