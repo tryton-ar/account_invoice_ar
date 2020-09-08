@@ -1,9 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
-
 # Based on code "factura_electronica" by Luis Falcon (GPLv3)
 # Based on code by "openerp-iva-argentina" by Gerardo Allende / Daniel Blanco
 
@@ -120,19 +118,3 @@ def get_module_install_dir():
 
 def get_cache_dir():
     return os.path.join(get_module_install_dir(), 'cache')
-
-
-if __name__ == '__main__':
-    # basic tests:
-    reingart_crt = open('./pyafipws/reingart.crt').read()
-    reingart_key = open('./pyafipws/reingart.key').read()
-    auth_data = authenticate('wsfe', reingart_crt, reingart_key, force=True)
-    print(auth_data)
-    assert auth_data['token']
-    assert auth_data['sign']
-    old_token = auth_data['token']
-    auth_data = authenticate('wsfe', reingart_crt, reingart_key, force=True)
-    assert auth_data['token'] == old_token
-    import base64
-    print((base64.b64decode(auth_data['token'])))
-    print('ok.')

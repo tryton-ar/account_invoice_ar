@@ -13,7 +13,7 @@ from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
-from . import afip_auth
+from .afip_auth import get_cache_dir
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ class Rate(metaclass=PoolMeta):
                 'account_invoice_ar.msg_webservice_not_supported',
                 service=service))
 
-        cache_dir = afip_auth.get_cache_dir()
+        cache_dir = get_cache_dir()
         ws.LanzarExcepciones = True
         try:
             ws.Conectar(wsdl=WSDL, cache=cache_dir, cacert=True)

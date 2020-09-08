@@ -21,9 +21,9 @@ from trytond.pyson import Eval, And, If, Bool, Or
 from trytond.transaction import Transaction
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
-from . import afip_auth
 from trytond.tools import cursor_dict
 from .pos import INVOICE_TYPE_POS
+from .afip_auth import get_cache_dir
 
 logger = logging.getLogger(__name__)
 
@@ -1175,7 +1175,7 @@ class Invoice(metaclass=PoolMeta):
         '''
         Connect to WSAA webservice
         '''
-        cache_dir = afip_auth.get_cache_dir()
+        cache_dir = get_cache_dir()
         ws.LanzarExcepciones = True
         try:
             ws.Conectar(wsdl=wsdl, cache=cache_dir, cacert=True)

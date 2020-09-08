@@ -8,6 +8,7 @@ from trytond.model import fields
 from trytond.pool import PoolMeta
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
+from .afip_auth import authenticate
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,6 @@ class Company(metaclass=PoolMeta):
 
     def pyafipws_authenticate(self, service='wsfe', force=False, cache=''):
         'Authenticate against AFIP, returns token, sign, err_msg (dict)'
-        from . import afip_auth
         auth_data = {}
         # get the authentication credentials:
         certificate = str(self.pyafipws_certificate)
@@ -66,7 +66,7 @@ class Company(metaclass=PoolMeta):
                     'homologación. Configure su Empresa')))
 
         # call the helper function to obtain the access ticket:
-        auth = afip_auth.authenticate(service, certificate, private_key,
+        auth = authenticate(service, certificate, private_key,
             force=force, cache=cache, wsdl=WSAA_URL)
         auth_data.update(auth)
         if not auth_data.get('token'):
