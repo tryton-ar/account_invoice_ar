@@ -92,6 +92,7 @@ setup(name='%s_%s' % (PREFIX, MODULE),
     packages=[
         'trytond.modules.%s' % MODULE,
         'trytond.modules.%s.tests' % MODULE,
+        'trytond.modules.%s.scripts' % MODULE,
         ],
     package_data={
         'trytond.modules.%s' % MODULE: (info.get('xml', []) + [
@@ -128,7 +129,9 @@ setup(name='%s_%s' % (PREFIX, MODULE),
     entry_points="""
     [trytond.modules]
     %s = trytond.modules.%s
-    """ % (MODULE, MODULE),
+    [console_scripts]
+    trytond_update_currencies_afip = trytond.modules.%s.scripts.update_currencies:run
+    """ % (MODULE, MODULE, MODULE),
     test_suite='tests',
     test_loader='trytond.test_loader:Loader',
     tests_require=tests_require,
