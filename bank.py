@@ -5,7 +5,6 @@
 
 from trytond.model import fields
 from trytond.pool import PoolMeta
-from trytond.pyson import Eval, If, In
 
 
 class BankAccount(metaclass=PoolMeta):
