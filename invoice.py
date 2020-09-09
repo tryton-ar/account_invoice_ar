@@ -1451,7 +1451,7 @@ class Invoice(metaclass=PoolMeta):
                 ctz = 1 / self.currency.rate
             else:
                 ctz = self.company.currency.rate / self.currency.rate
-        moneda_ctz = str('%.4f' % ctz)
+        moneda_ctz = str('%.6f' % ctz)
 
         # foreign trade data: export permit, country code, etc.:
         if self.pyafipws_incoterms:
