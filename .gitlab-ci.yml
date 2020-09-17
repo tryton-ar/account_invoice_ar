@@ -1,4 +1,8 @@
 before_script:
+  - apt-get update -yqq
+  - apt-get install swig -yqq
+  - apt-get install libssl-dev -yqq
+  - apt-get install python3-dev -yqq
   - sed -i 's#ssh://git@gitlab.com#https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com#g' setup.py
 
 stages:
@@ -6,20 +10,20 @@ stages:
   - build
   - deploy
 
-test:py35-sqlite:
+test:py37-sqlite:
   stage: test
-  image: python:3.5
+  image: python:3.7
   variables:
       CFLAGS: "-O0"
       DB_CACHE: "~/cache"
       TOX_TESTENV_PASSENV: "CFLAGS DB_CACHE"
   script:
     - pip install tox
-    - tox -e py35-sqlite
+    - tox -e py37-sqlite
 
-test:py35-postgresql:
+test:py37-postgresql:
   stage: test
-  image: python:3.5
+  image: python:3.7
   tags:
       - postgres
   services:
@@ -32,4 +36,4 @@ test:py35-postgresql:
       POSTGRESQL_URI: "postgresql://postgres:@postgres:5432/"
   script:
     - pip install tox
-    - tox -e py35-postgresql
+    - tox -e py37-postgresql
