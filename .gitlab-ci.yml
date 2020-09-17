@@ -1,0 +1,35 @@
+before_script:
+  - sed -i 's#ssh://git@gitlab.com#https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com#g' setup.py
+
+stages:
+  - test
+  - build
+  - deploy
+
+test:py35-sqlite:
+  stage: test
+  image: python:3.5
+  variables:
+      CFLAGS: "-O0"
+      DB_CACHE: "~/cache"
+      TOX_TESTENV_PASSENV: "CFLAGS DB_CACHE"
+  script:
+    - pip install tox
+    - tox -e py35-sqlite
+
+test:py35-postgresql:
+  stage: test
+  image: python:3.5
+  tags:
+      - postgres
+  services:
+      - postgres
+  variables:
+      CFLAGS: "-O0"
+      DB_CACHE: "~/cache"
+      TOX_TESTENV_PASSENV: "CFLAGS DB_CACHE"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRESQL_URI: "postgresql://postgres:@postgres:5432/"
+  script:
+    - pip install tox
+    - tox -e py35-postgresql
