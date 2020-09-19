@@ -17,11 +17,8 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_pos, get_invoice_types, get_pos, create_tax_groups, \
-    ...     set_afip_certs
-    >>> from trytond.modules.account_invoice_ar.afip_auth import \
-    ...     authenticate, get_cache_dir
-    >>> from pyafipws.wsfexv1 import WSFEXv1
+    ...     create_pos, get_invoice_types, get_pos, create_tax_groups, get_wsfexv1
+    >>> from trytond.modules.party_ar.tests.tools import set_afip_certs
     >>> import pytz
     >>> timezone = pytz.timezone('America/Argentina/Buenos_Aires')
     >>> today = datetime.datetime.now(timezone).date()
@@ -180,19 +177,7 @@ Create payment term::
 
 SetUp webservice AFIP::
 
-    >>> URL_WSAA = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms?wsdl"
-    >>> URL_WSFEXv1 = "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"
-    >>> certificate = str(company.pyafipws_certificate)
-    >>> private_key = str(company.pyafipws_private_key)
-    >>> cache = get_cache_dir()
-    >>> auth_data = authenticate('wsfex', certificate, private_key,
-    ...     cache=cache, wsdl=URL_WSAA)
-    >>> wsfexv1 = WSFEXv1()
-    >>> wsfexv1.Cuit = company.party.vat_number
-    >>> wsfexv1.Token = auth_data['token']
-    >>> wsfexv1.Sign = auth_data['sign']
-    >>> wsfexv1.Conectar(wsdl=URL_WSFEXv1, cache=cache, cacert=True)
-    True
+    >>> wsfexv1 = get_wsfexv1(company, config)
 
 GetLastCMP and configure sequences::
 

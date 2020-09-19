@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
@@ -13,7 +12,6 @@ from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
-from .afip_auth import get_cache_dir
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +67,7 @@ class Rate(metaclass=PoolMeta):
                 'account_invoice_ar.msg_company_not_defined'))
         company = Company(company_id)
         # authenticate against AFIP:
-        auth_data = company.pyafipws_authenticate(service=service)
+        ta = company.pyafipws_authenticate(service=service)
 
         if service == 'wsfe':
             ws = WSFEv1()
@@ -91,18 +89,17 @@ class Rate(metaclass=PoolMeta):
                 'account_invoice_ar.msg_webservice_not_supported',
                 service=service))
 
-        cache_dir = get_cache_dir()
+        cache = Company.get_cache_dir()
         ws.LanzarExcepciones = True
         try:
-            ws.Conectar(wsdl=WSDL, cache=cache_dir, cacert=True)
+            ws.Conectar(wsdl=WSDL, cache=cache, cacert=True)
         except Exception as e:
             msg = ws.Excepcion + ' ' + str(e)
             logger.error('WSAA connecting to afip: %s' % msg)
             raise UserError(gettext(
                 'account_invoice_ar.msg_wsaa_error', msg=msg))
+        ws.SetTicketAcceso(ta)
         ws.Cuit = company.party.vat_number
-        ws.Token = auth_data['token']
-        ws.Sign = auth_data['sign']
 
         if not self.currency.afip_code:
             logger.error('AFIP code is empty %s', self.currency.code)

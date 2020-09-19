@@ -4,7 +4,6 @@
 
 from trytond.pool import Pool
 from . import invoice
-from . import company
 from . import pos
 from . import bank
 from . import party
@@ -20,7 +19,6 @@ def register():
         invoice.InvoiceExportLicense,
         invoice.CreditInvoiceStart,
         invoice.InvoiceCmpAsoc,
-        company.Company,
         invoice.AfipWSTransaction,
         bank.BankAccount,
         party.Party,

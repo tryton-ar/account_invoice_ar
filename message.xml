@@ -1,9 +1,6 @@
 <?xml version="1.0"?>
 <tryton>
     <data grouped="1">
-        <record model="ir.message" id="msg_wrong_pyafipws_mode">
-            <field name="text">Problemas de Certificado: "%(message)s".</field>
-        </record>
         <record model="ir.message" id="msg_missing_pyafipws_billing_date">
             <field name="text">Debe establecer los valores "Fecha desde" y "Fecha hasta" en el Diario, correspondientes al servicio que se está facturando</field>
         </record>

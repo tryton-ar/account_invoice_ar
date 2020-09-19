@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
@@ -22,7 +21,6 @@ from trytond.exceptions import UserError
 from trytond.i18n import gettext
 from trytond.tools import cursor_dict
 from .pos import INVOICE_TYPE_POS
-from .afip_auth import get_cache_dir
 
 logger = logging.getLogger(__name__)
 
@@ -1114,7 +1112,7 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_webservice_unknown'))
 
-        (company, auth_data) = cls.authenticate_afip(service=service)
+        (company, ta) = cls.authenticate_afip(service=service)
         # TODO: get wsdl url from DictField?
         if service == 'wsfe':
             ws = WSFEv1()
@@ -1136,7 +1134,7 @@ class Invoice(metaclass=PoolMeta):
                 'account_invoice_ar.msg_webservice_not_supported',
                 service=service))
 
-        ws = cls.conect_afip(ws, WSDL, company.party.vat_number, auth_data)
+        ws = cls.conect_afip(ws, WSDL, company.party.vat_number, ta)
         ws.Reprocesar = False
         return ws
 
@@ -1154,26 +1152,27 @@ class Invoice(metaclass=PoolMeta):
                 'account_invoice_ar.msg_company_not_defined'))
         company = Company(company_id)
         # authenticate against AFIP:
-        auth_data = company.pyafipws_authenticate(service=service)
-        return (company, auth_data)
+        ta = company.pyafipws_authenticate(service=service)
+        return (company, ta)
 
     @classmethod
-    def conect_afip(cls, ws, wsdl, vat_number, auth_data):
+    def conect_afip(cls, ws, wsdl, vat_number, ta):
         '''
         Connect to WSAA webservice
         '''
-        cache_dir = get_cache_dir()
+        pool = Pool()
+        Company = pool.get('company.company')
+        cache = Company.get_cache_dir()
         ws.LanzarExcepciones = True
+        ws.SetTicketAcceso(ta)
+        ws.Cuit = vat_number
         try:
-            ws.Conectar(wsdl=wsdl, cache=cache_dir, cacert=True)
+            ws.Conectar(wsdl=wsdl, cache=cache, cacert=True)
         except Exception as e:
             msg = ws.Excepcion + ' ' + str(e)
             logger.error('WSAA connecting to afip: %s' % msg)
             raise UserError(gettext(
                 'account_invoice_ar.msg_wsaa_error', msg=msg))
-        ws.Cuit = vat_number
-        ws.Token = auth_data['token']
-        ws.Sign = auth_data['sign']
         return ws
 
     @classmethod
