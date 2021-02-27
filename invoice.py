@@ -4,6 +4,7 @@
 # the full copyright notices and license terms.
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
+from pyafipws import pyqr
 from collections import defaultdict
 import logging
 from decimal import Decimal
@@ -1673,6 +1674,7 @@ class InvoiceReport:
         report_context['get_line_amount'] = cls.get_line_amount
         report_context['get_taxes'] = cls.get_taxes
         report_context['get_subtotal'] = cls.get_subtotal
+        report_context['qr'] = cls.get_qr_img(Invoice, invoice)
         return report_context
 
     @classmethod
@@ -1826,6 +1828,80 @@ class InvoiceReport:
         image = buffer(output.getvalue())
         output.close()
         return image
+
+    @classmethod
+    def get_qr_img(cls, Invoice, invoice):
+        'Generate the required qr'
+        'https://www.afip.gob.ar/fe/qr/especificaciones.asp'
+        from cStringIO import StringIO as StringIO
+
+        pool = Pool()
+        PyQR_ = pyqr.PyQR()
+        # output = BytesIO()
+        output = StringIO()
+        image = None
+        ver = 1
+        if invoice.state in ['posted', 'paid']:
+            fecha = invoice.invoice_date.strftime("%Y-%m-%d")
+            cuit = int(cls._get_vat_number(invoice).replace("-", ""))
+            pto_vta = invoice.pos.number
+            tipo_cmp = int(cls._get_codigo_comprobante(Invoice, invoice))
+            nro_cmp = int(invoice.number[6:])
+            importe = float(invoice.total_amount) #12100
+            moneda = invoice.currency.afip_code #"DOL"
+            ctz = cls._get_ctz(invoice)
+            tipo_doc, nro_doc = cls._obtiene_tipo_nro_doc(invoice)
+            tipo_doc_rec = tipo_doc #80
+            nro_doc_rec = int(nro_doc) #20000000001
+            tipo_cod_aut = "E"
+            cod_aut = invoice.pyafipws_cae #70417054367476
+            PyQR_.CrearArchivo()
+            PyQR_.GenerarImagen(output, ver, fecha, cuit, pto_vta, tipo_cmp,
+                                nro_cmp, importe, moneda, ctz, tipo_doc_rec, nro_doc_rec,
+                                tipo_cod_aut, cod_aut)
+            # image = (output.getvalue(), 'image/png')
+            image = buffer(output.getvalue())
+            output.close()
+        return image
+
+    @classmethod
+    def _get_ctz(cls, invoice):
+        # currency and rate
+        moneda_id = invoice.currency.afip_code
+        if not moneda_id:
+            invoice.raise_user_error('missing_currency_afip_code')
+
+        if moneda_id != "PES":
+            ctz = invoice.currency_rate
+        else:
+            if invoice.company.currency.rate == Decimal('0'):
+                if invoice.party.vat_number_afip_foreign:
+                    invoice.raise_user_error('missing_currency_rate')
+                else:
+                    ctz = 1
+            elif invoice.company.currency.rate == Decimal('1'):
+                ctz = 1 / invoice.currency.rate
+            else:
+                ctz = invoice.company.currency.rate / invoice.currency.rate
+        moneda_ctz = "{:.{}f}".format(ctz, 6)
+        return moneda_ctz
+
+    @classmethod
+    def _obtiene_tipo_nro_doc(cls, invoice):
+        nro_doc = None
+        tipo_doc = None
+        if invoice.party.vat_number:
+            nro_doc = invoice.party.vat_number
+            tipo_doc = 80  # CUIT
+        else:
+            for identifier in invoice.party.identifiers:
+                if identifier.type == 'ar_dni':
+                    nro_doc = identifier.code
+                    tipo_doc = 96
+            if nro_doc is None:
+                nro_doc = '0'  # only 'consumidor final'
+                tipo_doc = 99
+        return tipo_doc, nro_doc
 
 
 class CreditInvoiceStart:
