@@ -1568,6 +1568,7 @@ class Invoice(metaclass=PoolMeta):
                     if not self.pyafipws_cbu:
                         self.raise_user_error('fce_10168_cbu_emisor')
                     ws.AgregarOpcional(2101, self.pyafipws_cbu.get_cbu_number())  # CBU
+                    ws.AgregarOpcional(27, 'SCA')
                     # ws.AgregarOpcional(2102, "tryton")  # alias del cbu
                 if self.invoice_type.invoice_type in ('202', '203', '207',
                         '208', '212', '213'):
