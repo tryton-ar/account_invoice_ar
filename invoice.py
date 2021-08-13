@@ -881,6 +881,7 @@ class Invoice(metaclass=PoolMeta):
         credit.invoice_type = sequences[0]
 
         if self.pos.pos_type == 'electronic':
+            credit.pyafipws_cmp_asoc = [self.id]
             credit.pyafipws_concept = self.pyafipws_concept
             if self.pyafipws_concept in ['2', '3']:
                 credit.pyafipws_billing_start_date = (
@@ -893,7 +894,6 @@ class Invoice(metaclass=PoolMeta):
             credit.pyafipws_licenses = self.pyafipws_licenses
 
         credit.reference = '%s' % self.number
-        credit.pyafipws_cmp_asoc = [self.id]
         return credit
 
     @classmethod
