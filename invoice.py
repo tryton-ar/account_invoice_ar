@@ -2012,9 +2012,11 @@ class InvoiceReport(metaclass=PoolMeta):
 
         pool = Pool()
         PyQR_ = pyqr.PyQR()
-        output = BytesIO()
         image = None
         ver = 1
+        if not invoice.pos or invoice.pos.pos_type not in (
+                'electronic', 'fiscal_printer'):
+            return None
         if invoice.state in ['posted', 'paid']:
             fecha = invoice.invoice_date.strftime("%Y-%m-%d")
             cuit = int(cls._get_vat_number(invoice).replace("-", ""))
@@ -2030,11 +2032,13 @@ class InvoiceReport(metaclass=PoolMeta):
             tipo_cod_aut = "E"
             cod_aut = invoice.pyafipws_cae #70417054367476
             PyQR_.CrearArchivo()
-            PyQR_.GenerarImagen(output, ver, fecha, cuit, pto_vta, tipo_cmp,
+            PyQR_.GenerarImagen(ver, fecha, cuit, pto_vta, tipo_cmp,
                                 nro_cmp, importe, moneda, ctz, tipo_doc_rec, nro_doc_rec,
                                 tipo_cod_aut, cod_aut)
-            image = (output.getvalue(), 'image/png')
-            output.close()
+            with open(PyQR_.Archivo, 'rb') as archivoQR:
+                output = BytesIO(archivoQR.read())
+                image = (output.getvalue(), 'image/png')
+                output.close()
         return image
 
     @classmethod
