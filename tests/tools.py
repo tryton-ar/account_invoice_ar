@@ -18,6 +18,7 @@ __all__ = ['create_pos', 'get_pos', 'get_invoice_types',
 def create_pos(company=None, type='manual', number=1, ws=None, config=None):
     "Create a Point of Sale"
     Pos = Model.get('account.pos', config=config)
+    SequenceType = Model.get('ir.sequence.type', config=config)
     Sequence = Model.get('ir.sequence', config=config)
 
     if not company:
@@ -29,6 +30,9 @@ def create_pos(company=None, type='manual', number=1, ws=None, config=None):
         pos_type=type,
         pyafipws_electronic_invoice_service=ws,
         )
+    sequence_type, = SequenceType.find([
+        ('name', '=', 'Invoice'),
+        ], limit=1)
 
     for attr, name in (
             ('1', '01-Factura A'),
@@ -59,7 +63,7 @@ def create_pos(company=None, type='manual', number=1, ws=None, config=None):
             ('213', '213-Nota de Crédito Electrónica MiPyMEs (FCE) C')):
         sequence = Sequence(
             name='%s %s' % (name, type),
-            code='account.invoice',
+            sequence_type=sequence_type,
             company=company)
         sequence.save()
         pos.pos_sequences.new(

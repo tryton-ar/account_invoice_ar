@@ -892,17 +892,18 @@ class Invoice(metaclass=PoolMeta):
         cls.save(invoices)
 
     def get_next_number(self, pattern=None):
-        pool = Pool()
-        Sequence = pool.get('ir.sequence')
-
-        number, sequence = super().get_next_number(pattern)
-
         if self.type == 'out':
+            sequence = self.invoice_type.invoice_sequence
+            if not sequence:
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_missing_sequence',
+                    self.invoice_type.rec_name))
             accounting_date = self.accounting_date or self.invoice_date
             with Transaction().set_context(date=accounting_date):
-                number = Sequence.get_id(self.invoice_type.invoice_sequence.id)
+                number = sequence.get()
                 number = '%05d-%08d' % (self.pos.number, int(number))
-        return number, sequence
+                return number, sequence.id
+        return super().get_next_number(pattern)
 
     def get_move(self):
         with Transaction().set_context(currency_rate=self.currency_rate):

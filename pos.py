@@ -6,7 +6,7 @@ from sql import Null
 
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.pool import Pool
-from trytond.pyson import Eval
+from trytond.pyson import Eval, Id
 from trytond.transaction import Transaction
 
 INVOICE_TYPE_POS = [
@@ -137,11 +137,9 @@ class PosSequence(ModelSQL, ModelView):
     invoice_sequence = fields.Many2One('ir.sequence',
         'Sequence',
         domain=[
-            ('code', '=', 'account.invoice'),
-            ['OR',
-                ('company', '=', Eval('context', {}).get('company', -1)),
-                ('company', '=', None),
-                ],
+            ('sequence_type', '=',
+                Id('account_invoice', 'sequence_type_account_invoice')),
+            ('company', '=', Eval('context', {}).get('company', -1)),
             ])
 
     @classmethod
