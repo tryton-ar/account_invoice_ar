@@ -28,6 +28,9 @@
         <record model="ir.message" id="msg_not_invoice_type">
             <field name="text">El campo "Tipo de factura" en "Factura" es requerido.</field>
         </record>
+        <record model="ir.message" id="msg_missing_currency_afip_code">
+            <field name="text">Debe configurar el código AFIP de la moneda.</field>
+        </record>
         <record model="ir.message" id="msg_missing_currency_rate">
             <field name="text">Debe configurar la cotización de la moneda.</field>
         </record>

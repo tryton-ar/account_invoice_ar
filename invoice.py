@@ -2009,14 +2009,16 @@ class InvoiceReport(metaclass=PoolMeta):
         # currency and rate
         moneda_id = invoice.currency.afip_code
         if not moneda_id:
-            invoice.raise_user_error('missing_currency_afip_code')
+            raise UserError(gettext(
+                    'account_invoice_ar.msg_missing_currency_afip_code'))
 
         if moneda_id != "PES":
             ctz = invoice.currency_rate
         else:
             if invoice.company.currency.rate == Decimal('0'):
                 if invoice.party.vat_number_afip_foreign:
-                    invoice.raise_user_error('missing_currency_rate')
+                    raise UserError(gettext(
+                            'account_invoice_ar.msg_missing_currency_rate'))
                 else:
                     ctz = 1
             elif invoice.company.currency.rate == Decimal('1'):
