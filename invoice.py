@@ -364,9 +364,6 @@ class Invoice(metaclass=PoolMeta):
             'readonly': Eval('state') != 'draft',
             },
         depends=['pos_pos_daily_report', 'state'])
-    annulled = fields.Function(fields.Boolean('Annulled',
-        states={'invisible': Eval('total_amount', -1) <= 0},
-        depends=['total_amount']), 'get_annulled')
     party_iva_condition = fields.Selection([
         ('', ''),
         ('responsable_inscripto', 'Responsable Inscripto'),
@@ -595,21 +592,6 @@ class Invoice(metaclass=PoolMeta):
         super().validate(invoices)
         for invoice in invoices:
             invoice.check_unique_daily_report()
-
-    @classmethod
-    def get_annulled(cls, invoices, name):
-        lines = defaultdict(list)
-        invoices = [i for i in invoices if i.state == 'paid']
-        for invoice in invoices:
-            for line in invoice.lines_to_pay:
-                if line.reconciliation:
-                    lines[invoice.id] = len(line.search([
-                        ('reconciliation', '=', line.reconciliation),
-                        ('id', '!=', line.id),
-                        ('origin.total_amount', '<', 0, 'account.invoice'),
-                        ])) > 0
-                    break
-        return lines
 
     def check_unique_daily_report(self):
         if (self.type == 'out' and self.pos and

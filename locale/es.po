@@ -2,10 +2,6 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
-msgctxt "field:account.invoice,annulled:"
-msgid "Annulled"
-msgstr "Anulada"
-
 msgctxt "field:account.invoice,currency_rate:"
 msgid "Currency rate"
 msgstr "Tasa de cambio"

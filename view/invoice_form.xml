@@ -60,10 +60,6 @@
             <field name="tipo_comprobante"/>
         </group>
     </xpath>
-    <xpath expr="/form//group[@id='reconciled_state']" position="inside">
-        <label name="annulled"/>
-        <field name="annulled" xexpand="0"/>
-    </xpath>
     <xpath
         expr="/form/notebook/page[@id='info']/field[@name='cancel_move']"
         position="after">
