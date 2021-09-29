@@ -478,11 +478,10 @@ class Invoice(metaclass=PoolMeta):
         if self.party and self.party.iva_condition:
             self.party_iva_condition = self.party.iva_condition
 
-    @fields.depends('company', 'currency')
+    @fields.depends('currency')
     def on_change_currency(self):
-        if self.company and self.currency:
-            if self.company.currency != self.currency:
-                self.currency_rate = self.currency.rate
+        if self.currency:
+            self.currency_rate = self.currency.rate
 
     @fields.depends('company', 'untaxed_amount', 'lines')
     def on_change_with_pyafipws_imp_neto(self, name=None):
