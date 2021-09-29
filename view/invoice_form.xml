@@ -49,9 +49,9 @@
         <group id="reference">
             <field name="ref_pos_number"/>
             <label name="ref_pos_number" string="-"
-                xalign="0.0" xexpand="1" xfill="1"/>
+                xalign="0.0" xexpand="0" xfill="0"/>
             <field name="ref_voucher_number"/>
-            <field name="reference"/>
+            <field name="reference" xfill="1"/>
         </group>
         <label name="description"/>
         <field name="description" colspan="3"/>
