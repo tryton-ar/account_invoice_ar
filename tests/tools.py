@@ -144,12 +144,16 @@ def get_wsfev1(company=None, config=None):
     URL_WSFEv1 = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
     crt = get_filename('party_ar/tests/gcoop.crt')
     key = get_filename('party_ar/tests/gcoop.key')
-    ta = WSAA().Autenticar('wsfe', crt, key, URL_WSAA, cacert=True)
+
+    cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache')
+    ta = WSAA().Autenticar('wsfe', crt, key, wsdl=URL_WSAA, cacert=True,
+            cache=cache)
+
     wsfev1 = WSFEv1()
     wsfev1.LanzarExcepciones = True
     wsfev1.SetTicketAcceso(ta)
     wsfev1.Cuit = company.party.vat_number
-    wsfev1.Conectar(wsdl=URL_WSFEv1, cacert=True)
+    wsfev1.Conectar(wsdl=URL_WSFEv1, cache=cache, cacert=True)
     return wsfev1
 
 
@@ -163,7 +167,11 @@ def get_wsfexv1(company=None, config=None):
     URL_WSFEXv1 = "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"
     crt = get_filename('party_ar/tests/gcoop.crt')
     key = get_filename('party_ar/tests/gcoop.key')
-    ta = WSAA().Autenticar('wsfex', crt, key, URL_WSAA, cacert=True)
+
+    cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache')
+    ta = WSAA().Autenticar('wsfex', crt, key, wsdl=URL_WSAA, cacert=True,
+            cache=cache)
+
     wsfexv1 = WSFEXv1()
     wsfexv1.LanzarExcepciones = True
     wsfexv1.SetTicketAcceso(ta)
