@@ -26,7 +26,7 @@ def read(fname):
 
 def get_require_version(name):
     if name in LINKS:
-        return '%s @ %s' % (name, LINKS[name])
+        return '%s@%s' % (name, LINKS[name])
     if minor_version % 2:
         require = '%s >= %s.%s.dev0, < %s.%s'
     else:
@@ -46,20 +46,24 @@ version = info.get('version', '0.0.1')
 major_version, minor_version, _ = version.split('.', 2)
 major_version = int(major_version)
 minor_version = int(minor_version)
+series = '%s.%s' % (major_version, minor_version)
+if minor_version % 2:
+    branch = 'master'
+else:
+    branch = series
 
-download_url = 'https://github.com/tryton-ar/account_invoice_ar/tree/%s.%s' % (
-    major_version, minor_version)
+download_url = 'https://github.com/tryton-ar/account_invoice_ar/tree/%s' % branch
 
 LINKS = {
     'trytonar_account_ar': ('git+https://github.com/tryton-ar/'
-        'account_ar.git@%s.%s#egg=trytonar_account_ar-%s.%s' %
-        (major_version, minor_version, major_version, minor_version)),
+        'account_ar.git@%s#egg=trytonar_account_ar-%s' %
+        (branch, series)),
     'trytonar_bank_ar': ('git+https://github.com/tryton-ar/'
-        'bank_ar.git@%s.%s#egg=trytonar_bank_ar-%s.%s' %
-        (major_version, minor_version, major_version, minor_version)),
+        'bank_ar.git@%s#egg=trytonar_bank_ar-%s' %
+        (branch, series)),
     'trytonar_party_ar': ('git+https://github.com/tryton-ar/'
-        'party_ar.git@%s.%s#egg=trytonar_party_ar-%s.%s' %
-        (major_version, minor_version, major_version, minor_version)),
+        'party_ar.git@%s#egg=trytonar_party_ar-%s' %
+        (branch, series)),
     }
 
 requires = []
