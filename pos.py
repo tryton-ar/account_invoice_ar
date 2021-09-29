@@ -2,7 +2,6 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
-from sql import Null
 
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.pool import Pool
@@ -96,8 +95,7 @@ class Pos(ModelSQL, ModelView):
 
         # Migration from 4.2: company is required
         if not company_exist:
-            cursor.execute(*company_table.select(company_table.id,
-                where=company_table.parent == Null))
+            cursor.execute(*company_table.select(company_table.id))
             company = cursor.fetchone()
             if company:
                 cursor.execute(*pos_table.update([pos_table.company],
