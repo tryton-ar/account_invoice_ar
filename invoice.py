@@ -1769,11 +1769,11 @@ class InvoiceReport(metaclass=PoolMeta):
     __name__ = 'account.invoice'
 
     @classmethod
-    def get_context(cls, records, data):
+    def get_context(cls, records, header, data):
         pool = Pool()
         Invoice = pool.get('account.invoice')
 
-        context = super().get_context(records, data)
+        context = super().get_context(records, header, data)
         invoice = context['record']
         context['company'] = invoice.company
         context['barcode_img'] = cls._get_pyafipws_barcode_img(Invoice,
@@ -1799,7 +1799,6 @@ class InvoiceReport(metaclass=PoolMeta):
         context['get_subtotal'] = cls.get_subtotal
         context['discrimina_impuestos'] = cls.discrimina_impuestos(invoice)
         context['qr'] = cls.get_qr_img(Invoice, invoice)
-
         return context
 
     @classmethod
@@ -1968,7 +1967,7 @@ class InvoiceReport(metaclass=PoolMeta):
             bars = '00'
         pyi25.GenerarImagen(bars, output, basewidth=3, width=380, height=50,
             extension='PNG')
-        image = (output.getvalue(), 'image/jpeg')
+        image = output.getvalue()
         output.close()
         return image
 
@@ -1976,32 +1975,37 @@ class InvoiceReport(metaclass=PoolMeta):
     def get_qr_img(cls, Invoice, invoice):
         'Generate the required qr'
         'https://www.afip.gob.ar/fe/qr/especificaciones.asp'
-
-        pool = Pool()
-        PyQR_ = pyqr.PyQR()
-        output = BytesIO()
         image = None
-        ver = 1
-        if invoice.state in ['posted', 'paid']:
+        if (invoice.pos and invoice.pos.pos_type in
+                ('electronic', 'fiscal_printer')
+                and invoice.type == 'out'
+                and invoice.state in ('posted', 'paid')
+                and invoice.pyafipws_cae):
+            ver = 1
             fecha = invoice.invoice_date.strftime("%Y-%m-%d")
             cuit = int(cls._get_vat_number(invoice).replace("-", ""))
             pto_vta = invoice.pos.number
             tipo_cmp = int(cls._get_codigo_comprobante(Invoice, invoice))
             nro_cmp = int(invoice.number[6:])
-            importe = float(invoice.total_amount) #12100
-            moneda = invoice.currency.afip_code #"DOL"
+            importe = float(invoice.total_amount)
+            moneda = invoice.currency.afip_code
             ctz = cls._get_ctz(invoice)
             tipo_doc, nro_doc = cls._obtiene_tipo_nro_doc(invoice)
-            tipo_doc_rec = tipo_doc #80
-            nro_doc_rec = int(nro_doc) #20000000001
+            tipo_doc_rec = tipo_doc
+            nro_doc_rec = int(nro_doc)
             tipo_cod_aut = "E"
-            cod_aut = invoice.pyafipws_cae #70417054367476
+            cod_aut = invoice.pyafipws_cae
+
+            PyQR_ = pyqr.PyQR()
             PyQR_.CrearArchivo()
-            PyQR_.GenerarImagen(output, ver, fecha, cuit, pto_vta, tipo_cmp,
-                                nro_cmp, importe, moneda, ctz, tipo_doc_rec, nro_doc_rec,
-                                tipo_cod_aut, cod_aut)
-            image = (output.getvalue(), 'image/png')
-            output.close()
+            PyQR_.GenerarImagen(ver, fecha, cuit, pto_vta, tipo_cmp,
+                nro_cmp, importe, moneda, ctz, tipo_doc_rec, nro_doc_rec,
+                tipo_cod_aut, cod_aut)
+
+            with open(PyQR_.Archivo, 'rb') as archivoQR:
+                output = BytesIO(archivoQR.read())
+                image = (output.getvalue(), 'image/png')
+                output.close()
         return image
 
     @classmethod
