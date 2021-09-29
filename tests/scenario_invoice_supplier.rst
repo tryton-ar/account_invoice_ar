@@ -286,7 +286,7 @@ Cancel draft invoice::
     >>> invoice_draft.reference
     >>> invoice_draft.click('cancel')
     >>> invoice_draft.state
-    'cancel'
+    'cancelled'
     >>> invoice_draft.move
     >>> invoice_draft.reconciled
 
@@ -294,7 +294,7 @@ Cancel posted invoice::
 
     >>> invoice.click('cancel')
     >>> invoice.state
-    'cancel'
+    'cancelled'
     >>> invoice.cancel_move is not None
     True
     >>> invoice.reconciled == today

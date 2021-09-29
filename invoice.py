@@ -423,7 +423,8 @@ class Invoice(metaclass=PoolMeta):
         cls.number.states.update({
             'invisible': And(
                 Bool(Eval('pos_pos_daily_report', False)),
-                Eval('state', 'draft').in_(['draft', 'validated', 'cancel']))
+                Eval('state', 'draft').in_([
+                    'draft', 'validated', 'cancelled']))
             })
         cls.number.depends = ['pos_pos_daily_report', 'state']
 
@@ -604,7 +605,7 @@ class Invoice(metaclass=PoolMeta):
                 ('type', '=', self.type),
                 ('pos', '=', self.pos),
                 ('invoice_type', '=', self.invoice_type),
-                ('state', '!=', 'cancel'),
+                ('state', '!=', 'cancelled'),
                 ])
             for invoice in invoices:
                 if (invoice.ref_number_to is None or
@@ -705,7 +706,7 @@ class Invoice(metaclass=PoolMeta):
             ('party', '=', self.party.id),
             ('tipo_comprobante', '=', self.tipo_comprobante),
             ('reference', '=', self.reference),
-            ('state', '!=', 'cancel'),
+            ('state', '!=', 'cancelled'),
             ])
         if len(invoice) > 0:
             raise UserError(gettext(
