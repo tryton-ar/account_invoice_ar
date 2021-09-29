@@ -1482,7 +1482,7 @@ class Invoice(metaclass=PoolMeta):
             domicilio_cliente = ' - '.join([
                     address.name or '',
                     address.street or '',
-                    address.zip or '',
+                    address.postal_code or '',
                     address.city or '',
                     ])
         else:
