@@ -400,6 +400,10 @@ msgctxt "model:ir.message,text:msg_missing_cuit_pais"
 msgid "Es requisito que el tercero \"%(party)s\" tenga CUIT Pais."
 msgstr ""
 
+msgctxt "model:ir.message,text:msg_missing_currency_afip_code"
+msgid "Debe configurar el código AFIP de la moneda."
+msgstr ""
+
 msgctxt "model:ir.message,text:msg_missing_currency_rate"
 msgid "Debe configurar la cotización de la moneda."
 msgstr ""
@@ -472,10 +476,6 @@ msgctxt "model:ir.message,text:msg_webservice_unknown"
 msgid "AFIP web service is unknown"
 msgstr ""
 
-msgctxt "model:ir.message,text:msg_wrong_pyafipws_mode"
-msgid "Problemas de Certificado: \"%(message)s\"."
-msgstr ""
-
 msgctxt "model:ir.message,text:msg_wsaa_error"
 msgid "There was a problem to connect webservice WSAA: (%(msg)s)"
 msgstr ""
@@ -489,10 +489,6 @@ msgid "Points of Sale"
 msgstr "Puntos de Venta"
 
 msgctxt "report:account.invoice:"
-msgid "."
-msgstr ""
-
-msgctxt "report:account.invoice:"
 msgid ":"
 msgstr ":"
 
@@ -501,116 +497,68 @@ msgid "Amount"
 msgstr "Importe"
 
 msgctxt "report:account.invoice:"
-msgid "CAE N°"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "COD"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "CUIT"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "CUIT Pa"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "DNI:"
-msgstr ""
+msgid "Base"
+msgstr "Base"
 
 msgctxt "report:account.invoice:"
 msgid "Date"
 msgstr "Fecha"
 
 msgctxt "report:account.invoice:"
+msgid "Date:"
+msgstr "Fecha:"
+
+msgctxt "report:account.invoice:"
 msgid "Description"
 msgstr "Descripción"
 
 msgctxt "report:account.invoice:"
-msgid "Domicilio:"
-msgstr ""
+msgid "Description:"
+msgstr "Descripción:"
 
 msgctxt "report:account.invoice:"
-msgid "Exento"
-msgstr ""
+msgid "Draft Invoice"
+msgstr "Factura borrador"
 
 msgctxt "report:account.invoice:"
-msgid "FACTURA BORRADOR"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "FACTURA PROFORMA"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "Fecha"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "Fecha Vto. CAE:"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "Gravado"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "IIBB:"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "IVA"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "Inicio de Actividad:"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "No gravado"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "N°:"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "ORIGINAL"
-msgstr ""
+msgid "Invoice N°:"
+msgstr "Factura Nº:"
 
 msgctxt "report:account.invoice:"
 msgid "Payment Term"
 msgstr "Plazo de pago"
 
 msgctxt "report:account.invoice:"
-msgid "Percepciones"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "Periodo Facturado:"
-msgstr ""
+msgid "Pro forma Invoice"
+msgstr "Factura Pro Forma"
 
 msgctxt "report:account.invoice:"
 msgid "Quantity"
 msgstr "Cantidad"
 
 msgctxt "report:account.invoice:"
-msgid "Sr.(s)"
-msgstr ""
+msgid "Reference"
+msgstr "Referencia"
 
 msgctxt "report:account.invoice:"
-msgid "Subtotal:"
-msgstr ""
+msgid "Supplier Invoice N°:"
+msgstr "Factura de proveedor Nº:"
 
 msgctxt "report:account.invoice:"
 msgid "Tax"
 msgstr "Impuesto"
 
 msgctxt "report:account.invoice:"
+msgid "Taxes"
+msgstr "Impuestos"
+
+msgctxt "report:account.invoice:"
 msgid "Taxes:"
 msgstr "Impuestos:"
+
+msgctxt "report:account.invoice:"
+msgid "Total (excl. taxes):"
+msgstr "Total (sin impuestos):"
 
 msgctxt "report:account.invoice:"
 msgid "Total:"
@@ -619,14 +567,6 @@ msgstr "Total:"
 msgctxt "report:account.invoice:"
 msgid "Unit Price"
 msgstr "Precio unitario"
-
-msgctxt "report:account.invoice:"
-msgid "s"
-msgstr ""
-
-msgctxt "report:account.invoice:"
-msgid "í"
-msgstr ""
 
 msgctxt "selection:account.invoice,invoice_type_tree:"
 msgid "01-Factura A"
