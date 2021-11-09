@@ -18,6 +18,7 @@ from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.pool import Pool, PoolMeta
 from trytond.pyson import Eval, And, If, Bool, Or
 from trytond.transaction import Transaction
+from trytond.model.exceptions import AccessError
 from trytond.exceptions import UserError
 from trytond.i18n import gettext
 from trytond.tools import cursor_dict
@@ -873,6 +874,32 @@ class Invoice(metaclass=PoolMeta):
 
         credit.reference = '%s' % self.number
         return credit
+
+    @classmethod
+    def credit(cls, invoices, refund=False, **values):
+        '''
+        Method overridden by account_invoice_ar to handle AFIP rejections
+        with Credit Notes
+        '''
+        new_invoices = [i._credit(**values) for i in invoices]
+        cls.save(new_invoices)
+        cls.update_taxes(new_invoices)
+        if refund:
+            try:
+                cls.post(new_invoices)
+            except Exception as e:
+                cls.delete(new_invoices)
+                raise e
+            for invoice, new_invoice in zip(invoices, new_invoices):
+                if invoice.state != 'posted':
+                    raise AccessError(
+                        gettext('account_invoice'
+                            '.msg_invoice_credit_refund_not_posted',
+                            invoice=invoice.rec_name))
+                invoice.cancel_move = new_invoice.move
+            cls.save(invoices)
+            cls.cancel(invoices)
+        return new_invoices
 
     @classmethod
     def set_number(cls, invoices):
