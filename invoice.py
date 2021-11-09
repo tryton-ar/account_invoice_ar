@@ -240,19 +240,137 @@ class AfipWSTransaction(ModelSQL, ModelView):
 class InvoiceLine(metaclass=PoolMeta):
     __name__ = 'account.invoice.line'
 
-    pyafipws_exento = fields.Boolean('Exento',
-        states={
-            'readonly': Or(
-                Eval('invoice_state') != 'draft',
-                Bool(Eval('taxes'))),
-            },
-        depends=['invoice_state', 'taxes'])
+    @classmethod
+    def __register__(cls, module_name):
+        table_h = cls.__table_handler__(module_name)
+        pyafipws_exento_exist = table_h.column_exist('pyafipws_exento')
+        super().__register__(module_name)
+        #if pyafipws_exento_exist and cls._migrate_pyafipws_exento():
+            #table_h.drop_column('pyafipws_exento')
 
-    @fields.depends('taxes', 'pyafipws_exento')
-    def on_change_with_pyafipws_exento(self, name=None):
-        if self.taxes:
+    @classmethod
+    def _migrate_pyafipws_exento(cls):
+        cursor = Transaction().connection.cursor()
+        pool = Pool()
+        Tax = pool.get('account.tax')
+        Invoice = pool.get('account.invoice')
+        Line = pool.get('account.invoice.line')
+        LineTax = pool.get('account.invoice.line-account.tax')
+        InvoiceTax = pool.get('account.invoice.tax')
+
+        line = Line.__table__()
+        invoice = Invoice.__table__()
+        line_tax = LineTax.__table__()
+
+        try:
+            iva_venta_exento, = Tax.search([
+                ('group.afip_kind', '=', 'exento'),
+                ('group.kind', '=', 'sale'),
+                ])
+            iva_venta_no_gravado, = Tax.search([
+                ('group.afip_kind', '=', 'no_gravado'),
+                ('group.kind', '=', 'sale'),
+                ])
+            iva_compra_exento, = Tax.search([
+                ('group.afip_kind', '=', 'exento'),
+                ('group.kind', '=', 'purchase'),
+                ])
+            iva_compra_no_gravado, = Tax.search([
+                ('group.afip_kind', '=', 'no_gravado'),
+                ('group.kind', '=', 'purchase'),
+                ])
+        except:
             return False
-        return self.pyafipws_exento
+
+        iva_venta_exento_id = iva_venta_exento.id
+        iva_venta_no_gravado_id = iva_venta_no_gravado.id
+        iva_compra_exento_id = iva_compra_exento.id
+        iva_compra_no_gravado_id = iva_compra_no_gravado.id
+
+        computed_taxes = {}
+        cursor.execute(*line.join(invoice,
+            condition=line.invoice == invoice.id
+            ).select(line.id, line.pyafipws_exento, line.invoice,
+            where=invoice.type == 'out'))
+        for line_id, exento, invoice_id in cursor.fetchall():
+            cursor.execute(*line_tax.select(line_tax.id,
+                where=line_tax.line == line_id))
+            if cursor.fetchone():
+                continue
+            if exento:
+                cursor.execute(*line_tax.insert(
+                    columns=[line_tax.line, line_tax.tax],
+                    values=[[line_id, iva_venta_exento_id]]))
+                key = (invoice_id, iva_venta_exento_id)
+                if key not in computed_taxes:
+                    computed_taxes[key] = {
+                        'invoice': invoice_id,
+                        'tax': iva_venta_exento_id,
+                        'description': iva_venta_exento.description,
+                        'account': iva_venta_exento.invoice_account.id,
+                        'base': Decimal('0.0'),
+                        'amount': Decimal('0.0'),
+                        'manual': False,
+                        }
+            else:
+                cursor.execute(*line_tax.insert(
+                    columns=[line_tax.line, line_tax.tax],
+                    values=[[line_id, iva_venta_no_gravado_id]]))
+                key = (invoice_id, iva_venta_no_gravado_id)
+                if key not in computed_taxes:
+                    computed_taxes[key] = {
+                        'invoice': invoice_id,
+                        'tax': iva_venta_no_gravado_id,
+                        'description': iva_venta_no_gravado.description,
+                        'account': iva_venta_no_gravado.invoice_account.id,
+                        'base': Decimal('0.0'),
+                        'amount': Decimal('0.0'),
+                        'manual': False,
+                        }
+
+        cursor.execute(*line.join(invoice,
+            condition=line.invoice == invoice.id
+            ).select(line.id, line.pyafipws_exento, line.invoice,
+            where=invoice.type == 'in'))
+        for line_id, exento, invoice_id in cursor.fetchall():
+            cursor.execute(*line_tax.select(line_tax.id,
+                where=line_tax.line == line_id))
+            if cursor.fetchone():
+                continue
+            if exento:
+                cursor.execute(*line_tax.insert(
+                    columns=[line_tax.line, line_tax.tax],
+                    values=[[line_id, iva_compra_exento_id]]))
+                key = (invoice_id, iva_compra_exento_id)
+                if key not in computed_taxes:
+                    computed_taxes[key] = {
+                        'invoice': invoice_id,
+                        'tax': iva_compra_exento_id,
+                        'description': iva_compra_exento.description,
+                        'account': iva_compra_exento.invoice_account.id,
+                        'base': Decimal('0.0'),
+                        'amount': Decimal('0.0'),
+                        'manual': False,
+                        }
+            else:
+                cursor.execute(*line_tax.insert(
+                    columns=[line_tax.line, line_tax.tax],
+                    values=[[line_id, iva_compra_no_gravado_id]]))
+                key = (invoice_id, iva_compra_no_gravado_id)
+                if key not in computed_taxes:
+                    computed_taxes[key] = {
+                        'invoice': invoice_id,
+                        'tax': iva_compra_no_gravado_id,
+                        'description': iva_compra_no_gravado.description,
+                        'account': iva_compra_no_gravado.invoice_account.id,
+                        'base': Decimal('0.0'),
+                        'amount': Decimal('0.0'),
+                        'manual': False,
+                        }
+
+        if computed_taxes:
+            InvoiceTax.create([v for v in computed_taxes.values()])
+        return True
 
 
 class Invoice(metaclass=PoolMeta):
