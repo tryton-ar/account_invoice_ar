@@ -146,10 +146,6 @@ msgctxt "field:account.invoice.export.license,license_id:"
 msgid "License Id"
 msgstr "Id Permiso"
 
-msgctxt "field:account.invoice.line,pyafipws_exento:"
-msgid "Exento"
-msgstr ""
-
 msgctxt "field:account.pos,active:"
 msgid "Active"
 msgstr "Activo"
