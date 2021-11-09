@@ -486,14 +486,13 @@ class Invoice(metaclass=PoolMeta):
     @fields.depends('company', 'untaxed_amount', 'lines')
     def on_change_with_pyafipws_imp_neto(self, name=None):
         imp_neto = _ZERO
-        if (self.company and self.untaxed_amount and
-                self.company.party.iva_condition in ('exento', 'monotributo')):
+        if (self.company and self.company.party.iva_condition
+                in ('exento', 'monotributo') and self.untaxed_amount):
             return abs(self.untaxed_amount)
-
         for line in self.lines:
-            if line.taxes:
-                imp_neto += line.amount
-
+            for tax in line.taxes:
+                if tax.group.afip_kind == 'gravado':
+                    imp_neto += line.amount
         return abs(imp_neto)
 
     @fields.depends('company', 'untaxed_amount', 'lines')
@@ -502,11 +501,10 @@ class Invoice(metaclass=PoolMeta):
         if (self.company and self.company.party.iva_condition
                 in ('exento', 'monotributo')):
             return imp_tot_conc
-
         for line in self.lines:
-            if not line.taxes and not line.pyafipws_exento:
-                imp_tot_conc += line.amount
-
+            for tax in line.taxes:
+                if tax.group.afip_kind == 'no_gravado':
+                    imp_tot_conc += line.amount
         return abs(imp_tot_conc)
 
     @fields.depends('company', 'untaxed_amount', 'lines')
@@ -515,20 +513,19 @@ class Invoice(metaclass=PoolMeta):
         if (self.company and self.company.party.iva_condition
                 in ('exento', 'monotributo')):
             return imp_op_ex
-
         for line in self.lines:
-            if not line.taxes and line.pyafipws_exento:
-                imp_op_ex += line.amount
-
+            for tax in line.taxes:
+                if tax.group.afip_kind == 'exento':
+                    imp_op_ex += line.amount
         return abs(imp_op_ex)
 
     @fields.depends('taxes', 'lines')
     def on_change_with_pyafipws_imp_trib(self, name=None):
         imp_trib = _ZERO
         for tax_line in self.taxes:
-            if tax_line.tax and tax_line.tax.group.afip_kind != 'gravado':
+            if (tax_line.tax and tax_line.tax.group.afip_kind not
+                    in ('gravado', 'no_gravado', 'exento')):
                 imp_trib += tax_line.amount
-
         return abs(imp_trib)
 
     @fields.depends('taxes', 'lines')
@@ -537,7 +534,6 @@ class Invoice(metaclass=PoolMeta):
         for tax_line in self.taxes:
             if tax_line.tax and tax_line.tax.group.afip_kind == 'gravado':
                 imp_iva += tax_line.amount
-
         return abs(imp_iva)
 
     @fields.depends('pos')
@@ -1603,7 +1599,7 @@ class Invoice(metaclass=PoolMeta):
                     base_imp = ('%.2f' % abs(tax_line.base))
                     importe = ('%.2f' % abs(tax_line.amount))
                     ws.AgregarIva(iva_id, base_imp, importe)
-                else:
+                elif tax.group.afip_kind not in ('no_gravado', 'exento'):
                     tributo_id = tax.group.tribute_id
                     desc = tax.name
                     base_imp = ('%.2f' % abs(tax_line.base))
@@ -1902,10 +1898,14 @@ class InvoiceReport(metaclass=PoolMeta):
                 taxes[0].invoice.invoice_type.invoice_type_string[-1]
 
         if invoice_type_string == 'A':
-            res = taxes
+            for tax in taxes:
+                if (tax.tax.group.afip_kind not
+                        in ('no_gravado', 'exento')):
+                    res.append(tax)
         elif invoice_type_string == 'B':
             for tax in taxes:
-                if tax.tax.group.afip_kind != 'gravado':
+                if (tax.tax.group.afip_kind not
+                        in ('gravado', 'no_gravado', 'exento')):
                     res.append(tax)
         return res
 
