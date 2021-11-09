@@ -25,6 +25,8 @@ def read(fname):
 
 
 def get_require_version(name):
+    #if name.startswith('trytonar_'):
+        #return ''
     if name in LINKS:
         return '%s@%s' % (name, LINKS[name])
     if minor_version % 2:
