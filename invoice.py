@@ -245,8 +245,8 @@ class InvoiceLine(metaclass=PoolMeta):
         table_h = cls.__table_handler__(module_name)
         pyafipws_exento_exist = table_h.column_exist('pyafipws_exento')
         super().__register__(module_name)
-        #if pyafipws_exento_exist and cls._migrate_pyafipws_exento():
-            #table_h.drop_column('pyafipws_exento')
+        if pyafipws_exento_exist and cls._migrate_pyafipws_exento():
+            table_h.drop_column('pyafipws_exento')
 
     @classmethod
     def _migrate_pyafipws_exento(cls):
@@ -279,7 +279,7 @@ class InvoiceLine(metaclass=PoolMeta):
                 ('group.afip_kind', '=', 'no_gravado'),
                 ('group.kind', '=', 'purchase'),
                 ])
-        except:
+        except ValueError:
             return False
 
         iva_venta_exento_id = iva_venta_exento.id
@@ -297,6 +297,7 @@ class InvoiceLine(metaclass=PoolMeta):
                 where=line_tax.line == line_id))
             if cursor.fetchone():
                 continue
+            invoice_line = Line(line_id)
             if exento:
                 cursor.execute(*line_tax.insert(
                     columns=[line_tax.line, line_tax.tax],
@@ -312,6 +313,7 @@ class InvoiceLine(metaclass=PoolMeta):
                         'amount': Decimal('0.0'),
                         'manual': False,
                         }
+                computed_taxes[key]['base'] += invoice_line.amount
             else:
                 cursor.execute(*line_tax.insert(
                     columns=[line_tax.line, line_tax.tax],
@@ -327,6 +329,7 @@ class InvoiceLine(metaclass=PoolMeta):
                         'amount': Decimal('0.0'),
                         'manual': False,
                         }
+                computed_taxes[key]['base'] += invoice_line.amount
 
         cursor.execute(*line.join(invoice,
             condition=line.invoice == invoice.id
@@ -337,6 +340,7 @@ class InvoiceLine(metaclass=PoolMeta):
                 where=line_tax.line == line_id))
             if cursor.fetchone():
                 continue
+            invoice_line = Line(line_id)
             if exento:
                 cursor.execute(*line_tax.insert(
                     columns=[line_tax.line, line_tax.tax],
@@ -352,6 +356,7 @@ class InvoiceLine(metaclass=PoolMeta):
                         'amount': Decimal('0.0'),
                         'manual': False,
                         }
+                computed_taxes[key]['base'] += invoice_line.amount
             else:
                 cursor.execute(*line_tax.insert(
                     columns=[line_tax.line, line_tax.tax],
@@ -367,6 +372,7 @@ class InvoiceLine(metaclass=PoolMeta):
                         'amount': Decimal('0.0'),
                         'manual': False,
                         }
+                computed_taxes[key]['base'] += invoice_line.amount
 
         if computed_taxes:
             InvoiceTax.create([v for v in computed_taxes.values()])
