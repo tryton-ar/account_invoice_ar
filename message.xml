@@ -80,7 +80,7 @@
             <field name="text">Si el tipo de comprobante es MiPyme (FCE) es obligatorio informar CBU.</field>
         </record>
         <record model="ir.message" id="msg_missing_cmp_asoc">
-            <field name="text">Falta cargar el Comprobante asociado</field>
+            <field name="text">Falta cargar el Comprobante asociado o un Período de fechas</field>
         </record>
         <record model="ir.message" id="msg_invalid_cmp_asoc">
             <field name="text">El Comprobante asociado es incorrecto</field>

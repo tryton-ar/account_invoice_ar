@@ -542,6 +542,10 @@ class Invoice(metaclass=PoolMeta):
             ],
         states=_states,
         depends=_depends + ['company', 'pyafipws_cmp_asoc'])
+    pyafipws_cmp_asoc_desde = fields.Date('Período desde',
+        states=_states, depends=_depends)
+    pyafipws_cmp_asoc_hasta = fields.Date('Período hasta',
+        states=_states, depends=_depends)
 
     del _states, _depends
 
@@ -1721,25 +1725,33 @@ class Invoice(metaclass=PoolMeta):
                         ws.AgregarOpcional(22, 'N')
             if (self.invoice_type.invoice_type in ('2', '3', '7', '8', '12',
                     '13', '202', '203', '207', '208', '212', '213')):
-                if not self.pyafipws_cmp_asoc:
+                if (not self.pyafipws_cmp_asoc and not
+                        (self.pyafipws_cmp_asoc_desde and
+                        self.pyafipws_cmp_asoc_hasta)):
                     raise UserError(gettext(
                         'account_invoice_ar.msg_missing_cmp_asoc'))
-                for cbteasoc in self.pyafipws_cmp_asoc:
-                    cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
-                    if cbteasoc_tipo not in INVOICE_ASOC_AFIP_CODE[
-                            self.invoice_type.invoice_type]:
-                        raise UserError(gettext(
-                            'account_invoice_ar.msg_invalid_cmp_asoc'))
-                    cbteasoc_nro = int(cbteasoc.number[-8:])
-                    cbteasoc_fecha_cbte = cbteasoc.invoice_date.strftime(
-                        '%Y-%m-%d')
-                    if service != 'wsmtxca':
-                        cbteasoc_fecha_cbte = cbteasoc_fecha_cbte.replace('-',
-                            '')
-                    ws.AgregarCmpAsoc(tipo=cbteasoc_tipo, pto_vta=punto_vta,
-                        nro=cbteasoc_nro,
-                        cuit=self.company.party.tax_identifier.code,
-                        fecha=cbteasoc_fecha_cbte)
+                if (self.pyafipws_cmp_asoc_desde and
+                        self.pyafipws_cmp_asoc_hasta):
+                    cmp_asoc_desde = self.pyafipws_cmp_asoc_desde.strftime(
+                        '%Y%m%d')
+                    cmp_asoc_hasta = self.pyafipws_cmp_asoc_hasta.strftime(
+                        '%Y%m%d')
+                    ws.AgregarPeriodoComprobantesAsociados(cmp_asoc_desde,
+                        cmp_asoc_hasta)
+                else:
+                    for cmp in self.pyafipws_cmp_asoc:
+                        cmp_tipo = int(cmp.invoice_type.invoice_type)
+                        if cmp_tipo not in INVOICE_ASOC_AFIP_CODE[
+                                self.invoice_type.invoice_type]:
+                            raise UserError(gettext(
+                                'account_invoice_ar.msg_invalid_cmp_asoc'))
+                        cmp_nro = int(cmp.number[-8:])
+                        cmp_fecha_cbte = cmp.invoice_date.strftime('%Y-%m-%d')
+                        if service != 'wsmtxca':
+                            cmp_fecha_cbte = cmp_fecha_cbte.replace('-', '')
+                        ws.AgregarCmpAsoc(cmp_tipo, punto_vta, cmp_nro,
+                            self.company.party.tax_identifier.code,
+                            cmp_fecha_cbte)
 
             for tax_line in self.taxes:
                 tax = tax_line.tax
