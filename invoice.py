@@ -799,7 +799,7 @@ class Invoice(metaclass=PoolMeta):
         if company_iva == 'responsable_inscripto':
             if not client_iva:
                 return None
-            if client_iva == 'responsable_inscripto':
+            if client_iva in ('responsable_inscripto', 'monotributo'):
                 kind = 'A'
             elif client_iva == 'consumidor_final':
                 kind = 'B'
@@ -1839,6 +1839,7 @@ class InvoiceReport(metaclass=PoolMeta):
             Invoice, invoice)
         context['dni_number_cliente'] = cls._get_dni_number_cliente(
             Invoice, invoice)
+        context['leyenda_ley_27618'] = cls._get_leyenda_ley_27618(invoice)
         context['get_impuestos'] = cls.get_impuestos
         context['get_line_amount'] = cls.get_line_amount
         context['get_taxes'] = cls.get_taxes
@@ -1951,6 +1952,16 @@ class InvoiceReport(metaclass=PoolMeta):
             if identifier.type == 'ar_dni':
                 value = identifier.code
         return value
+
+    @classmethod
+    def _get_leyenda_ley_27618(cls, invoice):
+        if invoice.company.party.iva_condition == 'responsable_inscripto' \
+                and invoice.party.iva_condition == 'monotributo':
+            return 'El crédito fiscal discriminado en el presente ' \
+                'comprobante, sólo podrá ser computado a efectos del ' \
+                'Régimen de Sostenimiento e Inclusión Fiscal para Pequeños ' \
+                ' Contribuyentes de la Ley Nº 27.618'
+        return ''
 
     @classmethod
     def _get_tipo_comprobante(cls, Invoice, invoice):
