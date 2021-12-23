@@ -7,7 +7,6 @@ from pyafipws.pyi25 import PyI25
 from pyafipws import pyqr
 from io import BytesIO
 import stdnum.ar.cuit as cuit
-from collections import defaultdict
 import logging
 from decimal import Decimal
 from datetime import date
@@ -16,7 +15,7 @@ from unicodedata import normalize
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView
 from trytond.pool import Pool, PoolMeta
-from trytond.pyson import Eval, And, If, Bool, Or
+from trytond.pyson import Eval, And, If, Bool
 from trytond.transaction import Transaction
 from trytond.model.exceptions import AccessError
 from trytond.exceptions import UserError
@@ -261,6 +260,7 @@ class InvoiceLine(metaclass=PoolMeta):
         line = Line.__table__()
         invoice = Invoice.__table__()
         line_tax = LineTax.__table__()
+        invoice_tax = InvoiceTax.__table__()
 
         try:
             iva_venta_exento, = Tax.search([
@@ -375,7 +375,13 @@ class InvoiceLine(metaclass=PoolMeta):
                 computed_taxes[key]['base'] += invoice_line.amount
 
         if computed_taxes:
-            InvoiceTax.create([v for v in computed_taxes.values()])
+            cursor.execute(*invoice_tax.insert(
+                columns=[invoice_tax.invoice, invoice_tax.tax,
+                    invoice_tax.description, invoice_tax.account,
+                    invoice_tax.base, invoice_tax.amount, invoice_tax.manual],
+                values=[[v['invoice'], v['tax'], v['description'],
+                    v['account'], v['base'], v['amount'], v['manual']]
+                    for v in computed_taxes.values()]))
         return True
 
 
