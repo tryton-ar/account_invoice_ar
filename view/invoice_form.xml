@@ -2,11 +2,6 @@
 <data>
     <xpath expr="/form/notebook/page[@id='payment']" position="after">
         <page id="electronic_invoice" string="Factura Electronica Argentina">
-            <group col="-1" colspan="2" id="checkboxes">
-                <label name="pyafipws_anulacion"/>
-                <field name="pyafipws_anulacion" xexpand="0" width="25"/>
-            </group>
-            <field name="pyafipws_cmp_asoc" colspan="4"/>
             <label name="pyafipws_concept"/>
             <field name="pyafipws_concept"/>
             <label name="pyafipws_cbu"/>
@@ -19,6 +14,15 @@
             <field name="pyafipws_cae"/>
             <label name="pyafipws_cae_due_date"/>
             <field name="pyafipws_cae_due_date"/>
+            <field name="pyafipws_cmp_asoc" colspan="4"/>
+            <group col="-1" colspan="4" id="checkboxes">
+                <label name="pyafipws_anulacion"/>
+                <field name="pyafipws_anulacion" xexpand="0" width="25"/>
+                <label name="pyafipws_cmp_asoc_desde"/>
+                <field name="pyafipws_cmp_asoc_desde"/>
+                <label name="pyafipws_cmp_asoc_hasta"/>
+                <field name="pyafipws_cmp_asoc_hasta"/>
+            </group>
             <field name="transactions" colspan="4"/>
         </page>
     </xpath>
