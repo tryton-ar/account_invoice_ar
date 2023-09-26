@@ -906,7 +906,8 @@ class Invoice(metaclass=PoolMeta):
             ])
         if len(sequences) == 0:
             raise UserError(gettext(
-                'account_invoice_ar.msg_missing_sequence', invoice_type_desc))
+                'account_invoice_ar.msg_missing_sequence',
+                invoice_type=invoice_type_desc))
         elif len(sequences) > 1:
             raise UserError(gettext(
                 'account_invoice_ar.msg_too_many_sequences',
@@ -976,7 +977,8 @@ class Invoice(metaclass=PoolMeta):
             ])
         if len(sequences) == 0:
             raise UserError(gettext(
-                'account_invoice_ar.msg_missing_sequence', invoice_type_desc))
+                'account_invoice_ar.msg_missing_sequence',
+                invoice_type=invoice_type_desc))
         elif len(sequences) > 1:
             raise UserError(gettext(
                 'account_invoice_ar.msg_too_many_sequences',
