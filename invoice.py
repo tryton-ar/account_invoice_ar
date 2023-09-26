@@ -2206,15 +2206,15 @@ class InvoiceReport(metaclass=PoolMeta):
 
     @classmethod
     def _get_iibb_type(cls, company):
-        if company.party.iibb_type and company.party.iibb_number:
-            if company.party.iibb_type.lower() == 'cm':
+        if company.party.iibb_condition and company.party.iibb_number:
+            if company.party.iibb_condition.lower() == 'cm':
                 return '%s  %s-%s' % (
-                        company.party.iibb_type.upper(),
+                        company.party.iibb_condition.upper(),
                         company.party.iibb_number[:3],
                         company.party.vat_number)
             else:
                 return '%s %s' % (
-                        company.party.iibb_type.upper(),
+                        company.party.iibb_condition.upper(),
                         company.party.iibb_number)
         else:
             return ''
