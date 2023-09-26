@@ -482,15 +482,8 @@ class Invoice(metaclass=PoolMeta):
             'invisible': ~Eval('pos_pos_daily_report', False),
             'readonly': Eval('state') != 'draft',
             })
-    party_iva_condition = fields.Selection([
-        ('', ''),
-        ('responsable_inscripto', 'Responsable Inscripto'),
-        ('exento', 'Exento'),
-        ('consumidor_final', 'Consumidor Final'),
-        ('monotributo', 'Monotributo'),
-        ('no_alcanzado', 'No alcanzado'),
-        ], 'Condicion ante IVA',
-        states=_states, depends=_depends)
+    party_iva_condition = fields.Selection('get_party_iva_condition',
+        'Condición ante IVA', states=_states)
     party_iva_condition_string = party_iva_condition.translated(
         'party_iva_condition')
     pyafipws_cbu = fields.Many2One('bank.account', 'CBU del Emisor',
@@ -715,6 +708,12 @@ class Invoice(metaclass=PoolMeta):
         for invoice in invoices:
             invoice.check_unique_daily_report()
 
+    @classmethod
+    def get_party_iva_condition(cls):
+        Party = Pool().get('party.party')
+        return Party.fields_get(['iva_condition'])[
+            'iva_condition']['selection']
+
     def check_unique_daily_report(self):
         if (self.type == 'out' and self.pos and
                 self.pos.pos_daily_report is True):
@@ -883,16 +882,15 @@ class Invoice(metaclass=PoolMeta):
                 return None
             if client_iva in ('responsable_inscripto', 'monotributo'):
                 kind = 'A'
-            elif client_iva == 'consumidor_final':
-                kind = 'B'
-            elif self.party.vat_number:  # CUIT Argentino
-                kind = 'B'
+            elif client_iva == 'cliente_exterior':
+                kind = 'E'
             else:
-                kind = 'E'
+                kind = 'B'
         else:
-            kind = 'C'
-            if self.party.vat_number_afip_foreign:  # Id AFIP Foraneo
+            if client_iva == 'cliente_exterior':
                 kind = 'E'
+            else:
+                kind = 'C'
 
         if (kind != 'E' and self.party.pyafipws_fce and
                 abs(total_amount) >= self.party.pyafipws_fce_amount):
