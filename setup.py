@@ -7,7 +7,7 @@ import io
 import os
 import re
 from configparser import ConfigParser
-from setuptools import setup
+from setuptools import find_packages, setup
 
 MODULE = 'account_invoice_ar'
 PREFIX = 'trytonar'
@@ -19,16 +19,17 @@ MODULE2PREFIX = {
 
 
 def read(fname):
-    return io.open(
+    content = io.open(
         os.path.join(os.path.dirname(__file__), fname),
         'r', encoding='utf-8').read()
+    content = re.sub(
+        r'(?m)^\.\. toctree::\r?\n((^$|^\s.*$)\r?\n)*', '', content)
+    return content
 
 
 def get_require_version(name):
-    #if name.startswith('trytonar_'):
-        #return ''
     if name in LINKS:
-        return '%s@%s' % (name, LINKS[name])
+        return ''  # '%s @ %s' % (name, LINKS[name])
     if minor_version % 2:
         require = '%s >= %s.%s.dev0, < %s.%s'
     else:
@@ -48,24 +49,21 @@ version = info.get('version', '0.0.1')
 major_version, minor_version, _ = version.split('.', 2)
 major_version = int(major_version)
 minor_version = int(minor_version)
-series = '%s.%s' % (major_version, minor_version)
-if minor_version % 2:
-    branch = 'master'
-else:
-    branch = series
 
-download_url = 'https://github.com/tryton-ar/account_invoice_ar/tree/%s' % branch
+url = 'https://github.com/tryton-ar/%s' % MODULE
+download_url = 'https://github.com/tryton-ar/%s/tree/%s.%s' % (
+    MODULE, major_version, minor_version)
 
 LINKS = {
     'trytonar_account_ar': ('git+https://github.com/tryton-ar/'
-        'account_ar.git@%s#egg=trytonar_account_ar-%s' %
-        (branch, series)),
+        'account_ar.git@%s.%s#egg=trytonar_account_ar-%s.%s' %
+        (major_version, minor_version, major_version, minor_version)),
     'trytonar_bank_ar': ('git+https://github.com/tryton-ar/'
-        'bank_ar.git@%s#egg=trytonar_bank_ar-%s' %
-        (branch, series)),
+        'bank_ar.git@%s.%s#egg=trytonar_bank_ar-%s.%s' %
+        (major_version, minor_version, major_version, minor_version)),
     'trytonar_party_ar': ('git+https://github.com/tryton-ar/'
-        'party_ar.git@%s#egg=trytonar_party_ar-%s' %
-        (branch, series)),
+        'party_ar.git@%s.%s#egg=trytonar_party_ar-%s.%s' %
+        (major_version, minor_version, major_version, minor_version)),
     }
 
 requires = []
@@ -87,21 +85,20 @@ setup(name='%s_%s' % (PREFIX, MODULE),
         'localization for Argentina (AFIP)'),
     long_description=read('README.rst'),
     author='tryton-ar',
-    url='https://github.com/tryton-ar/account_invoice_ar',
+    url=url,
     download_url=download_url,
     project_urls={
-        "Bug Tracker": 'https://bugs.tryton.org/',
+        "Bug Tracker": 'https://github.com/tryton-ar/%s/issues' % MODULE,
         "Documentation": 'https://docs.tryton.org/',
         "Forum": 'https://www.tryton.org/forum',
-        "Source Code": 'https://github.com/tryton-ar/account_invoice_ar',
+        "Source Code": url,
         },
     keywords='tryton, invoice, account, argentina, afip',
     package_dir={'trytond.modules.%s' % MODULE: '.'},
-    packages=[
-        'trytond.modules.%s' % MODULE,
-        'trytond.modules.%s.tests' % MODULE,
-        'trytond.modules.%s.scripts' % MODULE,
-        ],
+    packages=(
+        ['trytond.modules.%s' % MODULE]
+        + ['trytond.modules.%s.%s' % (MODULE, p) for p in find_packages()]
+        ),
     package_data={
         'trytond.modules.%s' % MODULE: (info.get('xml', []) + [
             'tryton.cfg', 'view/*.xml', 'locale/*.po', '*.fodt',
@@ -120,18 +117,20 @@ setup(name='%s_%s' % (PREFIX, MODULE),
         'Natural Language :: Spanish',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Office/Business',
         'Topic :: Office/Business :: Financial :: Accounting',
         ],
     license='GPL-3',
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=requires,
+    extras_require={
+        'test': tests_require,
+        },
     dependency_links=dependency_links,
     zip_safe=False,
     entry_points="""
@@ -140,7 +139,4 @@ setup(name='%s_%s' % (PREFIX, MODULE),
     [console_scripts]
     trytond_update_currencies_afip = trytond.modules.%s.scripts.update_currencies:run
     """ % (MODULE, MODULE, MODULE),
-    test_suite='tests',
-    test_loader='trytond.test_loader:Loader',
-    tests_require=tests_require,
     )
