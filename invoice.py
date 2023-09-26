@@ -9,7 +9,7 @@ from io import BytesIO
 import stdnum.ar.cuit as cuit
 import logging
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 from calendar import monthrange
 from unicodedata import normalize
 
@@ -982,8 +982,8 @@ class Invoice(metaclass=PoolMeta):
                 invoice_type_desc))
         credit.invoice_type = sequences[0]
 
+        credit.pyafipws_cmp_asoc = [self.id]
         if self.pos.pos_type == 'electronic':
-            credit.pyafipws_cmp_asoc = [self.id]
             credit.pyafipws_concept = self.pyafipws_concept
             if self.pyafipws_concept in ['2', '3']:
                 credit.pyafipws_billing_start_date = (
@@ -1070,7 +1070,7 @@ class Invoice(metaclass=PoolMeta):
         pool = Pool()
         Pos = pool.get('account.pos')
         Date = pool.get('ir.date')
-        Period = pool.get('account.period')
+        #Period = pool.get('account.period')
 
         invoices_in = [i for i in invoices if i.type == 'in']
         invoices_out = [i for i in invoices if i.type == 'out']
@@ -1090,8 +1090,8 @@ class Invoice(metaclass=PoolMeta):
         invoices_nowsfe = invoices_out.copy()
         for invoice in invoices_out:
             # raise an exception if no period is found.
-            Period.find(invoice.company.id,
-                date=invoice.accounting_date or invoice.invoice_date)
+            #Period.find(invoice.company.id,
+                #date=invoice.accounting_date or invoice.invoice_date)
 
             invoice.check_invoice_type()
             if not invoice.pos:
@@ -1470,6 +1470,7 @@ class Invoice(metaclass=PoolMeta):
         pool = Pool()
         Sequence = pool.get('ir.sequence')
         Date = pool.get('ir.date')
+        today = Date.today()
 
         # get the electronic invoice type, point of sale and service:
         tipo_cbte = self.invoice_type.invoice_type
@@ -1516,7 +1517,7 @@ class Invoice(metaclass=PoolMeta):
         if self.invoice_date:
             fecha_cbte = self.invoice_date.strftime('%Y-%m-%d')
         else:
-            fecha_cbte = Date.today().strftime('%Y-%m-%d')
+            fecha_cbte = today.strftime('%Y-%m-%d')
 
         if service != 'wsmtxca':
             fecha_cbte = fecha_cbte.replace('-', '')
@@ -1530,14 +1531,15 @@ class Invoice(metaclass=PoolMeta):
                     '207', '208', '211', '212', '213')):
             payments = []
             if self.payment_term:
+                payment_date = self.invoice_date or today
                 payments = self.payment_term.compute(self.total_amount,
-                    self.currency, date=self.invoice_date)
+                    self.currency, payment_date)
             if payments:
                 last_payment = max(payments, key=lambda x: x[0])[0]
             elif service == 'wsfe' and ws.Reprocesar:
                 last_payment = self.invoice_date
             else:
-                last_payment = Date.today()
+                last_payment = today
             fecha_venc_pago = last_payment.strftime('%Y-%m-%d')
             if service != 'wsmtxca':
                 fecha_venc_pago = fecha_venc_pago.replace('-', '')
