@@ -14,16 +14,14 @@ class Party(metaclass=PoolMeta):
     __name__ = 'party.party'
 
     pyafipws_fce = fields.Boolean('MiPyme FCE',
-        states={'readonly': ~Eval('active', True)},
-        depends=['active'])
+        states={'readonly': ~Eval('active', True)})
     pyafipws_fce_amount = fields.Numeric('MiPyme FCE Amount',
         digits=(16, Eval('pyafipws_fce_amount_digits', 2)),
         states={
             'readonly': Or(
                 ~Eval('pyafipws_fce', False),
                 ~Eval('active', True)),
-            },
-        depends=['active', 'pyafipws_fce_amount_digits', 'pyafipws_fce'])
+            })
     pyafipws_fce_amount_digits = fields.Function(fields.Integer(
         'Currency Digits'), 'get_pyafipws_fce_amount_digits')
 

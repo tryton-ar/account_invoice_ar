@@ -389,7 +389,6 @@ class Invoice(metaclass=PoolMeta):
     __name__ = 'account.invoice'
 
     _states = {'readonly': Eval('state') != 'draft'}
-    _depends = ['state']
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
         domain=[('company', '=', Eval('company'))],
@@ -397,8 +396,7 @@ class Invoice(metaclass=PoolMeta):
             'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'in',
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['type', 'state', 'company'])
+            })
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
         domain=[
             ('pos', '=', Eval('pos')),
@@ -412,8 +410,7 @@ class Invoice(metaclass=PoolMeta):
             'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'in',
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['type', 'state', 'pos', 'total_amount'])
+            })
     invoice_type_tree = fields.Function(fields.Selection(INVOICE_TYPE_POS,
         'Tipo comprobante'), 'get_comprobante', searcher='search_comprobante')
     pyafipws_concept = fields.Selection([
@@ -427,21 +424,18 @@ class Invoice(metaclass=PoolMeta):
             #'required': Eval('_parent_pos', {}).get(
             #    'pos_type') == 'electronic',
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['pos', 'state'])
+            })
     pyafipws_billing_start_date = fields.Date('Fecha Desde',
         states={
             'required': Eval('pyafipws_concept').in_(['2', '3']),
             'readonly': Eval('state') != 'draft',
             },
-        depends=['pyafipws_concept', 'state'],
         help='Seleccionar fecha de fin de servicios - Sólo servicios')
     pyafipws_billing_end_date = fields.Date('Fecha Hasta',
         states={
             'required': Eval('pyafipws_concept').in_(['2', '3']),
             'readonly': Eval('state') != 'draft',
             },
-        depends=['pyafipws_concept', 'state'],
         help='Seleccionar fecha de inicio de servicios - Sólo servicios')
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
         help='Código de Autorización Electrónico, devuelto por AFIP')
@@ -457,8 +451,7 @@ class Invoice(metaclass=PoolMeta):
         select=True, states={
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['state', 'type'])
+            })
     tipo_comprobante_string = tipo_comprobante.translated('tipo_comprobante')
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
@@ -468,17 +461,13 @@ class Invoice(metaclass=PoolMeta):
             'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['type', 'state']),
-        'get_ref_subfield', setter='set_ref_subfield')
+            }), 'get_ref_subfield', setter='set_ref_subfield')
     ref_voucher_number = fields.Function(fields.Char('Voucher Number', size=8,
         states={
             'required': And(Eval('type') == 'in', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['type', 'state']),
-        'get_ref_subfield', setter='set_ref_subfield')
+            }), 'get_ref_subfield', setter='set_ref_subfield')
     pos_pos_daily_report = fields.Function(fields.Boolean("POS Daily Report"),
         'on_change_with_pos_pos_daily_report')
     ref_number_from = fields.Char('From number', size=13,
@@ -486,15 +475,13 @@ class Invoice(metaclass=PoolMeta):
             'required': Eval('pos_pos_daily_report', False),
             'invisible': ~Eval('pos_pos_daily_report', False),
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['pos_pos_daily_report', 'state'])
+            })
     ref_number_to = fields.Char('To number', size=13,
         states={
             'required': Eval('pos_pos_daily_report', False),
             'invisible': ~Eval('pos_pos_daily_report', False),
             'readonly': Eval('state') != 'draft',
-            },
-        depends=['pos_pos_daily_report', 'state'])
+            })
     party_iva_condition = fields.Selection([
         ('', ''),
         ('responsable_inscripto', 'Responsable Inscripto'),
@@ -515,11 +502,11 @@ class Invoice(metaclass=PoolMeta):
             'owners': Eval('company_party'),
             'numbers.type': 'cbu',
             },
-        states=_states, depends=_depends + ['company_party'])
+        states=_states, depends={'company_party'})
     pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación',
-        states=_states, depends=_depends)
+        states=_states)
     currency_rate = fields.Numeric('Currency rate', digits=(12, 6),
-        states=_states, depends=_depends)
+        states=_states)
     pyafipws_imp_neto = fields.Function(fields.Numeric('Gravado',
         digits=(12, 2)), 'on_change_with_pyafipws_imp_neto')
     pyafipws_imp_tot_conc = fields.Function(fields.Numeric('No Gravado',
@@ -540,14 +527,13 @@ class Invoice(metaclass=PoolMeta):
                 ('id', 'in', Eval('pyafipws_cmp_asoc')),
                 ],
             ],
-        states=_states,
-        depends=_depends + ['company', 'pyafipws_cmp_asoc'])
+        states=_states)
     pyafipws_cmp_asoc_desde = fields.Date('Período desde',
-        states=_states, depends=_depends)
+        states=_states)
     pyafipws_cmp_asoc_hasta = fields.Date('Período hasta',
-        states=_states, depends=_depends)
+        states=_states)
 
-    del _states, _depends
+    del _states
 
     @classmethod
     def __setup__(cls):
@@ -561,7 +547,7 @@ class Invoice(metaclass=PoolMeta):
                 Eval('state', 'draft').in_([
                     'draft', 'validated', 'cancelled']))
             })
-        cls.number.depends = ['pos_pos_daily_report', 'state']
+        cls.number.depends = {'pos_pos_daily_report', 'state'}
 
     @classmethod
     def __register__(cls, module_name):
@@ -2273,7 +2259,6 @@ class CreditInvoiceStart(metaclass=PoolMeta):
     from_fce = fields.Boolean('From FCE', readonly=True)
     pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación',
         states={'invisible': ~Bool(Eval('from_fce'))},
-        depends=['from_fce'],
         help='If true, the FCE was anulled from the customer.')
 
     @classmethod

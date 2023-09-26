@@ -44,26 +44,22 @@ class Pos(ModelSQL, ModelView):
     __name__ = 'account.pos'
 
     _states = {'readonly': ~Eval('active', True)}
-    _depends = ['active']
 
     company = fields.Many2One('company.company', 'Company', required=True,
-        states=_states, depends=_depends)
+        states=_states)
     number = fields.Integer('Punto de Venta AFIP', required=True,
-        states=_states, depends=_depends,
-        help='Prefijo de emisión habilitado en AFIP')
+        states=_states, help='Prefijo de emisión habilitado en AFIP')
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
         'Point of Sale', context={'company': Eval('company', -1)},
-        states=_states, depends=['company', 'active'])
+        states=_states, depends={'company'})
     pos_type = fields.Selection([
         ('manual', 'Manual'),
         ('electronic', 'Electronic'),
         ('fiscal_printer', 'Fiscal Printer'),
-        ], 'Pos Type', required=True,
-        states=_states, depends=_depends)
+        ], 'Pos Type', required=True, states=_states)
     pos_type_string = pos_type.translated('pos_type')
     pos_daily_report = fields.Boolean('Cierre diario (ZETA)',
-        states={'invisible': Eval('pos_type') != 'fiscal_printer'},
-        depends=['pos_type'])
+        states={'invisible': Eval('pos_type') != 'fiscal_printer'})
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
         ('wsfe', 'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
@@ -76,11 +72,10 @@ class Pos(ModelSQL, ModelView):
             'invisible': Eval('pos_type') != 'electronic',
             'readonly': ~Eval('active', True),
             },
-        depends=['pos_type', 'active'],
         help='Habilita la facturación electrónica por webservices AFIP')
     active = fields.Boolean('Active', select=True)
 
-    del _states, _depends
+    del _states
 
     @classmethod
     def __register__(cls, module_name):
