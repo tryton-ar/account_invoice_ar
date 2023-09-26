@@ -22,6 +22,7 @@ from trytond.exceptions import UserError
 from trytond.i18n import gettext
 from trytond.tools import cursor_dict
 from .pos import INVOICE_TYPE_POS
+from trytond.modules.account_invoice.exceptions import InvoiceNumberError
 
 logger = logging.getLogger(__name__)
 
@@ -1026,15 +1027,68 @@ class Invoice(metaclass=PoolMeta):
 
     @classmethod
     def set_number(cls, invoices):
-        super().set_number(invoices)
+        '''
+        Set number to the invoice
+        '''
+        pool = Pool()
+        Date = pool.get('ir.date')
+        Lang = pool.get('ir.lang')
+        Sequence = pool.get('ir.sequence')
+        today = Date.today()
+
+        def accounting_date(invoice):
+            return invoice.accounting_date or invoice.invoice_date or today
+
+        invoices = sorted(invoices, key=accounting_date)
+        sequences = set()
+
         for invoice in invoices:
             # Posted and paid invoices are tested by check_modify so we can
             # not modify tax_identifier nor number
             if invoice.state in {'posted', 'paid'}:
                 continue
+            if not invoice.tax_identifier:
+                invoice.tax_identifier = invoice.get_tax_identifier()
+            # Generated invoice may not fill the party tax identifier
+            if not invoice.party_tax_identifier:
+                invoice.party_tax_identifier = invoice.party.tax_identifier
             # Generated invoice may not fill the party iva_condition
             if not invoice.party_iva_condition and invoice.type == 'out':
                 invoice.party_iva_condition = invoice.party.iva_condition
+
+            if invoice.number:
+                continue
+
+            if not invoice.invoice_date and invoice.type == 'out':
+                invoice.invoice_date = today
+            invoice.number, invoice.sequence = invoice.get_next_number()
+            if invoice.type == 'out' and invoice.sequence not in sequences:
+                date = accounting_date(invoice)
+                # Do not need to lock the table
+                # because sequence.get_id is sequential
+                after_invoices = cls.search([
+                    ('type', '=', 'out'),
+                    ('sequence', '=', invoice.sequence),
+                    ['OR',
+                        ('accounting_date', '>', date),
+                        [
+                            ('accounting_date', '=', None),
+                            ('invoice_date', '>', date)],
+                        ],
+                    ], order=[
+                        ('accounting_date', 'DESC'),
+                        ('invoice_date', 'DESC'),
+                        ],
+                    limit=1)
+                if after_invoices:
+                    after_invoice, = after_invoices
+                    raise InvoiceNumberError(
+                        gettext('account_invoice.msg_invoice_number_after',
+                            invoice=invoice.rec_name,
+                            sequence=Sequence(invoice.sequence).rec_name,
+                            date=Lang.get().strftime(date),
+                            after_invoice=after_invoice.rec_name))
+                sequences.add(invoice.sequence)
         cls.save(invoices)
 
     def get_next_number(self, pattern=None):
@@ -1233,7 +1287,9 @@ class Invoice(metaclass=PoolMeta):
                         [vto[:4], vto[4:6], vto[6:8]])
                 invoice.pyafipws_cae = cae
                 invoice.pyafipws_barcode = bars
-                invoice.pyafipws_cae_due_date = pyafipws_cae_due_date
+                invoice.pyafipws_cae_due_date = datetime.strptime(
+                    pyafipws_cae_due_date, "%Y-%m-%d").date()
+
                 # commit()
                 cls.save([invoice])
                 Transaction().commit()
@@ -1895,7 +1951,9 @@ class Invoice(metaclass=PoolMeta):
                 pyafipws_cae_due_date = '-'.join([vto[:4], vto[4:6], vto[6:8]])
             self.pyafipws_cae = ws.CAE
             self.pyafipws_barcode = bars
-            self.pyafipws_cae_due_date = pyafipws_cae_due_date
+            self.pyafipws_cae_due_date = datetime.strptime(
+                pyafipws_cae_due_date, "%Y-%m-%d").date()
+
             return 'A'
 
         if afip_tr.pyafipws_message.find('502:') != -1:
