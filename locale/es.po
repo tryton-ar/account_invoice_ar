@@ -15,8 +15,8 @@ msgid "Tipo comprobante"
 msgstr "Tipo comprobante"
 
 msgctxt "field:account.invoice,party_iva_condition:"
-msgid "Condicion ante IVA"
-msgstr "Condición ante IVA"
+msgid "Condición ante IVA"
+msgstr ""
 
 msgctxt "field:account.invoice,pos:"
 msgid "Point of Sale"
@@ -56,6 +56,14 @@ msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_cmp_asoc:"
 msgid "Comprobantes asociados"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_cmp_asoc_desde:"
+msgid "Período desde"
+msgstr ""
+
+msgctxt "field:account.invoice,pyafipws_cmp_asoc_hasta:"
+msgid "Período hasta"
 msgstr ""
 
 msgctxt "field:account.invoice,pyafipws_concept:"
@@ -385,7 +393,7 @@ msgid "La empresa no tiene configurado el identificador impositivo"
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_missing_cmp_asoc"
-msgid "Falta cargar el Comprobante asociado"
+msgid "Falta cargar el Comprobante asociado o un Período de fechas"
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_missing_company_iva_condition"
@@ -476,6 +484,10 @@ msgctxt "model:ir.message,text:msg_wsaa_error"
 msgid "There was a problem to connect webservice WSAA: (%(msg)s)"
 msgstr ""
 
+msgctxt "model:ir.rule.group,name:rule_group_pos_companies"
+msgid "User in companies"
+msgstr "Usuario en las empresas"
+
 msgctxt "model:ir.ui.menu,name:menu_main_point_of_sale"
 msgid "Points of Sale"
 msgstr "Puntos de Venta"
@@ -483,6 +495,10 @@ msgstr "Puntos de Venta"
 msgctxt "model:ir.ui.menu,name:menu_point_of_sale"
 msgid "Points of Sale"
 msgstr "Puntos de Venta"
+
+msgctxt "report:account.invoice:"
+msgid "."
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid ":"
@@ -493,68 +509,116 @@ msgid "Amount"
 msgstr "Importe"
 
 msgctxt "report:account.invoice:"
-msgid "Base"
-msgstr "Base"
+msgid "CAE N°"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "COD"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "CUIT"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "CUIT Pa"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "DNI:"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "Date"
 msgstr "Fecha"
 
 msgctxt "report:account.invoice:"
-msgid "Date:"
-msgstr "Fecha:"
-
-msgctxt "report:account.invoice:"
 msgid "Description"
 msgstr "Descripción"
 
 msgctxt "report:account.invoice:"
-msgid "Description:"
-msgstr "Descripción:"
+msgid "Domicilio:"
+msgstr ""
 
 msgctxt "report:account.invoice:"
-msgid "Draft Invoice"
-msgstr "Factura borrador"
+msgid "Exento"
+msgstr ""
 
 msgctxt "report:account.invoice:"
-msgid "Invoice N°:"
-msgstr "Factura Nº:"
+msgid "FACTURA BORRADOR"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "FACTURA PROFORMA"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "Fecha"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "Fecha Vto. CAE:"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "Gravado"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "IIBB:"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "IVA"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "Inicio de Actividad:"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "No gravado"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "N°:"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "ORIGINAL"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "Payment Term"
 msgstr "Plazo de pago"
 
 msgctxt "report:account.invoice:"
-msgid "Pro forma Invoice"
-msgstr "Factura Pro Forma"
+msgid "Percepciones"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "Periodo Facturado:"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "Quantity"
 msgstr "Cantidad"
 
 msgctxt "report:account.invoice:"
-msgid "Reference"
-msgstr "Referencia"
+msgid "Sr.(s)"
+msgstr ""
 
 msgctxt "report:account.invoice:"
-msgid "Supplier Invoice N°:"
-msgstr "Factura de proveedor Nº:"
+msgid "Subtotal:"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "Tax"
 msgstr "Impuesto"
 
 msgctxt "report:account.invoice:"
-msgid "Taxes"
-msgstr "Impuestos"
-
-msgctxt "report:account.invoice:"
 msgid "Taxes:"
 msgstr "Impuestos:"
-
-msgctxt "report:account.invoice:"
-msgid "Total (excl. taxes):"
-msgstr "Total (sin impuestos):"
 
 msgctxt "report:account.invoice:"
 msgid "Total:"
@@ -563,6 +627,14 @@ msgstr "Total:"
 msgctxt "report:account.invoice:"
 msgid "Unit Price"
 msgstr "Precio unitario"
+
+msgctxt "report:account.invoice:"
+msgid "s"
+msgstr ""
+
+msgctxt "report:account.invoice:"
+msgid "í"
+msgstr ""
 
 msgctxt "selection:account.invoice,invoice_type_tree:"
 msgid "01-Factura A"
@@ -669,23 +741,31 @@ msgid "213-Nota de Crédito Electrónica MiPyMEs C"
 msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Cliente del Exterior"
+msgstr ""
+
+msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "Consumidor Final"
 msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
-msgid "Exento"
+msgid "No Alcanzado"
 msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
-msgid "Monotributo"
-msgstr ""
-
-msgctxt "selection:account.invoice,party_iva_condition:"
-msgid "No alcanzado"
+msgid "Proveedor del Exterior"
 msgstr ""
 
 msgctxt "selection:account.invoice,party_iva_condition:"
 msgid "Responsable Inscripto"
+msgstr ""
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Responsable Monotributo"
+msgstr ""
+
+msgctxt "selection:account.invoice,party_iva_condition:"
+msgid "Sujeto Exento"
 msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_concept:"
