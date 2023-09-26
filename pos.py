@@ -3,7 +3,7 @@
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
 
-from trytond.model import ModelView, ModelSQL, fields
+from trytond.model import ModelView, ModelSQL, fields, Index
 from trytond.pool import Pool
 from trytond.pyson import Eval, Id
 from trytond.transaction import Transaction
@@ -73,9 +73,17 @@ class Pos(ModelSQL, ModelView):
             'readonly': ~Eval('active', True),
             },
         help='Habilita la facturación electrónica por webservices AFIP')
-    active = fields.Boolean('Active', select=True)
+    active = fields.Boolean('Active')
 
     del _states
+
+    @classmethod
+    def __setup__(cls):
+        super().__setup__()
+        t = cls.__table__()
+        #cls._sql_indexes.update({
+            #Index(t, (t.active, Index.Equality())),
+            #})
 
     @classmethod
     def __register__(cls, module_name):
@@ -122,9 +130,9 @@ class PosSequence(ModelSQL, ModelView):
     __name__ = 'account.pos.sequence'
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
-        ondelete='CASCADE', select=True, required=True)
+        ondelete='CASCADE', required=True)
     invoice_type = fields.Selection(INVOICE_TYPE_POS,
-        'Tipo Comprobante AFIP', select=True, required=True,
+        'Tipo Comprobante AFIP', required=True,
         help='Tipo de Comprobante AFIP')
     invoice_type_string = invoice_type.translated('invoice_type')
     invoice_sequence = fields.Many2One('ir.sequence',
@@ -134,6 +142,14 @@ class PosSequence(ModelSQL, ModelView):
                 Id('account_invoice', 'sequence_type_account_invoice')),
             ('company', '=', Eval('context', {}).get('company', -1)),
             ])
+
+    @classmethod
+    def __setup__(cls):
+        super().__setup__()
+        t = cls.__table__()
+        #cls._sql_indexes.update({
+            #Index(t, (t.invoice_type, Index.Equality())),
+            #})
 
     @classmethod
     def __register__(cls, module_name):
