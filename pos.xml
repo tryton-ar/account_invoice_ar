@@ -36,6 +36,19 @@
         <menuitem name="Points of Sale" parent="menu_main_point_of_sale"
             id="menu_point_of_sale" action="act_account_pos"/>
 
+        <record model="ir.rule.group" id="rule_group_pos_companies">
+            <field name="name">User in companies</field>
+            <field name="model"
+                search="[('model', '=', 'account.pos')]"/>
+            <field name="global_p" eval="True"/>
+        </record>
+        <record model="ir.rule" id="rule_pos_companies">
+            <field name="domain"
+                eval="[('company', 'in', Eval('companies', []))]"
+                pyson="1"/>
+            <field name="rule_group" ref="rule_group_pos_companies"/>
+        </record>
+
         <record model="ir.ui.view" id="pos_sequence_view_form">
             <field name="model">account.pos.sequence</field>
             <field name="type">form</field>
