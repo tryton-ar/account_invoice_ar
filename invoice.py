@@ -923,6 +923,8 @@ class Invoice(metaclass=PoolMeta):
         products = {'1': 0, '2': 0}
         self.pyafipws_concept = ''
         for line in self.lines:
+            if line.type != 'line':
+                continue
             if line.product:
                 if line.product.type == 'goods':
                     products['1'] += 1
@@ -942,6 +944,8 @@ class Invoice(metaclass=PoolMeta):
         '''
         set pyafipws_billing_dates by invoice_date.
         '''
+        if self.pyafipws_concept not in ['2', '3']:
+            return
         today = Pool().get('ir.date').today()
         if self.invoice_date:
             year = int(self.invoice_date.strftime("%Y"))
