@@ -1132,6 +1132,10 @@ class Invoice(metaclass=PoolMeta):
         Date = pool.get('ir.date')
         #Period = pool.get('account.period')
 
+        draft_invoices = [i for i in invoices if i.state == 'draft']
+        if draft_invoices:
+            cls.validate_invoice(draft_invoices)
+
         invoices_in = [i for i in invoices if i.type == 'in']
         invoices_out = [i for i in invoices if i.type == 'out']
 
