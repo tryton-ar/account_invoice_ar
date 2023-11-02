@@ -1830,7 +1830,7 @@ class Invoice(metaclass=PoolMeta):
                     desc = tax.name
                     base_imp = ('%.2f' % abs(tax_line.base))
                     importe = ('%.2f' % abs(tax_line.amount))
-                    alic = '%.2f' % abs(tax.rate * 100)
+                    alic = '%.2f' % (abs(tax_line.amount) / abs(tax_line.base) * 100)
                     # add the other tax detail in the helper
                     ws.AgregarTributo(tributo_id, desc, base_imp, alic,
                         importe)
