@@ -2064,7 +2064,8 @@ class InvoiceReport(metaclass=PoolMeta):
         return context
 
     @classmethod
-    def get_line_amount(cls, line_amount, line_taxes, invoice_type=None):
+    def get_line_amount(cls, line_amount, line_taxes,
+            invoice_type=None, tax_date=None):
 
         def is_credit_note(invoice_type):
             if (invoice_type and invoice_type.invoice_type in
@@ -2077,7 +2078,7 @@ class InvoiceReport(metaclass=PoolMeta):
         Tax = Pool().get('account.tax')
         line_taxes = cls.get_line_taxes(line_taxes)
         for line_tax in line_taxes:
-            values, = Tax.compute([line_tax.tax], line_amount, 1)
+            values, = Tax.compute([line_tax.tax], line_amount, 1, tax_date)
             line_amount = values['amount'] + values['base']
         return line_amount
 

@@ -1287,10 +1287,10 @@
       <text:p text:style-name="P76"><text:placeholder text:placeholder-type="text">&lt;format_number_symbol(line.quantity, invoice.party.lang, line.unit, digits=line.unit.digits) if line.unit else format_number(line.quantity, invoice.party.lang)&gt;</text:placeholder></text:p>
      </table:table-cell>
      <table:table-cell table:style-name="Table6.C5" office:value-type="string">
-      <text:p text:style-name="P76"><text:placeholder text:placeholder-type="text">&lt;format_number(get_line_amount(line.unit_price, line.invoice_taxes), invoice.party.lang,  digits=invoice.currency.digits, monetary=invoice.currency)&gt;</text:placeholder></text:p>
+      <text:p text:style-name="P76"><text:placeholder text:placeholder-type="text">&lt;format_number(get_line_amount(line.unit_price, line.invoice_taxes, None, invoice.tax_date), invoice.party.lang,  digits=invoice.currency.digits, monetary=invoice.currency)&gt;</text:placeholder></text:p>
      </table:table-cell>
      <table:table-cell table:style-name="Table6.D5" table:number-columns-spanned="2" office:value-type="string">
-      <text:p text:style-name="P74"><text:placeholder text:placeholder-type="text">&lt;format_currency(get_line_amount(line.amount, line.invoice_taxes, invoice.invoice_type), invoice.party.lang, currency=invoice.currency)&gt;</text:placeholder></text:p>
+      <text:p text:style-name="P74"><text:placeholder text:placeholder-type="text">&lt;format_currency(get_line_amount(line.amount, line.invoice_taxes, invoice.invoice_type, invoice.tax_date), invoice.party.lang, currency=invoice.currency)&gt;</text:placeholder></text:p>
      </table:table-cell>
      <table:covered-table-cell/>
     </table:table-row>
