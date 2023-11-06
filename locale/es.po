@@ -484,6 +484,10 @@ msgctxt "model:ir.message,text:msg_wsaa_error"
 msgid "There was a problem to connect webservice WSAA: (%(msg)s)"
 msgstr ""
 
+msgctxt "model:ir.message,text:account_invoice.msg_invoice_similar"
+msgid "The invoice \"%(invoice)s\" is similar to invoice \"%(similar)s\"."
+msgstr "La factura \"%(invoice)s\" es similar a la factura \"%(similar)s\"."
+
 msgctxt "model:ir.rule.group,name:rule_group_pos_companies"
 msgid "User in companies"
 msgstr "Usuario en las empresas"

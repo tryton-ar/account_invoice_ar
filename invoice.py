@@ -797,7 +797,6 @@ class Invoice(metaclass=PoolMeta):
                 invoice.check_invoice_type()
             elif invoice.type == 'in':
                 invoice.pre_validate_fields()
-                invoice.check_unique_reference()
         super().validate_invoice(invoices)
 
     def check_invoice_type(self):
@@ -820,28 +819,31 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
 
-    def check_unique_reference(self):
-        invoice = self.search([
-            ('id', '!=', self.id),
-            ('type', '=', self.type),
-            ('party', '=', self.party.id),
-            ('tipo_comprobante', '=', self.tipo_comprobante),
-            ('reference', '=', self.reference),
-            ('state', '!=', 'cancelled'),
-            ])
-        if len(invoice) > 0:
-            raise UserError(gettext(
-                'account_invoice_ar.msg_reference_unique'))
-
     def pre_validate_fields(self):
         if not self.reference and not self.tipo_comprobante:
             raise UserError(gettext(
                 'account_invoice_ar.msg_in_invoice_validate_failed'))
 
+    def _similar_domain(self, delay=None):
+        # Ignore cancelled invoices when checking similarity
+        domain = super()._similar_domain(delay=None)
+        domain.append(('state', '!=', 'cancelled'))
+        return domain
+
     @fields.depends('party', 'tipo_comprobante', 'type', 'reference')
     def on_change_reference(self):
         if self.type == 'in':
-            self.check_unique_reference()
+            invoice = self.search([
+                ('id', '!=', self.id),
+                ('type', '=', self.type),
+                ('party', '=', self.party.id),
+                ('tipo_comprobante', '=', self.tipo_comprobante),
+                ('reference', '=', self.reference),
+                ('state', '!=', 'cancelled'),
+                ])
+            if len(invoice) > 0:
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_reference_unique'))
 
     @fields.depends('pos', 'party', 'type', 'company')
     def on_change_pos(self):
