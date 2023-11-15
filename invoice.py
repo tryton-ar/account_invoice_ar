@@ -778,7 +778,7 @@ class Invoice(metaclass=PoolMeta):
                 ref_value=value))
         reference = None
         for invoice in invoices:
-            if invoice.type == 'in':
+            if value and invoice.type == 'in':
                 if name == 'ref_pos_number':
                     reference = '%05d-%08d' % (int(value or 0),
                         int(invoice.ref_voucher_number or 0))
@@ -820,9 +820,12 @@ class Invoice(metaclass=PoolMeta):
                 'account_invoice_ar.msg_miss_tax_identifier'))
 
     def pre_validate_fields(self):
-        if not self.reference and not self.tipo_comprobante:
+        if not self.reference:
             raise UserError(gettext(
-                'account_invoice_ar.msg_in_invoice_validate_failed'))
+                'account_invoice_ar.msg_invoice_missing_reference'))
+        if not self.tipo_comprobante:
+            raise UserError(gettext(
+                'account_invoice_ar.msg_not_invoice_type'))
 
     def _similar_domain(self, delay=None):
         # Ignore cancelled invoices when checking similarity
