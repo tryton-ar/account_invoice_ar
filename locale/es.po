@@ -360,8 +360,8 @@ msgctxt "model:ir.message,text:msg_fce_10168_cbu_emisor"
 msgid "Si el tipo de comprobante es MiPyme (FCE) es obligatorio informar CBU."
 msgstr ""
 
-msgctxt "model:ir.message,text:msg_in_invoice_validate_failed"
-msgid "Los campos \"Referencia\" y \"Comprobante\" son requeridos."
+msgctxt "model:ir.message,text:msg_invoice_missing_reference"
+msgid "El campo \"Referencia\" es requerido."
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_invalid_cmp_asoc"
@@ -447,7 +447,7 @@ msgid ""
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_not_invoice_type"
-msgid "El campo \"Tipo de factura\" en \"Factura\" es requerido."
+msgid "El campo \"Tipo de factura\" es requerido."
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_reference_unique"

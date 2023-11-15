@@ -26,7 +26,7 @@
             <field name="text">The iva condition on party "%(party)s" is missing.</field>
         </record>
         <record model="ir.message" id="msg_not_invoice_type">
-            <field name="text">El campo "Tipo de factura" en "Factura" es requerido.</field>
+            <field name="text">El campo "Tipo de factura" es requerido.</field>
         </record>
         <record model="ir.message" id="msg_missing_currency_afip_code">
             <field name="text">Debe configurar el código AFIP de la moneda.</field>
@@ -46,8 +46,8 @@
         <record model="ir.message" id="msg_tax_without_group">
             <field name="text">El impuesto (%s) debe tener un grupo asignado (iibb, municipal, iva).</field>
         </record>
-        <record model="ir.message" id="msg_in_invoice_validate_failed">
-            <field name="text">Los campos "Referencia" y "Comprobante" son requeridos.</field>
+        <record model="ir.message" id="msg_invoice_missing_reference">
+            <field name="text">El campo "Referencia" es requerido.</field>
         </record>
         <record model="ir.message" id="msg_rejected_invoices">
             <field name="text">There was a problem at invoice ID "%(invoices)s".\nCheck out error message:\n"%(msg)s"</field>
