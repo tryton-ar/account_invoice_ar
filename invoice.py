@@ -438,6 +438,14 @@ class Invoice(metaclass=PoolMeta):
             'readonly': Eval('state') != 'draft',
             },
         help='Seleccionar fecha de inicio de servicios - Sólo servicios')
+    pyafipws_transfer_mode = fields.Selection([
+        ('SCA', 'Sistema de Circulación Abierta'),
+        ('ADC', 'Agente de Depósito Colectivo'),
+        ('', ''),
+        ], 'Transferencia',
+        states={
+            'readonly': Eval('state') != 'draft',
+            })
     pyafipws_cae = fields.Char('CAE', size=14, readonly=True,
         help='Código de Autorización Electrónico, devuelto por AFIP')
     pyafipws_cae_due_date = fields.Date('Vencimiento CAE', readonly=True,
@@ -592,6 +600,10 @@ class Invoice(metaclass=PoolMeta):
     @staticmethod
     def default_pyafipws_imp_trib():
         return _ZERO
+
+    @staticmethod
+    def default_pyafipws_transfer_mode():
+        return 'SCA'
 
     def on_change_party(self):
         super().on_change_party()
@@ -1777,7 +1789,7 @@ class Invoice(metaclass=PoolMeta):
                             'account_invoice_ar.msg_fce_10168_cbu_emisor'))
                     ws.AgregarOpcional(2101,
                         self.pyafipws_cbu.get_cbu_number())  # CBU
-                    ws.AgregarOpcional(27, 'SCA')
+                    ws.AgregarOpcional(27, self.pyafipws_transfer_mode)
                     # ws.AgregarOpcional(2102, "tryton")  # alias del cbu
                 if self.invoice_type.invoice_type in ('202', '203', '207',
                         '208', '212', '213'):
