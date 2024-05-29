@@ -809,6 +809,7 @@ class Invoice(metaclass=PoolMeta):
                 invoice.check_invoice_type()
             elif invoice.type == 'in':
                 invoice.pre_validate_fields()
+            invoice.check_vat_existance()
         super().validate_invoice(invoices)
 
     def check_invoice_type(self):
@@ -838,6 +839,15 @@ class Invoice(metaclass=PoolMeta):
         if not self.tipo_comprobante:
             raise UserError(gettext(
                 'account_invoice_ar.msg_not_invoice_type'))
+
+    def check_vat_existance(self):
+        for t in self.taxes:
+            if t.tax and t.tax.group:
+                if t.tax.group.code == 'IVA':
+                    return
+        raise UserError(gettext(
+            'account_invoice_ar.msg_vat_not_existance',
+            invoice=self.rec_name))
 
     def _similar_domain(self, delay=None):
         # Ignore cancelled invoices when checking similarity
@@ -1147,141 +1157,112 @@ class Invoice(metaclass=PoolMeta):
         pool = Pool()
         Pos = pool.get('account.pos')
         Date = pool.get('ir.date')
-        #Period = pool.get('account.period')
 
         draft_invoices = [i for i in invoices if i.state == 'draft']
         if draft_invoices:
             cls.validate_invoice(draft_invoices)
 
-        invoices_in = [i for i in invoices if i.type == 'in']
-        invoices_out = [i for i in invoices if i.type == 'out']
-
         invoices_wsfe_done = []
         invoices_wsfe_to_recover = []
-        invoices_wsfe = {}
+        invoices_wsfe_batch = {}
         point_of_sales = Pos.search([
             ('pos_type', '=', 'electronic')
             ])
         for pos in point_of_sales:
             pos_number = str(pos.number)
-            invoices_wsfe[pos_number] = {}
+            invoices_wsfe_batch[pos_number] = {}
             for pos_sequence in pos.pos_sequences:
-                invoices_wsfe[pos_number][pos_sequence.invoice_type] = []
+                invoices_wsfe_batch[pos_number][pos_sequence.invoice_type] = []
+        invoices_wsfe_non_batch = []
 
-        invoices_nowsfe = invoices_out.copy()
+        invoices_in = [i for i in invoices if i.type == 'in']
+        invoices_out = [i for i in invoices if i.type == 'out']
+
+        invoices_to_process = invoices_out.copy()
+
         for invoice in invoices_out:
-            # raise an exception if no period is found.
-            #Period.find(invoice.company.id,
-                #date=invoice.accounting_date or invoice.invoice_date)
-
             invoice.check_invoice_type()
-            if not invoice.pos:
-                continue
             pos = invoice.pos
-            if (pos.pos_type == 'electronic' and
-                    pos.pyafipws_electronic_invoice_service == 'wsfe' and
+            if not pos or pos.pos_type != 'electronic':
+                continue
+            if (pos.pyafipws_electronic_invoice_service == 'wsfe' and
                     invoice.invoice_type.invoice_type not in [
                     '201', '202', '206', '211', '212', '203', '208', '213']):
-                # web service == wsfe invoices go throw batch.
                 if invoice.number and invoice.pyafipws_cae:
                     invoices_wsfe_done.append(invoice)
                 elif invoice.number:
                     invoices_wsfe_to_recover.append(invoice)
                 else:
-                    invoices_wsfe[str(pos.number)][
+                    invoices_wsfe_batch[str(pos.number)][
                         invoice.invoice_type.invoice_type].append(invoice)
-                invoices_nowsfe.remove(invoice)
+            else:
+                if invoice.number and invoice.pyafipws_cae:
+                    invoices_wsfe_done.append(invoice)
+                else:
+                    invoices_wsfe_non_batch.append(invoice)
+            invoices_to_process.remove(invoice)
 
-        invoices_recover = cls.consultar_and_recover(invoices_wsfe_to_recover)
-        failed_recover = [i for i in invoices_recover if not i.number]
+        for invoice in invoices_to_process:
+            pos = invoice.pos
+            if not pos or pos.pos_type != 'fiscal_printer':
+                continue
+            if pos.pos_daily_report:
+                if not invoice.invoice_date:
+                    invoice.invoice_date = Date.today()
+                invoice.number = '%05d-%08d:%d' % \
+                    (pos.number, int(invoice.ref_number_from),
+                     int(invoice.ref_number_to))
+            else:
+                #TODO: Implement fiscal printer integration
+                cls.fiscal_printer_invoice_post()
+
+        invoices_wsfe_recovered = cls.consultar_and_recover(
+            invoices_wsfe_to_recover)
+        failed_recover = [i for i in invoices_wsfe_recovered if not i.number]
         if failed_recover:
-            # raise error, los datos enviados no existen en AFIP.
             raise UserError(gettext(
                     'account_invoice_ar.msg_reprocesar_invoice_dif'))
 
-        error_invoices = []
-        error_pre_afip_invoices = []
-        approved_invoices = []
+        error_afip, error_pre_afip = [], []
 
-        for invoice in invoices_nowsfe:
-            if not invoice.pos:
-                continue
-            pos = invoice.pos
-            if pos.pos_type == 'electronic':
-                if invoice.pyafipws_cae:
-                    continue
-                ws = cls.get_ws_afip(invoice)
-                (ws, error) = invoice.create_pyafipws_invoice(ws,
-                    batch=False)
-                (ws, msg) = invoice.request_cae(ws)
-                result = invoice.process_afip_result(ws, msg=msg)
-                if result == 'A':
-                    # commit()
-                    cls.save([invoice])
-                    Transaction().commit()
-                else:
-                    error_invoices.append(invoice)
-                    invoices_nowsfe.remove(invoice)
-            elif pos.pos_type == 'fiscal_printer':
-                if pos.pos_daily_report:
-                    if not invoice.invoice_date:
-                        invoice.invoice_date = Date.today()
-                    invoice.number = '%05d-%08d:%d' % \
-                        (pos.number, int(invoice.ref_number_from),
-                         int(invoice.ref_number_to))
-                else:
-                    #TODO: Implement fiscal printer integration
-                    cls.fiscal_printer_invoice_post()
+        for i in invoices_wsfe_non_batch:
+            (approved, pre_rejected, rejected) = cls.post_ws(i)
+            if rejected:
+                error_afip.append(rejected)
+            if pre_rejected:
+                error_pre_afip.append(pre_rejected)
 
-        for pos, value_dict in list(invoices_wsfe.items()):
+        for pos, value_dict in list(invoices_wsfe_batch.items()):
             for key, invoices_by_type in list(value_dict.items()):
-                (approved_invoices, pre_rejected_invoice, rejected_invoice) = \
-                    cls.post_wsfe([i for i in invoices_by_type
-                            if not i.number])
-                #if approved_invoices:
-                    #invoices_nowsfe.extend(approved_invoices)
-                if rejected_invoice:
-                    error_invoices.append(rejected_invoice)
-                if pre_rejected_invoice:
-                    error_pre_afip_invoices.append(pre_rejected_invoice)
+                (approved, pre_rejected, rejected) = cls.post_ws_batch(
+                        [i for i in invoices_by_type if not i.number])
+                if rejected:
+                    error_afip.append(rejected)
+                if pre_rejected:
+                    error_pre_afip.append(pre_rejected)
 
-        # invoices_nowsfe: pos manuales + pos WSFEXv1
-        # approved_invoices: invoices aceptadas en afip WSFEv1
-        # recover_invoices: invoices recuperadas y aceptadas por afip WSFEv1
         if invoices_wsfe_done:
-            invoices_nowsfe.extend(invoices_wsfe_done)
-        if invoices_recover:
-            invoices_nowsfe.extend(invoices_recover)
+            invoices_to_process.extend(invoices_wsfe_done)
+        if invoices_wsfe_recovered:
+            invoices_to_process.extend(invoices_wsfe_recovered)
         if invoices_in:
-            invoices_nowsfe.extend(invoices_in)
+            invoices_to_process.extend(invoices_in)
 
         cls.save(invoices)
-        super().post(invoices_nowsfe)
+        super().post(invoices_to_process)
         Transaction().commit()
 
-        if error_invoices:
-            last_invoice = error_invoices[-1]
-            logger.error(
-                'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
-                'XmlResponse: %s\n',
-                last_invoice.id,
-                last_invoice.type, last_invoice.party.rec_name,
-                str(last_invoice.transactions[-1].pyafipws_xml_request),
-                str(last_invoice.transactions[-1].pyafipws_xml_response))
+        if error_afip:
             raise UserError(gettext(
                 'account_invoice_ar.msg_rejected_invoices',
-                invoices=','.join([str(i.id) for i in error_invoices]),
+                invoices=','.join([str(i.id) for i in error_afip]),
                 msg=','.join([i.transactions[-1].pyafipws_message
-                    for i in error_invoices if i.transactions])))
+                    for i in error_afip if i.transactions])))
 
-        if error_pre_afip_invoices:
-            last_invoice = error_pre_afip_invoices[-1]
-            logger.error('Factura: %s, %s\nEntidad: %s', last_invoice.id,
-                last_invoice.type, last_invoice.party.rec_name)
+        if error_pre_afip:
             raise UserError(gettext(
                 'account_invoice_ar.msg_rejected_invoices',
-                invoices=','.join([str(i.id)
-                    for i in error_pre_afip_invoices]),
+                invoices=','.join([str(i.id) for i in error_pre_afip]),
                 msg=''))
 
     @classmethod
@@ -1292,7 +1273,7 @@ class Invoice(metaclass=PoolMeta):
                 raise UserError(gettext(
                     'account_invoice_ar.msg_missing_invoice_date'))
             ws.Reprocesar = True
-            ws, error = invoice.create_pyafipws_invoice(ws)
+            (ws, error) = invoice.create_pyafipws_invoice(ws)
             cbte_nro = int(invoice.number[-8:])
             cae = ws.CompConsultar(invoice.invoice_type.invoice_type,
                 invoice.pos.number, cbte_nro, reproceso=True)
@@ -1413,20 +1394,85 @@ class Invoice(metaclass=PoolMeta):
         return ws
 
     @classmethod
-    def post_wsfe(cls, invoices):
+    def post_ws(cls, invoice):
+        '''
+        Post non batch invoice.
+        '''
+        pool = Pool()
+        Date = pool.get('ir.date')
+
+        if not invoice:
+            return (None, None, None)
+
+        ws = cls.get_ws_afip(invoice)
+        pre_approved = None
+        approved = None
+        pre_rejected = None
+        rejected = None
+        error_obtained = False
+
+        if not invoice.invoice_date:
+            invoice.invoice_date = Date.today()
+        (ws, error) = invoice.create_pyafipws_invoice(ws, batch=False)
+        if error is False:
+            pre_approved = invoice
+        else:
+            error_obtained = True
+            invoice.invoice_date = None
+            pre_rejected = invoice
+            logger.error('%s: %s Entidad: %s',
+                invoice.invoice_type.invoice_type_string,
+                invoice.id, invoice.party.rec_name)
+
+        if pre_approved:
+            cls.set_number([invoice])
+            (ws, error) = invoice.create_pyafipws_invoice(ws, batch=False)
+            (ws, msg) = invoice.request_cae(ws)
+            result = invoice.process_afip_result(ws, msg=msg)
+            if result == 'A':
+                approved = invoice
+            else:
+                error_obtained = True
+                if result != 'R':
+                    invoice.number = None
+                    invoice.invoice_date = None
+                rejected = invoice
+                logger.error(
+                    '%s: %s Entidad: %s\n'
+                    'XmlRequest: %s\nXmlResponse: %s\n',
+                    rejected.invoice_type.invoice_type_string,
+                    rejected.id, rejected.party.rec_name,
+                    repr(ws.XmlRequest), repr(ws.XmlResponse))
+
+            # commit()
+            cls.save([invoice])
+            Transaction().commit()
+            if approved:
+                super().post([approved])
+                Transaction().commit()
+
+        if error_obtained and rejected:
+            rejected.reset_sequence_from_ws(ws)
+
+        return (approved, pre_rejected, rejected)
+
+    @classmethod
+    def post_ws_batch(cls, invoices):
         '''
         Post batch invoices.
         '''
+        pool = Pool()
+        Date = pool.get('ir.date')
+
         if invoices == []:
             return ([], [], [])
 
-        Date = Pool().get('ir.date')
         ws = cls.get_ws_afip(batch=True)
         reg_x_req = ws.CompTotXRequest()    # cant max. comprobantes
-        pre_approved_invoices = []
-        approved_invoices = []
-        pre_rejected_invoice = None
-        rejected_invoice = None
+        pre_approved = []
+        approved = []
+        pre_rejected = None
+        rejected = None
 
         # before set_number, validate some stuff.
         # get only invoices that pass validations.
@@ -1437,19 +1483,22 @@ class Invoice(metaclass=PoolMeta):
                 invoice.invoice_date = Date.today()
             (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
             if error is False:
-                pre_approved_invoices.append(invoice)
+                pre_approved.append(invoice)
             else:
                 invoice.invoice_date = None
-                if pre_rejected_invoice is None:
-                    pre_rejected_invoice = invoice
+                if pre_rejected is None:
+                    pre_rejected = invoice
+                logger.error('%s: %s Entidad: %s',
+                    invoice.invoice_type.invoice_type_string,
+                    invoice.id, invoice.party.rec_name)
 
-        tmp_ = [pre_approved_invoices[i:i + reg_x_req] for i in
-            range(0, len(pre_approved_invoices), reg_x_req)]
+        tmp_ = [pre_approved[i:i + reg_x_req] for i in
+            range(0, len(pre_approved), reg_x_req)]
         for chunk_invoices in tmp_:
             excepcion = False
             ws.IniciarFacturasX()
             invoices_added_to_ws = []
-            chunk_with_errors = False
+            error_obtained = False
             cls.set_number(chunk_invoices)
             for invoice in chunk_invoices:
                 (ws, error) = invoice.create_pyafipws_invoice(ws, batch=True)
@@ -1472,35 +1521,31 @@ class Invoice(metaclass=PoolMeta):
                 cant += 1
                 result = 'R' if excepcion else invoice.process_afip_result(ws)
                 if result == 'A':
-                    approved_invoices.append(invoice)
+                    approved.append(invoice)
                 else:
-                    chunk_with_errors = True
+                    error_obtained = True
                     if result != 'R':
                         invoice.number = None
                         invoice.invoice_date = None
-                    if rejected_invoice is None:
-                        rejected_invoice = invoice
+                    if rejected is None:
+                        rejected = invoice
                         logger.error(
-                            'Factura: %s, %s\nEntidad: %s\nXmlRequest: %s\n'
-                            'XmlResponse: %s\n', rejected_invoice.id,
-                            rejected_invoice.type,
-                            rejected_invoice.party.rec_name,
+                            '%s: %s Entidad: %s\n'
+                            'XmlRequest: %s\nXmlResponse: %s\n',
+                            rejected.invoice_type.invoice_type_string,
+                            rejected.id, rejected.party.rec_name,
                             repr(ws.XmlRequest), repr(ws.XmlResponse))
             # commit()
             cls.save(invoices_added_to_ws)
             Transaction().commit()
-            super().post(approved_invoices)
-            Transaction().commit()
+            if approved:
+                super().post(approved)
+                Transaction().commit()
 
-            if chunk_with_errors:
-                # Set next sequence number to be the last cbte_nro_afip + 1.
-                sequence = rejected_invoice.invoice_type.invoice_sequence
-                tipo_cbte = rejected_invoice.invoice_type.invoice_type
-                punto_vta = rejected_invoice.pos.number
-                cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
-                sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
+            if error_obtained and rejected:
+                rejected.reset_sequence_from_ws(ws)
 
-        return (approved_invoices, pre_rejected_invoice, rejected_invoice)
+        return (approved, pre_rejected, rejected)
 
     def create_pyafipws_invoice(self, ws, batch=False):
         '''
@@ -1526,13 +1571,7 @@ class Invoice(metaclass=PoolMeta):
             text = text.decode("utf-8")
             return str(text)
 
-        # if already authorized (electronic invoice with CAE), ignore
-        #if self.pyafipws_cae:
-        #    logger.info('invoice_has_cae: Invoice (%s) has CAE %s',
-        #        (self.number, self.pyafipws_cae))
-        #    return (ws, True)
-
-        # if pyafipws_concept is empty
+        # verify pyafipws_concept
         if not self.pyafipws_concept:
             if batch:
                 logger.error('missing_pyafipws_concept:field pyafipws_concept '
@@ -1578,8 +1617,11 @@ class Invoice(metaclass=PoolMeta):
         elif batch:
             cbte_nro_next = cbte_nro
         else:
-            if service == 'wsfe' or service == 'wsmtxca':
+            if service == 'wsfe':
                 cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
+            elif service == 'wsmtxca':
+                cbte_nro_afip = ws.ConsultarUltimoComprobanteAutorizado(
+                    tipo_cbte, punto_vta)
             elif service == 'wsfex':
                 cbte_nro_afip = ws.GetLastCMP(tipo_cbte, punto_vta)
             cbte_nro_next = int(cbte_nro_afip or 0) + 1
@@ -1847,7 +1889,8 @@ class Invoice(metaclass=PoolMeta):
                     desc = tax.name
                     base_imp = ('%.2f' % abs(tax_line.base))
                     importe = ('%.2f' % abs(tax_line.amount))
-                    alic = '%.2f' % (abs(tax_line.amount) / abs(tax_line.base) * 100)
+                    alic = '%.2f' % (abs(tax_line.amount) /
+                        abs(tax_line.base) * 100)
                     # add the other tax detail in the helper
                     ws.AgregarTributo(tributo_id, desc, base_imp, alic,
                         importe)
@@ -1876,7 +1919,8 @@ class Invoice(metaclass=PoolMeta):
                     #        imp_iva = importe * tax.rate
                     #if service == 'wsmtxca':
                     #    ws.AgregarItem(u_mtx, cod_mtx, codigo, ds, qty, umed,
-                    #            precio, bonif, iva_id, imp_iva, importe+imp_iva)
+                    #            precio, bonif, iva_id, imp_iva,
+                    #            importe+imp_iva)
                     if service == 'wsfex':
                         ws.AgregarItem(codigo, ds, qty, umed, precio,
                             importe_total, bonif)
@@ -2008,6 +2052,28 @@ class Invoice(metaclass=PoolMeta):
         if digito == 10:
             digito = 0
         return str(digito)
+
+    def reset_sequence_from_ws(self, ws):
+        '''
+        Set next sequence number to be the last cbte_nro_afip + 1.
+        '''
+        sequence = self.invoice_type.invoice_sequence
+        tipo_cbte = self.invoice_type.invoice_type
+        punto_vta = self.pos.number
+        service = self.pos.pyafipws_electronic_invoice_service
+
+        if service == 'wsfe':
+            cbte_nro_afip = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
+        elif service == 'wsmtxca':
+            cbte_nro_afip = ws.ConsultarUltimoComprobanteAutorizado(
+                tipo_cbte, punto_vta)
+        elif service == 'wsfex':
+            cbte_nro_afip = ws.GetLastCMP(tipo_cbte, punto_vta)
+        else:
+            cbte_nro_afip = None
+
+        if cbte_nro_afip is not None:
+            sequence.update_sql_sequence(int(cbte_nro_afip) + 1)
 
 
 class InvoiceExportLicense(ModelSQL, ModelView):
