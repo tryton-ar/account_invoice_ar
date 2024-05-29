@@ -102,6 +102,10 @@ msgctxt "field:account.invoice,pyafipws_number:"
 msgid "Número"
 msgstr ""
 
+msgctxt "field:account.invoice,pyafipws_transfer_mode:"
+msgid "Transferencia"
+msgstr ""
+
 msgctxt "field:account.invoice,ref_number_from:"
 msgid "From number"
 msgstr ""
@@ -348,6 +352,10 @@ msgctxt "model:ir.action,name:report_invoice"
 msgid "Invoice"
 msgstr "Factura"
 
+msgctxt "model:ir.message,text:msg_vat_not_existance"
+msgid "Invoice \"%(invoice)s\" is missing a VAT tax."
+msgstr "A la factura \"%(invoice)s\" le falta un impuesto IVA."
+
 msgctxt "model:ir.message,text:msg_company_not_defined"
 msgid "The company is not defined"
 msgstr "Empresa no definida"
@@ -358,10 +366,6 @@ msgstr ""
 
 msgctxt "model:ir.message,text:msg_fce_10168_cbu_emisor"
 msgid "Si el tipo de comprobante es MiPyme (FCE) es obligatorio informar CBU."
-msgstr ""
-
-msgctxt "model:ir.message,text:msg_invoice_missing_reference"
-msgid "El campo \"Referencia\" es requerido."
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_invalid_cmp_asoc"
@@ -386,6 +390,10 @@ msgstr ""
 
 msgctxt "model:ir.message,text:msg_invalid_ref_number"
 msgid "The value \"%(ref_value)s\" is not a number."
+msgstr ""
+
+msgctxt "model:ir.message,text:msg_invoice_missing_reference"
+msgid "El campo \"Referencia\" es requerido."
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_miss_tax_identifier"
@@ -456,8 +464,8 @@ msgstr ""
 
 msgctxt "model:ir.message,text:msg_rejected_invoices"
 msgid ""
-"There was a problem at invoice ID \"%(invoices)s\".\\nCheck out error "
-"message:\\n\"%(msg)s\""
+"Facturas rechazadas (ID: %(invoices)s):\n"
+"%(msg)s"
 msgstr ""
 
 msgctxt "model:ir.message,text:msg_reprocesar_invoice_dif"
@@ -846,6 +854,14 @@ msgstr ""
 
 msgctxt "selection:account.invoice,pyafipws_incoterms:"
 msgid "FREE ON BOARD"
+msgstr ""
+
+msgctxt "selection:account.invoice,pyafipws_transfer_mode:"
+msgid "Agente de Depósito Colectivo"
+msgstr ""
+
+msgctxt "selection:account.invoice,pyafipws_transfer_mode:"
+msgid "Sistema de Circulación Abierta"
 msgstr ""
 
 msgctxt "selection:account.invoice,tipo_comprobante:"

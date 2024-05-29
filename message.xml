@@ -50,7 +50,8 @@
             <field name="text">El campo "Referencia" es requerido.</field>
         </record>
         <record model="ir.message" id="msg_rejected_invoices">
-            <field name="text">There was a problem at invoice ID "%(invoices)s".\nCheck out error message:\n"%(msg)s"</field>
+            <field name="text">Facturas rechazadas (ID: %(invoices)s):
+%(msg)s</field>
         </record>
         <record model="ir.message" id="msg_webservice_unknown">
             <field name="text">AFIP web service is unknown</field>
@@ -93,6 +94,9 @@
         </record>
         <record model="ir.message" id="msg_missing_cuit_pais">
             <field name="text">Es requisito que el tercero "%(party)s" tenga CUIT Pais.</field>
+        </record>
+        <record model="ir.message" id="msg_vat_not_existance">
+            <field name="text">Invoice "%(invoice)s" is missing a VAT tax.</field>
         </record>
     </data>
 </tryton>
