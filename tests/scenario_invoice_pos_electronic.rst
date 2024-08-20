@@ -18,7 +18,7 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_pos, get_invoice_types, get_pos, create_tax_groups, get_wsfev1
+    ...     create_pos, get_invoice_types, get_pos, get_tax_group, get_wsfev1
     >>> from trytond.modules.party_ar.tests.tools import set_afip_certs
     >>> today = datetime.date.today()
 
@@ -67,16 +67,20 @@ Create point of sale::
     >>> pos = get_pos(type='electronic', number=4000)
     >>> invoice_types = get_invoice_types(pos=pos)
 
-Create tax groups::
+Get tax group IVA Ventas Gravado::
 
-    >>> tax_groups = create_tax_groups()
+    >>> tax_group_gravado = get_tax_group('IVA', 'sale', 'gravado')
+
+Get tax group IVA Ventas No Gravado::
+
+    >>> tax_group_no_gravado = get_tax_group('IVA', 'sale', 'no_gravado')
 
 Create tax IVA 21%::
 
     >>> TaxCode = Model.get('account.tax.code')
     >>> tax = create_tax(Decimal('.21'))
-    >>> tax.group = tax_groups['gravado']
     >>> tax.iva_code = '5'
+    >>> tax.group = tax_group_gravado
     >>> tax.save()
     >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
     >>> invoice_base_code.save()
@@ -86,6 +90,22 @@ Create tax IVA 21%::
     >>> credit_note_base_code.save()
     >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
     >>> credit_note_tax_code.save()
+
+Create tax IVA No gravado::
+
+    >>> TaxCode = Model.get('account.tax.code')
+    >>> tax_ = create_tax(Decimal('0'))
+    >>> tax_.iva_code = '1'
+    >>> tax_.group = tax_group_no_gravado
+    >>> tax_.save()
+    >>> invoice_base_code_ = create_tax_code(tax_, 'base', 'invoice')
+    >>> invoice_base_code_.save()
+    >>> invoice_tax_code_ = create_tax_code(tax_, 'tax', 'invoice')
+    >>> invoice_tax_code_.save()
+    >>> credit_note_base_code_ = create_tax_code(tax_, 'base', 'credit')
+    >>> credit_note_base_code_.save()
+    >>> credit_note_tax_code_ = create_tax_code(tax_, 'tax', 'credit')
+    >>> credit_note_tax_code_.save()
 
 Create payment method::
 
@@ -206,6 +226,7 @@ Create invoice::
     >>> line.description = 'Test'
     >>> line.quantity = 1
     >>> line.unit_price = Decimal(20)
+    >>> line.taxes.append(tax_)
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
@@ -215,10 +236,12 @@ Create invoice::
     >>> invoice.invoice_type == invoice_types['1']
     True
     >>> invoice.save()
+    >>> bool(invoice.has_report_cache)
+    False
 
 Test change tax::
 
-    >>> tax_line, = invoice.taxes
+    >>> tax_line = invoice.taxes[0]
     >>> tax_line.tax == tax
     True
     >>> tax_line.tax = None
@@ -231,7 +254,7 @@ Test missing pyafipws_concept at invoice::
         ...
     UserError: ...
     >>> invoice.state
-    'draft'
+    'validated'
 
 Post invoice::
 
@@ -241,6 +264,8 @@ Post invoice::
     'posted'
     >>> invoice.tax_identifier.code
     '30710158254'
+    >>> bool(invoice.has_report_cache)
+    True
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
@@ -285,6 +310,11 @@ Credit invoice with refund::
     >>> credit.form.with_refund = True
     >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
+    >>> invoice.reload()
+    >>> invoice.state
+    'cancelled'
+    >>> bool(invoice.reconciled)
+    True
     >>> credit_note, = Invoice.find([
     ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
     >>> credit_note.state
@@ -428,6 +458,8 @@ Pay invoice::
 
     >>> invoice.state
     'paid'
+    >>> sorted(l.credit for l in invoice.reconciliation_lines)
+    [Decimal('1.00'), Decimal('31.00'), Decimal('99.00'), Decimal('131.00')]
 
 Create empty invoice::
 
@@ -436,9 +468,12 @@ Create empty invoice::
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
     >>> invoice.payment_term = payment_term
-    >>> invoice.click('post')
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
     >>> invoice.state
-    'paid'
+    'draft'
 
 Create some complex invoice and test its taxes base rounding::
 
@@ -584,7 +619,7 @@ Post wrong invoice, number and invoice_date should be None::
         ...
     UserError: ...
     >>> invoice.state
-    'draft'
+    'validated'
     >>> bool(invoice.move)
     False
     >>> invoice.number

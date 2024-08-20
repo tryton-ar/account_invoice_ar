@@ -17,7 +17,7 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_pos, get_invoice_types, get_pos, create_tax_groups
+    ...     create_pos, get_invoice_types, get_pos, get_tax_group
     >>> today = datetime.date.today()
 
 Install account_invoice::
@@ -63,13 +63,14 @@ Create point of sale::
 
 Create tax groups::
 
-    >>> tax_groups = create_tax_groups()
+    >>> tax_group = get_tax_group()
 
 Create tax::
 
     >>> TaxCode = Model.get('account.tax.code')
     >>> tax = create_tax(Decimal('.10'))
-    >>> tax.group = tax_groups['gravado']
+    >>> tax.iva_code = '5'
+    >>> tax.group = tax_group
     >>> tax.save()
     >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
     >>> invoice_base_code.save()
@@ -186,6 +187,8 @@ Create invoice::
     >>> invoice.invoice_type == invoice_types['1']
     True
     >>> invoice.save()
+    >>> bool(invoice.has_report_cache)
+    False
 
 Test change tax::
 
@@ -202,6 +205,8 @@ Post invoice::
     'posted'
     >>> invoice.tax_identifier.code
     '30710158254'
+    >>> bool(invoice.has_report_cache)
+    True
     >>> invoice.untaxed_amount
     Decimal('220.00')
     >>> invoice.tax_amount
@@ -246,6 +251,11 @@ Credit invoice with refund::
     >>> credit.form.with_refund = True
     >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
+    >>> invoice.reload()
+    >>> invoice.state
+    'cancelled'
+    >>> bool(invoice.reconciled)
+    True
     >>> credit_note, = Invoice.find([
     ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
     >>> credit_note.state
@@ -377,9 +387,12 @@ Create empty invoice::
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.payment_term = payment_term
-    >>> invoice.click('post')
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
     >>> invoice.state
-    'paid'
+    'draft'
 
 Create some complex invoice and test its taxes base rounding::
 

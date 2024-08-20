@@ -17,7 +17,7 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_tax_groups
+    ...     get_tax_group
     >>> today = datetime.date.today()
 
 Install account_invoice::
@@ -55,13 +55,14 @@ Create chart of accounts::
 
 Create tax groups::
 
-    >>> tax_groups = create_tax_groups()
+    >>> tax_group = get_tax_group('IVA', 'purchase')
 
 Create tax::
 
     >>> TaxCode = Model.get('account.tax.code')
     >>> tax = create_tax(Decimal('.10'))
-    >>> tax.group = tax_groups['gravado']
+    >>> tax.iva_code = '5'
+    >>> tax.group = tax_group
     >>> tax.save()
     >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
     >>> invoice_base_code.save()

@@ -17,7 +17,7 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_pos, get_invoice_types, get_pos, create_tax_groups
+    ...     create_pos, get_invoice_types, get_pos, get_tax_group
     >>> today = datetime.date.today()
     >>> year = datetime.date(2012, 1, 1)
 
@@ -62,6 +62,27 @@ Create point of sale::
     >>> pos = get_pos()
     >>> invoice_types = get_invoice_types()
 
+Create tax groups::
+
+    >>> tax_group = get_tax_group()
+
+Create tax::
+
+    >>> TaxCode = Model.get('account.tax.code')
+    >>> tax = create_tax(Decimal('.10'))
+    >>> tax.iva_code = '5'
+    >>> tax.group = tax_group
+    >>> tax.save()
+    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
+    >>> invoice_base_code.save()
+    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
+    >>> invoice_tax_code.save()
+    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
+    >>> credit_note_base_code.save()
+    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
+    >>> credit_note_tax_code.save()
+
+
 Create party::
 
     >>> Party = Model.get('party.party')
@@ -69,6 +90,32 @@ Create party::
     >>> party.iva_condition='responsable_inscripto'
     >>> party.vat_number='33333333339'
     >>> party.save()
+
+
+Create account category::
+
+    >>> ProductCategory = Model.get('product.category')
+    >>> account_category = ProductCategory(name="Account Category")
+    >>> account_category.accounting = True
+    >>> account_category.account_expense = expense
+    >>> account_category.account_revenue = revenue
+    >>> account_category.customer_taxes.append(tax)
+    >>> account_category.save()
+
+Create product::
+
+    >>> ProductUom = Model.get('product.uom')
+    >>> unit, = ProductUom.find([('name', '=', 'Unit')])
+    >>> ProductTemplate = Model.get('product.template')
+    >>> template = ProductTemplate()
+    >>> template.name = 'product'
+    >>> template.default_uom = unit
+    >>> template.type = 'service'
+    >>> template.list_price = Decimal('40')
+    >>> template.account_category = account_category
+    >>> template.save()
+    >>> product, = template.products
+
 
 Create invoice::
 
@@ -79,7 +126,7 @@ Create invoice::
     >>> invoice.pos = pos
     >>> line = InvoiceLine()
     >>> invoice.lines.append(line)
-    >>> line.account = revenue
+    >>> line.product = product
     >>> line.description = 'Test'
     >>> line.quantity = 1
     >>> line.unit_price = Decimal(20)

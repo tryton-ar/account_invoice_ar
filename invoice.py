@@ -1,6 +1,7 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
+
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
 from pyafipws.pyi25 import PyI25
@@ -709,8 +710,6 @@ class Invoice(metaclass=PoolMeta):
         default['pyafipws_number'] = None
         default['pos'] = None
         default['invoice_type'] = None
-        default['ref_pos_number'] = None
-        default['ref_voucher_number'] = None
         default['reference'] = None
         default['tipo_comprobante'] = None
         return super().copy(invoices, default=default)
