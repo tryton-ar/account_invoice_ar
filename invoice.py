@@ -2000,6 +2000,9 @@ class InvoiceReport(metaclass=PoolMeta):
         context['get_line_amount'] = cls.get_line_amount
         context['get_taxes'] = cls.get_taxes
         context['get_subtotal'] = cls.get_subtotal
+        context['incluir_reg_transp_fiscal'] = cls.incluir_reg_transp_fiscal(
+            invoice)
+        context['get_iva_contenido'] = cls.get_iva_contenido
         context['discrimina_impuestos'] = cls.discrimina_impuestos(invoice)
         context['qr'] = cls.get_qr_img(Invoice, invoice)
         return context
@@ -2078,6 +2081,22 @@ class InvoiceReport(metaclass=PoolMeta):
                         in ('gravado', 'no_gravado', 'exento')):
                     res.append(tax)
         return res
+
+    @classmethod
+    def incluir_reg_transp_fiscal(cls, invoice):
+        # Invoice type: B
+        if invoice.invoice_type and invoice.invoice_type.invoice_type in [
+                '6', '7', '8', '9', '10', '206', '207', '208']:
+            return True
+        return False
+
+    @classmethod
+    def get_iva_contenido(cls, invoice):
+        tax_amount = Decimal('0')
+        for tax in invoice.taxes:
+            if tax.tax.group.kind == 'sale' and tax.tax.group.code == 'IVA':
+                tax_amount += abs(tax.amount)
+        return tax_amount
 
     @classmethod
     def discrimina_impuestos(cls, invoice):
