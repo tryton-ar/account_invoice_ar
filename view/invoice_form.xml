@@ -87,4 +87,10 @@
         <label name="pyafipws_imp_trib"/>
         <field name="pyafipws_imp_trib"/>
     </xpath>
+    <xpath
+        expr="/form/notebook/page[@id='payment']/field[@name='payment_term_date']"
+        position="after">
+        <label name="pyafipws_cancela_misma_moneda"/>
+        <field name="pyafipws_cancela_misma_moneda"/>
+    </xpath>
 </data>
