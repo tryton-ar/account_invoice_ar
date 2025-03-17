@@ -214,6 +214,17 @@ TIPO_COMPROBANTE = [
     ('332', 'CERTIFICACION ELECTRONICA (GRANOS)'),
     ]
 
+CONDICION_IVA_RECEPTOR = {
+    '': '',
+    'responsable_inscripto': '1',
+    'exento': '4',
+    'consumidor_final': '5',
+    'monotributo': '6',
+    'no_categorizado': '7',
+    'cliente_exterior': '9',
+    'no_alcanzado': '15',
+    }
+
 
 class AfipWSTransaction(ModelSQL, ModelView):
     'AFIP WS Transaction'
@@ -518,6 +529,8 @@ class Invoice(metaclass=PoolMeta):
         states=_states, depends=_depends + ['company_party'])
     pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación',
         states=_states, depends=_depends)
+    pyafipws_cancela_misma_moneda = fields.Boolean(
+        'Se cancela en la misma moneda', states=_states, depends=_depends)
     currency_rate = fields.Numeric('Currency rate', digits=(12, 6),
         states=_states, depends=_depends)
     pyafipws_imp_neto = fields.Function(fields.Numeric('Gravado',
@@ -586,6 +599,10 @@ class Invoice(metaclass=PoolMeta):
 
     @staticmethod
     def default_pyafipws_anulacion():
+        return False
+
+    @staticmethod
+    def default_pyafipws_cancela_misma_moneda():
         return False
 
     @staticmethod
@@ -1596,6 +1613,10 @@ class Invoice(metaclass=PoolMeta):
         imp_trib = self.pyafipws_imp_trib
         imp_op_ex = self.pyafipws_imp_op_ex
 
+        condicion_iva_receptor_id = \
+            CONDICION_IVA_RECEPTOR[self.party.iva_condition]
+        cancela_misma_moneda_ext = 'N'
+
         # currency and rate
         moneda_id = self.currency.afip_code
         if not moneda_id:
@@ -1608,6 +1629,8 @@ class Invoice(metaclass=PoolMeta):
 
         if moneda_id != "PES":
             ctz = self.currency_rate
+            if self.pyafipws_cancela_misma_moneda is True:
+                cancela_misma_moneda_ext = 'S'
         else:
             if self.company.currency.rate == Decimal('0'):
                 if self.party.vat_number_afip_foreign:
@@ -1682,13 +1705,17 @@ class Invoice(metaclass=PoolMeta):
                     # map ISO country code to AFIP destination country code:
                     pais_dst_cmp = identifier.afip_country.code
 
+        # 'caea' and 'fecha_hs_gen', not implemented
+        caea = fecha_hs_gen = None
+
         # create the invoice internally in the helper
         if service == 'wsfe':
             ws.CrearFactura(concepto, tipo_doc, nro_doc, tipo_cbte, punto_vta,
                 cbt_desde, cbt_hasta, imp_total, imp_tot_conc, imp_neto,
                 imp_iva, imp_trib, imp_op_ex, fecha_cbte, fecha_venc_pago,
                 fecha_serv_desde, fecha_serv_hasta,
-                moneda_id, moneda_ctz)
+                moneda_id, moneda_ctz, caea, fecha_hs_gen,
+                cancela_misma_moneda_ext, condicion_iva_receptor_id)
         elif service == 'wsmtxca':
             ws.CrearFactura(concepto, tipo_doc, nro_doc, tipo_cbte, punto_vta,
                 cbt_desde, cbt_hasta, imp_total, imp_tot_conc, imp_neto,
