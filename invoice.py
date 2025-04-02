@@ -216,7 +216,7 @@ TIPO_COMPROBANTE = [
     ]
 
 CONDICION_IVA_RECEPTOR = {
-    '': '',
+    None: '',
     'responsable_inscripto': '1',
     'exento': '4',
     'consumidor_final': '5',
@@ -588,7 +588,7 @@ class Invoice(metaclass=PoolMeta):
 
     @staticmethod
     def default_party_iva_condition():
-        return ''
+        return None
 
     @staticmethod
     def default_pyafipws_anulacion():
