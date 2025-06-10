@@ -844,7 +844,7 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
         if (self.get_tax_identifier() and
-                not self.company.party.tax_identifier.type == 'ar_cuit'):
+                not self.company.party.tax_identifier.type in ['ar_cuit', 'ar_vat']):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
 
@@ -894,12 +894,6 @@ class Invoice(metaclass=PoolMeta):
     @fields.depends('pos', 'party', 'lines', 'company', 'total_amount', 'type')
     def on_change_with_invoice_type(self, name=None):
         return self._set_invoice_type_sequence()
-
-    @classmethod
-    def _tax_identifier_types(cls):
-        types = super()._tax_identifier_types()
-        types.append('ar_cuit')
-        return types
 
     def _set_invoice_type_sequence(self):
         '''
