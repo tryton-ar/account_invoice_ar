@@ -3,30 +3,30 @@ Invoice Scenario
 ================
 
 Imports::
-    >>> import datetime
+    >>> import datetime as dt
     >>> import io
     >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
-    >>> from operator import attrgetter
     >>> from proteus import Model, Wizard
     >>> from trytond.tests.tools import activate_modules
+    >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.company.tests.tools import create_company, \
     ...     get_company
-    >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
-    ...     create_chart, get_accounts, create_tax, create_tax_code
+    ...     create_chart
+    >>> from trytond.modules.account_ar.tests.tools import get_accounts
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_pos, get_invoice_types, get_pos, get_tax_group, get_wsfexv1
+    ...     create_pos, get_pos, get_invoice_types, get_tax, get_wsfexv1
     >>> from trytond.modules.party_ar.tests.tools import set_afip_certs
     >>> import pytz
     >>> timezone = pytz.timezone('America/Argentina/Buenos_Aires')
-    >>> today = datetime.datetime.now(timezone).date()
+    >>> today = dt.datetime.now(timezone).date()
     >>> year = int(today.strftime("%Y"))
     >>> month = int(today.strftime("%m"))
 
-Install account_invoice::
+Install account_invoice_ar::
 
     >>> config = activate_modules('account_invoice_ar')
 
@@ -38,7 +38,7 @@ Create company::
     >>> _ = create_company(currency=currency)
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
-    >>> tax_identifier.type = 'ar_cuit'
+    >>> tax_identifier.type = 'ar_vat'
     >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
@@ -57,12 +57,13 @@ Create fiscal year::
 
 Create chart of accounts::
 
-    >>> _ = create_chart(company)
+    >>> _ = create_chart(company, chart='account_ar.root_ar')
     >>> accounts = get_accounts(company)
-    >>> receivable = accounts['receivable']
-    >>> revenue = accounts['revenue']
-    >>> expense = accounts['expense']
-    >>> account_tax = accounts['tax']
+    >>> account_receivable = accounts['receivable']
+    >>> account_payable = accounts['payable']
+    >>> account_revenue = accounts['revenue']
+    >>> account_expense = accounts['expense']
+    >>> account_tax = accounts['sale_tax']
     >>> account_cash = accounts['cash']
 
 Create point of sale::
@@ -73,25 +74,9 @@ Create point of sale::
     5000
     >>> invoice_types = get_invoice_types(pos=pos)
 
-Get tax group IVA Ventas Exento::
+Create taxes::
 
-    >>> tax_group_exento = get_tax_group('IVA', 'sale', 'exento')
-
-Create tax IVA Exento::
-
-    >>> TaxCode = Model.get('account.tax.code')
-    >>> tax = create_tax(Decimal('0'))
-    >>> tax.iva_code = '2'
-    >>> tax.group = tax_group_exento
-    >>> tax.save()
-    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
-    >>> invoice_base_code.save()
-    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
-    >>> invoice_tax_code.save()
-    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
-    >>> credit_note_base_code.save()
-    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
-    >>> credit_note_tax_code.save()
+    >>> sale_tax_exento = get_tax('IVA Ventas Exento')
 
 Create payment method::
 
@@ -117,8 +102,8 @@ Create Write Off method::
     >>> writeoff_method = WriteOff()
     >>> writeoff_method.name = 'Rate loss'
     >>> writeoff_method.journal = journal_writeoff
-    >>> writeoff_method.credit_account = expense
-    >>> writeoff_method.debit_account = expense
+    >>> writeoff_method.credit_account = account_expense
+    >>> writeoff_method.debit_account = account_expense
     >>> writeoff_method.save()
 
 Create AFIP VAT Country::
@@ -150,9 +135,9 @@ Create account category::
     >>> ProductCategory = Model.get('product.category')
     >>> account_category = ProductCategory(name="Account Category")
     >>> account_category.accounting = True
-    >>> account_category.account_expense = expense
-    >>> account_category.account_revenue = revenue
-    >>> account_category.customer_taxes.append(tax)
+    >>> account_category.account_expense = account_expense
+    >>> account_category.account_revenue = account_revenue
+    >>> account_category.customer_taxes.append(sale_tax_exento)
     >>> account_category.save()
 
 Create product::
@@ -243,10 +228,10 @@ Create invoice::
 Test change tax::
 
     >>> tax_line = invoice.taxes[0]
-    >>> tax_line.tax == tax
+    >>> tax_line.tax == sale_tax_exento
     True
     >>> tax_line.tax = None
-    >>> tax_line.tax = tax
+    >>> tax_line.tax = sale_tax_exento
 
 Test missing pyafipws_concept at invoice::
 
@@ -260,8 +245,8 @@ Test missing pyafipws_concept at invoice::
 Post invoice::
 
     >>> invoice.pyafipws_concept = '2' # service
-    >>> invoice.pyafipws_billing_start_date = datetime.date(year, month, 1)
-    >>> invoice.pyafipws_billing_end_date = datetime.date(year, month, 10)
+    >>> invoice.pyafipws_billing_start_date = dt.date(year, month, 1)
+    >>> invoice.pyafipws_billing_end_date = dt.date(year, month, 10)
     >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.click('post')
     >>> invoice.state
@@ -277,36 +262,20 @@ Post invoice::
     Decimal('0.00')
     >>> invoice.total_amount
     Decimal('200.00')
-    >>> receivable.reload()
-    >>> receivable.debit
+    >>> account_receivable.reload()
+    >>> account_receivable.debit
     Decimal('200.00')
-    >>> receivable.credit
+    >>> account_receivable.credit
     Decimal('0.00')
-    >>> revenue.reload()
-    >>> revenue.debit
+    >>> account_revenue.reload()
+    >>> account_revenue.debit
     Decimal('0.00')
-    >>> revenue.credit
+    >>> account_revenue.credit
     Decimal('200.00')
     >>> account_tax.reload()
     >>> account_tax.debit
     Decimal('0.00')
     >>> account_tax.credit
-    Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_base_code = TaxCode(invoice_base_code.id)
-    ...     invoice_base_code.amount
-    Decimal('200.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
-    ...     invoice_tax_code.amount
-    Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
-    ...     credit_note_base_code.amount
-    Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
-    ...     credit_note_tax_code.amount
     Decimal('0.00')
 
 Credit invoice with refund::
@@ -341,15 +310,15 @@ Credit invoice with refund::
     'cancelled'
     >>> invoice.reconciled == today
     True
-    >>> receivable.reload()
-    >>> receivable.debit
+    >>> account_receivable.reload()
+    >>> account_receivable.debit
     Decimal('200.00')
-    >>> receivable.credit
+    >>> account_receivable.credit
     Decimal('200.00')
-    >>> revenue.reload()
-    >>> revenue.debit
+    >>> account_revenue.reload()
+    >>> account_revenue.debit
     Decimal('200.00')
-    >>> revenue.credit
+    >>> account_revenue.credit
     Decimal('200.00')
     >>> account_tax.reload()
     >>> account_tax.debit
@@ -392,7 +361,7 @@ Test post when clear tax_identifier type::
     'draft'
 
     >>> tax_identifier, = company.party.identifiers
-    >>> tax_identifier.type = 'ar_cuit'
+    >>> tax_identifier.type = 'ar_vat'
     >>> tax_identifier.save()
 
 Pay invoice::
@@ -403,7 +372,7 @@ Pay invoice::
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
     Decimal('200.00')
-    >>> pay.form.amount = Decimal('110.00')
+    >>> pay.form.amount = Decimal('100.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.state
@@ -411,7 +380,7 @@ Pay invoice::
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('110.00')
+    Decimal('100.00')
     >>> pay.form.amount = Decimal('10.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
@@ -425,19 +394,19 @@ Pay invoice::
     >>> len(pay.form.lines)
     1
     >>> pay.form.amount_writeoff
-    Decimal('100.00')
+    Decimal('90.00')
     >>> pay.execute('pay')
 
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
     Decimal('-10.00')
-    >>> pay.form.amount = Decimal('99.00')
+    >>> pay.form.amount = Decimal('89.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.form.type = 'writeoff'
     >>> pay.form.writeoff = writeoff_method
     >>> pay.form.amount
-    Decimal('99.00')
+    Decimal('89.00')
     >>> len(pay.form.lines_to_pay)
     1
     >>> len(pay.form.payment_lines)
@@ -451,7 +420,7 @@ Pay invoice::
     >>> invoice.state
     'paid'
     >>> sorted(l.credit for l in invoice.reconciliation_lines)
-    [Decimal('1.00'), Decimal('31.00'), Decimal('99.00'), Decimal('131.00')]
+    [Decimal('1.00'), Decimal('10.00'), Decimal('89.00'), Decimal('100.00')]
 
 Create empty invoice::
 
@@ -516,7 +485,7 @@ Create a paid invoice::
     >>> pay.state
     'end'
     >>> invoice.tax_identifier.type
-    'ar_cuit'
+    'ar_vat'
     >>> invoice.state
     'paid'
 
@@ -527,7 +496,7 @@ The invoice is posted when the reconciliation is deleted::
     >>> invoice.state
     'posted'
     >>> invoice.tax_identifier.type
-    'ar_cuit'
+    'ar_vat'
 
 Credit invoice with non line lines::
 

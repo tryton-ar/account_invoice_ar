@@ -3,24 +3,24 @@ Invoice Supplier Scenario
 =========================
 
 Imports::
-    >>> import datetime
+    >>> import datetime as dt
     >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
-    >>> from operator import attrgetter
     >>> from proteus import Model, Wizard
     >>> from trytond.tests.tools import activate_modules
+    >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.company.tests.tools import create_company, \
     ...     get_company
-    >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
-    ...     create_chart, get_accounts, create_tax, create_tax_code
+    ...     create_chart
+    >>> from trytond.modules.account_ar.tests.tools import get_accounts
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     get_tax_group
-    >>> today = datetime.date.today()
+    ...     get_tax
+    >>> today = dt.date.today()
 
-Install account_invoice::
+Install account_invoice_ar::
 
     >>> config = activate_modules('account_invoice_ar')
 
@@ -32,7 +32,7 @@ Create company::
     >>> _ = create_company(currency=currency)
     >>> company = get_company()
     >>> tax_identifier = company.party.identifiers.new()
-    >>> tax_identifier.type = 'ar_cuit'
+    >>> tax_identifier.type = 'ar_vat'
     >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
@@ -46,32 +46,19 @@ Create fiscal year::
 
 Create chart of accounts::
 
-    >>> _ = create_chart(company)
+    >>> _ = create_chart(company, chart='account_ar.root_ar')
     >>> accounts = get_accounts(company)
-    >>> payable = accounts['payable']
-    >>> revenue = accounts['revenue']
-    >>> expense = accounts['expense']
-    >>> account_tax = accounts['tax']
+    >>> account_receivable = accounts['receivable']
+    >>> account_payable = accounts['payable']
+    >>> account_revenue = accounts['revenue']
+    >>> account_expense = accounts['expense']
+    >>> account_tax = accounts['purchase_tax']
+    >>> account_cash = accounts['cash']
 
-Create tax groups::
+Create taxes::
 
-    >>> tax_group = get_tax_group('IVA', 'purchase')
-
-Create tax::
-
-    >>> TaxCode = Model.get('account.tax.code')
-    >>> tax = create_tax(Decimal('.10'))
-    >>> tax.iva_code = '5'
-    >>> tax.group = tax_group
-    >>> tax.save()
-    >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
-    >>> invoice_base_code.save()
-    >>> invoice_tax_code = create_tax_code(tax, 'tax', 'invoice')
-    >>> invoice_tax_code.save()
-    >>> credit_note_base_code = create_tax_code(tax, 'base', 'credit')
-    >>> credit_note_base_code.save()
-    >>> credit_note_tax_code = create_tax_code(tax, 'tax', 'credit')
-    >>> credit_note_tax_code.save()
+    >>> purchase_tax = get_tax('IVA Compras 21%')
+    >>> purchase_tax_nogravado = get_tax('IVA Compras No Gravado')
 
 Create party::
 
@@ -79,6 +66,7 @@ Create party::
     >>> party = Party(name='Party',
     ...     iva_condition='responsable_inscripto',
     ...     vat_number='33333333339')
+    >>> party.account_payable = account_payable
     >>> party.save()
 
 Create account category::
@@ -86,9 +74,9 @@ Create account category::
     >>> ProductCategory = Model.get('product.category')
     >>> account_category = ProductCategory(name="Account Category")
     >>> account_category.accounting = True
-    >>> account_category.account_expense = expense
-    >>> account_category.account_revenue = revenue
-    >>> account_category.supplier_taxes.append(tax)
+    >>> account_category.account_expense = account_expense
+    >>> account_category.account_revenue = account_revenue
+    >>> account_category.supplier_taxes.append(purchase_tax)
     >>> account_category.save()
 
 Create product::
@@ -131,16 +119,17 @@ Create invoice::
     >>> line.unit_price = Decimal('20')
     >>> line = InvoiceLine()
     >>> invoice.lines.append(line)
-    >>> line.account = expense
+    >>> line.account = account_expense
+    >>> line.taxes.append(purchase_tax_nogravado)
     >>> line.description = 'Test'
     >>> line.quantity = 1
     >>> line.unit_price = Decimal(10)
     >>> invoice.untaxed_amount
     Decimal('110.00')
     >>> invoice.tax_amount
-    Decimal('10.00')
+    Decimal('21.00')
     >>> invoice.total_amount
-    Decimal('120.00')
+    Decimal('131.00')
     >>> invoice.save()
     >>> invoice.reference
     '00001-00000312'
@@ -165,39 +154,23 @@ Create invoice::
     >>> invoice.untaxed_amount
     Decimal('110.00')
     >>> invoice.tax_amount
-    Decimal('10.00')
+    Decimal('21.00')
     >>> invoice.total_amount
-    Decimal('120.00')
-    >>> payable.reload()
-    >>> payable.debit
+    Decimal('131.00')
+    >>> account_payable.reload()
+    >>> account_payable.debit
     Decimal('0.00')
-    >>> payable.credit
-    Decimal('120.00')
-    >>> expense.reload()
-    >>> expense.debit
+    >>> account_payable.credit
+    Decimal('131.00')
+    >>> account_expense.reload()
+    >>> account_expense.debit
     Decimal('110.00')
-    >>> expense.credit
+    >>> account_expense.credit
     Decimal('0.00')
     >>> account_tax.reload()
     >>> account_tax.debit
-    Decimal('10.00')
+    Decimal('21.00')
     >>> account_tax.credit
-    Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_base_code = TaxCode(invoice_base_code.id)
-    ...     invoice_base_code.amount
-    Decimal('100.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
-    ...     invoice_tax_code.amount
-    Decimal('10.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_base_code = TaxCode(credit_note_base_code.id)
-    ...     credit_note_base_code.amount
-    Decimal('0.00')
-    >>> with config.set_context(periods=period_ids):
-    ...     credit_note_tax_code = TaxCode(credit_note_tax_code.id)
-    ...     credit_note_tax_code.amount
     Decimal('0.00')
 
 Credit invoice::
@@ -263,7 +236,7 @@ Credit invoice::
     True
     >>> credit_note.reference
 
-Create a posted and a draft invoice  to cancel::
+Create a posted and a draft invoice to cancel::
 
     >>> invoice = Invoice()
     >>> invoice.type = 'in'

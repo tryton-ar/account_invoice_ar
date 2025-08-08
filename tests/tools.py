@@ -13,7 +13,7 @@ from trytond.modules.party_ar.tests.tools import set_afip_certs
 from trytond.modules.party_ar.afip import PyAfipWsWrapper
 
 __all__ = ['create_pos', 'get_pos', 'get_invoice_types',
-    'get_tax_group', 'get_wsfev1', 'get_wsfexv1']
+    'get_tax', 'get_tax_group', 'get_wsfev1', 'get_wsfexv1']
 
 
 def create_pos(company=None, type='manual', number=1, ws=None, config=None):
@@ -107,15 +107,26 @@ def get_invoice_types(company=None, pos=None, config=None):
     return invoice_types
 
 
+def get_tax(name='IVA Ventas 21%', config=None):
+    "Return tax"
+    Tax = Model.get('account.tax', config=config)
+
+    tax, = Tax.find([
+        ('name', '=', name),
+        ])
+
+    return tax
+
+
 def get_tax_group(code='IVA', kind='sale', afip_kind='gravado', config=None):
-    "Create tax groups"
+    "Return tax group"
     TaxGroup = Model.get('account.tax.group', config=config)
 
     group, = TaxGroup.find([
         ('code', '=', code),
         ('kind', '=', kind),
         ('afip_kind', '=', afip_kind),
-    ])
+        ])
 
     return group
 
