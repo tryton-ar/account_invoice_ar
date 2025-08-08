@@ -6,6 +6,11 @@ import sys
 from argparse import ArgumentParser
 
 try:
+    import argcomplete
+except ImportError:
+    argcomplete = None
+
+try:
     from proteus import Model, config
 except ImportError:
     prog = os.path.basename(sys.argv[0])
@@ -39,18 +44,19 @@ def update_currencies():
 
 def main(database, config_file=None):
     config.set_trytond(database, config_file=config_file)
-    update_currencies()
+    with config.get_config().set_context(active_test=False):
+        update_currencies()
 
 
 def run():
     parser = ArgumentParser()
-    parser.add_argument('-d', '--database', dest='database')
+    parser.add_argument('-d', '--database', dest='database', required=True)
     parser.add_argument('-c', '--config', dest='config_file',
         help='the trytond config file')
+    if argcomplete:
+        argcomplete.autocomplete(parser)
 
     args = parser.parse_args()
-    if not args.database:
-        parser.error('Missing database')
     main(args.database, args.config_file)
 
 
