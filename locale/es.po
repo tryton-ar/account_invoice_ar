@@ -126,6 +126,10 @@ msgctxt "field:account.invoice,tipo_comprobante:"
 msgid "Comprobante"
 msgstr "Tipo de factura"
 
+msgctxt "field:account.invoice,tipo_comprobante_domain:"
+msgid "Dominio para Comprobante"
+msgstr "Dominio para Tipo de factura"
+
 msgctxt "field:account.invoice,transactions:"
 msgid "Transacciones"
 msgstr "Transacciones WS"
@@ -1179,6 +1183,353 @@ msgid "TIQUE NOTA DE DEBITO C"
 msgstr ""
 
 msgctxt "selection:account.invoice,tipo_comprobante:"
+msgid "TIQUE NOTA DE DEBITO M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "CERTIFICACION ELECTRONICA (GRANOS)"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES A DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES A DE CONSIGNACION PRIMARIA SECTOR PESQUERO MARITIMO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES A DEL APARTADO A INCISO F RG N.1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES B DE COMPRA PRIMARIA SECTOR PESQUERO MARITIMO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES B DE CONSIGNACION PRIMARIA SECTOR PESQUERO MARITIMO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES B DEL ANEXO I, APARTADO A, INC. F), RG N. 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES C DEL Anexo I, Apartado A, INC.F), R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid ""
+"COMPROBANTES DE COMPRA DE BIENES NO REGISTRABLES A CONSUMIDORES FINALES"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES DE COMPRA DE BIENES USADOS"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES M DEL ANEXO I  APARTADO A  INC F) R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "COMPROBANTES PARA RECICLAR MATERIALES"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "CUENTAS DE VENTA Y LIQUIDO PRODUCTO A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "CUENTAS DE VENTA Y LIQUIDO PRODUCTO B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "CUENTAS DE VENTA Y LIQUIDO PRODUCTO M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "DESPACHO DE IMPORTACION"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "FACTURAS - PERMISO EXPORTACION SIMPLIFICADO - DTO. 855/97"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "FACTURAS A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "FACTURAS B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "FACTURAS C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "FACTURAS DE EXPORTACION"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "FACTURAS M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "INFORME DIARIO DE CIERRE (ZETA) - CONTROLADORES FISCALES"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION DE SERVICIOS PUBLICOS CLASE A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION DE SERVICIOS PUBLICOS CLASE B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION PRIMARIA DE GRANOS"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION SECUNDARIA DE GRANOS"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACIONES A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACIONES B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "LIQUIDACIONES M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "MANDATO - CONSIGNACION"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTA DE CREDITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTA DE DEBITO LIQUIDACION UNICA COMERCIAL IMPOSITIVA CLASE C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE CREDITO A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE CREDITO B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE CREDITO C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE CREDITO M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE CREDITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE CREDITO POR OPERACIONES CON EL EXTERIOR"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE DEBITO A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE DEBITO B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE DEBITO C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE DEBITO M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE DEBITO O DOCUMENTO EQUIVALENTE CON LA R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE DEBITO POR OPERACIONES CON EL EXTERIOR"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE VENTA AL CONTADO A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE VENTA AL CONTADO B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE VENTA AL CONTADO C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "NOTAS DE VENTA AL CONTADO M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "OTROS COMPROBANTES - DOCUMENTOS EXCEPTUADOS - NOTAS DE CREDITO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "OTROS COMPROBANTES A QUE CUMPLEN CON LA R G  1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "OTROS COMPROBANTES B QUE CUMPLAN CON LA R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "OTROS COMPROBANTES C QUE CUMPLAN CON LA R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "OTROS COMPROBANTES M QUE CUMPLAN CON LA R.G. N° 1415"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid ""
+"OTROS COMPROBANTES QUE NO CUMPLEN O ESTÁN EXCEPTUADOS DE LA R.G. 1415 Y SUS "
+"MODIF"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RECIBO FACTURA A  REGIMEN DE FACTURA DE CREDITO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RECIBOS A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RECIBOS B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RECIBOS C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RECIBOS FACTURA DE CREDITO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RECIBOS M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "REMITO ELECTRONICO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "REMITOS R"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "RESUMEN DE DATOS"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE FACTURA A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE FACTURA B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE FACTURA C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE FACTURA M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE CREDITO"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE CREDITO A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE CREDITO B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE CREDITO C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE CREDITO M"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE DEBITO A"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE DEBITO B"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
+msgid "TIQUE NOTA DE DEBITO C"
+msgstr ""
+
+msgctxt "selection:account.invoice,tipo_comprobante_domain:"
 msgid "TIQUE NOTA DE DEBITO M"
 msgstr ""
 

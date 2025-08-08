@@ -414,7 +414,7 @@ class Invoice(metaclass=PoolMeta):
         domain=[
             ('pos', '=', Eval('pos')),
             ('invoice_type', 'in',
-                If(Eval('total_amount', -1) >= 0,
+                If(Eval('total_amount', 0) >= 0,
                     ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15',
                         '19', '20', '201', '202', '206', '207', '211', '212'],
                     ['3', '8', '13', '21', '203', '208', '213']),
@@ -469,11 +469,17 @@ class Invoice(metaclass=PoolMeta):
     transactions = fields.One2Many('account_invoice_ar.afip_transaction',
         'invoice', 'Transacciones', readonly=True)
     tipo_comprobante = fields.Selection(TIPO_COMPROBANTE, 'Comprobante',
-        states={
+        domain=[
+            ('tipo_comprobante', 'in', Eval('tipo_comprobante_domain', [])),
+            ],
+        sort=False, states={
             'invisible': Eval('type') == 'out',
             'readonly': Eval('state') != 'draft',
             })
     tipo_comprobante_string = tipo_comprobante.translated('tipo_comprobante')
+    tipo_comprobante_domain = fields.Function(fields.MultiSelection(
+        TIPO_COMPROBANTE, 'Dominio para Comprobante'),
+        'on_change_with_tipo_comprobante_domain')
     pyafipws_incoterms = fields.Selection(INCOTERMS, 'Incoterms')
     pyafipws_licenses = fields.One2Many('account.invoice.export.license',
         'invoice', 'Export Licenses')
@@ -623,6 +629,10 @@ class Invoice(metaclass=PoolMeta):
     def default_pyafipws_transfer_mode():
         return 'SCA'
 
+    @staticmethod
+    def default_tipo_comprobante():
+        return ''
+
     def on_change_party(self):
         super().on_change_party()
         if self.party and self.party.iva_condition:
@@ -728,7 +738,7 @@ class Invoice(metaclass=PoolMeta):
         default['pos'] = None
         default['invoice_type'] = None
         default['reference'] = None
-        default['tipo_comprobante'] = None
+        default['tipo_comprobante'] = ''
         return super().copy(invoices, default=default)
 
     @classmethod
@@ -789,6 +799,50 @@ class Invoice(metaclass=PoolMeta):
         if self.type == 'out' and self.invoice_type:
             return self.invoice_type.invoice_type
         return None
+
+    @fields.depends('type', 'lines', 'total_amount', 'party',
+        '_parent_party.iva_condition')
+    def on_change_with_tipo_comprobante_domain(self, name=None):
+        if self.type != 'in':
+            return ['']
+        total_amount = self.total_amount or 0
+        party_iva_condition = self.party and self.party.iva_condition or None
+        res = set([''])
+        if total_amount >= 0:
+            if party_iva_condition == 'responsable_inscripto':
+                res.update({
+                    '001', '002', '004', '005', '006', '007', '009', '010',
+                    '017', '018', '022', '023', '024', '025', '026', '027',
+                    '028', '030', '031', '032', '033', '034', '035', '037',
+                    '039', '040', '045', '046', '049', '050', '051', '052',
+                    '054', '055', '056', '057', '058', '059', '060', '061',
+                    '063', '064', '066', '070', '080', '081', '082', '083',
+                    '088', '089', '090', '091', '099', '115', '116', '118',
+                    '120', '331', '332'
+                    })
+            elif party_iva_condition in ('exento', 'monotributo'):
+                res.update({
+                    '011', '012', '015', '016', '029', '030', '031', '032',
+                    '033', '036', '037', '041', '047', '049', '066', '068',
+                    '070', '080', '083', '088', '089', '090', '099', '111',
+                    '117'
+                    })
+            elif party_iva_condition == 'proveedor_exterior':
+                res.update({'019', '020', '066'})
+        else:
+            if party_iva_condition == 'responsable_inscripto':
+                res.update({
+                    '003', '008', '038', '043', '048', '053', '110', '112',
+                    '113', '119'
+                    })
+            elif party_iva_condition in ('exento', 'monotributo'):
+                res.update({
+                    '013', '038', '044', '110', '114'
+                    })
+            elif party_iva_condition == 'proveedor_exterior':
+                res.update({'021'})
+
+        return list(res)
 
     def get_ref_subfield(self, name):
         if self.type == 'in' and self.reference and '-' in self.reference:
