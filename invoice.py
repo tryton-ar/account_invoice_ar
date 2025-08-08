@@ -1,7 +1,6 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
-
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
 from pyafipws.pyi25 import PyI25
@@ -15,6 +14,7 @@ from calendar import monthrange
 from unicodedata import normalize
 
 from trytond.model import ModelSQL, Workflow, fields, ModelView, Index
+from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pool import Pool, PoolMeta
 from trytond.pyson import Eval, And, If, Bool
 from trytond.transaction import Transaction
@@ -2578,3 +2578,224 @@ class InvoiceCmpAsoc(ModelSQL):
         ondelete='CASCADE', required=True)
     cmp_asoc = fields.Many2One('account.invoice', 'Cmp Asoc',
         ondelete='RESTRICT', required=True)
+
+
+class RecoverInvoiceStart(ModelView):
+    'Recover Invoice'
+    __name__ = 'account.invoice.recover.start'
+
+    pos = fields.Many2One('account.pos', 'Point of Sale', required=True)
+    invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
+        domain=[('pos', '=', Eval('pos'))], required=True)
+    cbte_nro = fields.Integer('Número comprobante')
+
+
+class RecoverInvoiceData(ModelView):
+    'Recover Invoice'
+    __name__ = 'account.invoice.recover.data'
+
+    message = fields.Text('Message', readonly=True)
+    invoice = fields.Many2One('account.invoice', 'Invoice',
+        domain=[('state', '=', 'draft')])
+    FechaCbte = fields.Char('FechaCbte')
+    CbteNro = fields.Char('CbteNro')
+    PuntoVenta = fields.Char('PuntoVenta')
+    ImpTotal = fields.Char('ImpTotal')
+    CAE = fields.Char('CAE')
+    Vencimiento = fields.Char('Vencimiento')
+    EmisionTipo = fields.Char('EmisionTipo')
+    Cuit = fields.Char('Cuit')
+    cuit_cliente = fields.Char('CUIT del CLIENTE')
+
+
+class RecoverInvoice(Wizard):
+    'Recover Invoice'
+    __name__ = 'account.invoice.recover'
+
+    start = StateView('account.invoice.recover.start',
+        'account_invoice_ar.recover_invoice_start_view', [
+            Button('Cancel', 'end', 'tryton-cancel'),
+            Button('Ask AFIP', 'ask_afip', 'tryton-forward', default=True),
+        ])
+    ask_afip = StateTransition()
+    data = StateView('account.invoice.recover.data',
+        'account_invoice_ar.recover_invoice_data_view', [
+            Button('Close', 'end', 'tryton-cancel'),
+            Button('Previous', 'start', 'tryton-back', default=True),
+            Button('Save Invoice', 'save_invoice', 'tryton-save'),
+        ])
+    save_invoice = StateTransition()
+
+    def default_start(self, fields):
+        res = {}
+        if hasattr(self.start, 'invoice_type'):
+            res['invoice_type'] = self.start.invoice_type.id
+        if hasattr(self.start, 'pos'):
+            res['pos'] = self.start.pos.id
+        if hasattr(self.start, 'cbte_nro'):
+            res['cbte_nro'] = self.start.cbte_nro
+        return res
+
+    def transition_ask_afip(self):
+        # Generate Collect
+        tipo_cbte = self.start.invoice_type.invoice_type
+        punto_vta = self.start.pos.number
+        service = self.start.pos.pyafipws_electronic_invoice_service
+
+        # get the electronic invoice type, point of sale and service:
+        pool = Pool()
+        Company = pool.get('company.company')
+        if Transaction().context.get('company'):
+            company = Company(Transaction().context['company'])
+        else:
+            message = 'No hay companía:'
+            self.data.message = message
+            return 'data'
+
+        # import the AFIP webservice helper for electronic invoice
+        if service == 'wsfe':
+            from pyafipws.wsfev1 import WSFEv1  # local market
+            ws = WSFEv1()
+            if company.pyafipws_mode_cert == 'homologacion':
+                WSDL = 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL'
+            elif company.pyafipws_mode_cert == 'produccion':
+                WSDL = (
+                    'https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL')
+        elif service == 'wsfex':
+            from pyafipws.wsfexv1 import WSFEXv1  # foreign trade
+            ws = WSFEXv1()
+            if company.pyafipws_mode_cert == 'homologacion':
+                WSDL = 'https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL'
+            elif company.pyafipws_mode_cert == 'produccion':
+                WSDL = (
+                    'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
+        else:
+            message = 'WS no soportado: ' + repr(service)
+            self.data.message = message
+            return 'data'
+
+        ws.LanzarExcepciones = True
+        cache = company.get_cache_dir()
+
+        # authenticate against AFIP:
+        try:
+            ta = company.pyafipws_authenticate(service=service, cache=cache)
+        except Exception as e:
+            message = 'Service no soportado:' + repr(e)
+            self.data.message = message
+            return 'data'
+
+        # set AFIP webservice credentials:
+        ws.SetTicketAcceso(ta)
+        ws.Cuit = company.party.vat_number
+        ws.Conectar(wsdl=WSDL, cache=cache, cacert=True)
+
+        if self.start.cbte_nro is None:
+            if service == 'wsfe' or service == 'wsmtxca':
+                cbte_nro = ws.CompUltimoAutorizado(tipo_cbte, punto_vta)
+            elif service == 'wsfex':
+                cbte_nro = ws.GetLastCMP(tipo_cbte, punto_vta)
+        else:
+            cbte_nro = self.start.cbte_nro
+
+        if service == 'wsfe' or service == 'wsmtxca':
+            ws.CompConsultar(tipo_cbte, punto_vta, cbte_nro)
+        elif service == 'wsfex':
+            ws.GetCMP(tipo_cbte, punto_vta, cbte_nro)
+
+        message = 'FechaCbte = ' + ws.FechaCbte + '\n'
+        message += 'CbteNro = ' + str(ws.CbteNro) + '\n'
+        message += 'PuntoVenta = ' + str(ws.PuntoVenta) + '\n'
+        message += 'ImpTotal =' + str(ws.ImpTotal) + '\n'
+        message += 'CAE = ' + str(ws.CAE) + '\n'
+        message += 'Vencimiento = ' + str(ws.Vencimiento) + '\n'
+        message += 'CUIT EMISOR = ' + str(ws.Cuit) + '\n'
+        if ws.AnalizarXml('XmlResponse'):
+            if service == 'wsfex':
+                cuit_cliente = ws.ObtenerTagXml('Cuit_pais_cliente')
+                emision_tipo = ws.ObtenerTagXml('Cbte_tipo')
+            else:
+                cuit_cliente = ws.ObtenerTagXml('DocNro')
+                emision_tipo = ws.ObtenerTagXml('CbteTipo')
+        message += 'CUIT CLIENTE = %s\n' % cuit_cliente
+        message += 'Tipo comprobante = %s\n' % emision_tipo
+
+        self.data.FechaCbte = str(ws.FechaCbte)
+        self.data.CbteNro = str(ws.CbteNro)
+        self.data.CAE = str(ws.CAE)
+        if service == 'wsfex':
+            vto = str(ws.Vencimiento).split('/')
+            self.data.Vencimiento = '-'.join([vto[2], vto[1], vto[0]])
+        else:
+            self.data.Vencimiento = str(ws.Vencimiento)
+        self.data.Cuit = str(ws.Cuit)
+
+        self.data.message = message
+        return 'data'
+
+    def default_data(self, fields):
+        res = {}
+        if hasattr(self.data, 'message'):
+            res['message'] = self.data.message
+        if hasattr(self.data, 'CbteNro'):
+            res['CbteNro'] = self.data.CbteNro
+        if hasattr(self.data, 'CAE'):
+            res['CAE'] = self.data.CAE
+        if hasattr(self.data, 'FechaCbte'):
+            res['FechaCbte'] = self.data.FechaCbte
+        if hasattr(self.data, 'ImpTotal'):
+            res['ImpTotal'] = self.data.ImpTotal
+        if hasattr(self.data, 'cuit_cliente'):
+            res['cuit_cliente'] = self.data.cuit_cliente
+        if hasattr(self.data, 'Vencimiento'):
+            res['Vencimiento'] = self.data.Vencimiento
+        if hasattr(self.data, 'Cuit'):
+            res['Cuit'] = self.data.Cuit
+        return res
+
+    def transition_save_invoice(self):
+        # Generate Collect
+        pool = Pool()
+        Invoice = pool.get('account.invoice')
+
+        if not self.data.invoice or not hasattr(self.data, 'CAE'):
+            return 'start'
+
+        invoice = Invoice(self.data.invoice.id)
+        invoice.pos = self.start.pos
+        invoice.invoice_type = self.start.invoice_type
+
+        # store the results
+        invoice_date = self.data.FechaCbte or None
+        if '-' not in invoice_date:
+            fe = invoice_date
+            invoice_date = '-'.join([fe[:4], fe[4:6], fe[6:8]])
+        invoice.invoice_date = datetime.strptime(
+            invoice_date, "%Y-%m-%d").date()
+
+        invoice.number = '%05d-%08d' % (self.start.pos.number,
+            int(self.data.CbteNro))
+
+        invoice.pyafipws_cae = self.data.CAE
+
+        cae_due_date = self.data.Vencimiento or None
+        if '-' not in cae_due_date:
+            fe = cae_due_date
+            cae_due_date = '-'.join([fe[:4], fe[4:6], fe[6:8]])
+        invoice.pyafipws_cae_due_date = datetime.strptime(
+            cae_due_date, "%Y-%m-%d").date()
+
+        # calculate the barcode:
+        tipo_cbte = self.start.invoice_type.invoice_type
+        punto_vta = self.start.pos.number
+        cae_due = ''.join([c for c in str(self.data.Vencimiento or '')
+                if c.isdigit()])
+        bars = ''.join([str(self.data.Cuit), '%03d' % int(tipo_cbte),
+                '%05d' % int(punto_vta), str(self.data.CAE), cae_due])
+        bars = bars + invoice.pyafipws_verification_digit_modulo10(bars)
+        invoice.pyafipws_barcode = bars
+
+        Invoice.save([invoice])
+        Invoice.validate_invoice([invoice])
+        Invoice.post([invoice])
+        return 'end'

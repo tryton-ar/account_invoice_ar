@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<form>
+    <notebook colspan="4">
+        <page string="Factura obtenida" id='factura_obtenida'>
+            <field name="message"/>
+        </page>
+        <page string="Factura a recuperar" id='factura_borrador'>
+            <label name="invoice"/>
+            <field name="invoice"/>
+        </page>
+    </notebook>
+</form>
