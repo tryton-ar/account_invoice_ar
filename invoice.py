@@ -898,7 +898,7 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
         if (self.get_tax_identifier() and
-                not self.company.party.tax_identifier.type in ['ar_cuit', 'ar_vat']):
+                not self.company.party.tax_identifier.type == 'ar_vat'):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
 
