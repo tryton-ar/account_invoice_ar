@@ -1677,6 +1677,9 @@ msgctxt "selection:account_invoice_ar.afip_transaction,pyafipws_result:"
 msgid "n/a"
 msgstr ""
 
+msgctxt "view:account.invoice.credit.start:"
+msgid "There is already a credit note associated with the invoice!"
+msgstr "¡Ya existe una nota de crédito asociada a la factura!"
 
 msgctxt "view:account.invoice.credit.start:"
 msgid ""

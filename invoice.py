@@ -2510,6 +2510,9 @@ class CreditInvoiceStart(metaclass=PoolMeta):
     pyafipws_anulacion = fields.Boolean('FCE MiPyme anulación',
         states={'invisible': ~Bool(Eval('from_fce'))},
         help='If true, the FCE was anulled from the customer.')
+    already_exists = fields.Boolean(
+        'There is already a credit note associated with the invoice!',
+        states={'invisible': ~Bool(Eval('already_exists'))})
 
     @classmethod
     def view_attributes(cls):
@@ -2525,34 +2528,40 @@ class CreditInvoice(metaclass=PoolMeta):
 
     def default_start(self, fields):
         pool = Pool()
-        Invoice = pool.get('account.invoice')
         Date = pool.get('ir.date')
+        InvoiceCmpAsoc = pool.get('account.invoice-cmp.asoc')
 
         default = super().default_start(fields)
         default.update({
             'from_fce': False,
             'pyafipws_anulacion': False,
             'invoice_date': Date.today(),
+            'already_exists': False,
             })
-        for invoice in Invoice.browse(Transaction().context['active_ids']):
+
+        for invoice in self.records:
             if (invoice.type == 'out' and invoice.invoice_type.invoice_type in
                     ('201', '206', '211')):
                 default['from_fce'] = True
                 break
+
+        cmp_asoc = InvoiceCmpAsoc.search([
+            ('cmp_asoc', 'in', Transaction().context['active_ids']),
+            ])
+        if cmp_asoc:
+            default['already_exists'] = True
+
         return default
 
     def do_credit(self, action):
-        pool = Pool()
-        Invoice = pool.get('account.invoice')
-
         credit_options = dict(
             refund=self.start.with_refund,
             invoice_date=self.start.invoice_date,
             pyafipws_anulacion=self.start.pyafipws_anulacion,
             )
-        invoices = Invoice.browse(Transaction().context['active_ids'])
 
-        credit_invoices = Invoice.credit(invoices, **credit_options)
+        credit_invoices = self.model.credit(
+            self.records, **credit_options)
 
         data = {'res_id': [i.id for i in credit_invoices]}
         if len(credit_invoices) == 1:

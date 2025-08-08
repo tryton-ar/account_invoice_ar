@@ -1,5 +1,10 @@
 <?xml version="1.0"?>
 <data>
+    <xpath expr="//label[@id='credit']" position="before">
+        <label
+            name="already_exists" colspan="2" yalign="0.0" xalign="0.0" xexpand="1"
+            string="There is already a credit note associated with the invoice!"/>
+    </xpath>
     <xpath expr="/form" position="inside">
         <group col="2" name="from_fce" string="" colspan="2">
             <image name="tryton-dialog-warning" xexpand="0"
