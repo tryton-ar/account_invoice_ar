@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<form>
+    <label name="pos"/>
+    <field name="pos" widget="selection"/>
+    <label name="invoice_type"/>
+    <field name="invoice_type" widget="selection"/>
+    <label name="cbte_nro"/>
+    <field name="cbte_nro"/>
+</form>

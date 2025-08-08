@@ -56,5 +56,29 @@
             <field name="action" ref="report_invoice"/>
         </record>
 
+<!-- Wizard Recover Invoice -->
+
+        <record model="ir.ui.view" id="recover_invoice_start_view">
+            <field name="model">account.invoice.recover.start</field>
+            <field name="type">form</field>
+            <field name="name">recover_invoice_start_form</field>
+        </record>
+        <record model="ir.ui.view" id="recover_invoice_data_view">
+            <field name="model">account.invoice.recover.data</field>
+            <field name="type">form</field>
+            <field name="name">recover_invoice_data_form</field>
+        </record>
+
+        <record model="ir.action.wizard" id="wizard_recover_invoice">
+            <field name="name">Recover Invoice</field>
+            <field name="wiz_name">account.invoice.recover</field>
+            <field name="model">account.invoice</field>
+        </record>
+        <record model="ir.action.keyword" id="wizard_recover_invoice_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">account.invoice,-1</field>
+            <field name="action" ref="wizard_recover_invoice"/>
+        </record>
+
     </data>
 </tryton>

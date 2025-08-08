@@ -162,6 +162,62 @@ msgctxt "field:account.invoice.export.license,license_id:"
 msgid "License Id"
 msgstr "Id Permiso"
 
+msgctxt "field:account.invoice.recover.data,CAE:"
+msgid "CAE"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,CbteNro:"
+msgid "CbteNro"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,Cuit:"
+msgid "Cuit"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,EmisionTipo:"
+msgid "EmisionTipo"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,FechaCbte:"
+msgid "FechaCbte"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,ImpTotal:"
+msgid "ImpTotal"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,PuntoVenta:"
+msgid "PuntoVenta"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,Vencimiento:"
+msgid "Vencimiento"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,cuit_cliente:"
+msgid "CUIT del CLIENTE"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.data,invoice:"
+msgid "Invoice"
+msgstr "Factura"
+
+msgctxt "field:account.invoice.recover.data,message:"
+msgid "Message"
+msgstr "Mensaje"
+
+msgctxt "field:account.invoice.recover.start,cbte_nro:"
+msgid "Número comprobante"
+msgstr ""
+
+msgctxt "field:account.invoice.recover.start,invoice_type:"
+msgid "Invoice Type"
+msgstr "Tipo de factura"
+
+msgctxt "field:account.invoice.recover.start,pos:"
+msgid "Point of Sale"
+msgstr "Punto de Venta"
+
 msgctxt "field:account.pos,active:"
 msgid "Active"
 msgstr "Activo"
@@ -310,6 +366,14 @@ msgctxt "model:account.invoice.export.license,name:"
 msgid "Invoice Export License"
 msgstr "Permiso de exportación"
 
+msgctxt "model:account.invoice.recover.data,name:"
+msgid "Recover Invoice"
+msgstr "Recuperar factura"
+
+msgctxt "model:account.invoice.recover.start,name:"
+msgid "Recover Invoice"
+msgstr "Recuperar factura"
+
 msgctxt "model:account.pos,name:"
 msgid "Point of Sale"
 msgstr "Punto de Venta"
@@ -330,6 +394,9 @@ msgctxt "model:ir.action,name:report_invoice"
 msgid "Invoice"
 msgstr "Factura"
 
+msgctxt "model:ir.action,name:wizard_recover_invoice"
+msgid "Recover Invoice"
+msgstr "Recuperar factura"
 
 msgctxt "model:ir.message,text:msg_company_not_defined"
 msgid "The company is not defined"
@@ -1687,6 +1754,14 @@ msgid ""
 "them?"
 msgstr ""
 
+msgctxt "view:account.invoice.recover.data:"
+msgid "Factura a recuperar"
+msgstr ""
+
+msgctxt "view:account.invoice.recover.data:"
+msgid "Factura obtenida"
+msgstr ""
+
 msgctxt "view:account.invoice:"
 msgid "-"
 msgstr ""
@@ -1727,6 +1802,22 @@ msgctxt "view:party.party:"
 msgid "MiPyme FCE Amount"
 msgstr ""
 
+msgctxt "wizard_button:account.invoice.recover,data,end:"
+msgid "Close"
+msgstr "Cerrar"
 
+msgctxt "wizard_button:account.invoice.recover,data,save_invoice:"
+msgid "Save Invoice"
+msgstr "Guardar factura"
 
+msgctxt "wizard_button:account.invoice.recover,data,start:"
+msgid "Previous"
+msgstr "Volver"
 
+msgctxt "wizard_button:account.invoice.recover,start,ask_afip:"
+msgid "Ask AFIP"
+msgstr "Consultar AFIP"
+
+msgctxt "wizard_button:account.invoice.recover,start,end:"
+msgid "Cancel"
+msgstr "Cancelar"
