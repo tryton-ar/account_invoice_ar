@@ -1,6 +1,7 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
+
 from pyafipws.wsfev1 import WSFEv1
 from pyafipws.wsfexv1 import WSFEXv1
 from pyafipws.pyi25 import PyI25
@@ -726,8 +727,6 @@ class Invoice(metaclass=PoolMeta):
         default['pyafipws_number'] = None
         default['pos'] = None
         default['invoice_type'] = None
-        default['ref_pos_number'] = None
-        default['ref_voucher_number'] = None
         default['reference'] = None
         default['tipo_comprobante'] = None
         return super().copy(invoices, default=default)
@@ -845,7 +844,7 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
         if (self.get_tax_identifier() and
-                not self.company.party.tax_identifier.type == 'ar_cuit'):
+                not self.company.party.tax_identifier.type in ['ar_cuit', 'ar_vat']):
             raise UserError(gettext(
                 'account_invoice_ar.msg_miss_tax_identifier'))
 
@@ -895,12 +894,6 @@ class Invoice(metaclass=PoolMeta):
     @fields.depends('pos', 'party', 'lines', 'company', 'total_amount', 'type')
     def on_change_with_invoice_type(self, name=None):
         return self._set_invoice_type_sequence()
-
-    @classmethod
-    def _tax_identifier_types(cls):
-        types = super()._tax_identifier_types()
-        types.append('ar_cuit')
-        return types
 
     def _set_invoice_type_sequence(self):
         '''

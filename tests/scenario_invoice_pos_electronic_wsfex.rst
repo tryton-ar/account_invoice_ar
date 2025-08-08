@@ -4,6 +4,7 @@ Invoice Scenario
 
 Imports::
     >>> import datetime
+    >>> import io
     >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
     >>> from operator import attrgetter
@@ -17,7 +18,7 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
-    ...     create_pos, get_invoice_types, get_pos, create_tax_groups, get_wsfexv1
+    ...     create_pos, get_invoice_types, get_pos, get_tax_group, get_wsfexv1
     >>> from trytond.modules.party_ar.tests.tools import set_afip_certs
     >>> import pytz
     >>> timezone = pytz.timezone('America/Argentina/Buenos_Aires')
@@ -68,18 +69,20 @@ Create point of sale::
 
     >>> _ = create_pos(company, type='electronic', number=5000, ws='wsfex')
     >>> pos = get_pos(type='electronic', number=5000)
+    >>> pos.number
+    5000
     >>> invoice_types = get_invoice_types(pos=pos)
 
-Create tax groups::
+Get tax group IVA Ventas Exento::
 
-    >>> tax_groups = create_tax_groups()
+    >>> tax_group_exento = get_tax_group('IVA', 'sale', 'exento')
 
-Create tax IVA 21%::
+Create tax IVA Exento::
 
     >>> TaxCode = Model.get('account.tax.code')
-    >>> tax = create_tax(Decimal('.21'))
-    >>> tax.group = tax_groups['gravado']
-    >>> tax.iva_code = '5'
+    >>> tax = create_tax(Decimal('0'))
+    >>> tax.iva_code = '2'
+    >>> tax.group = tax_group_exento
     >>> tax.save()
     >>> invoice_base_code = create_tax_code(tax, 'base', 'invoice')
     >>> invoice_base_code.save()
@@ -139,7 +142,7 @@ Create party::
     >>> tax_identifier.type = 'ar_foreign'
     >>> tax_identifier.code = '55000001715' # SUDAFRICA, Persona Jurídica
     >>> tax_identifier.afip_country = sudafrica
-    >>> party.iva_condition = 'no_alcanzado'
+    >>> party.iva_condition = 'cliente_exterior'
     >>> party.save()
 
 Create account category::
@@ -149,6 +152,7 @@ Create account category::
     >>> account_category.accounting = True
     >>> account_category.account_expense = expense
     >>> account_category.account_revenue = revenue
+    >>> account_category.customer_taxes.append(tax)
     >>> account_category.save()
 
 Create product::
@@ -182,7 +186,9 @@ SetUp webservice AFIP::
 
 GetLastCMP and configure sequences::
 
-    >>> cbte_nro = int(wsfexv1.GetLastCMP('19', pos.number))
+    >>> # cbte_nro = int(wsfexv1.GetLastCMP('19', pos.number))
+    >>> cbte_nro = wsfexv1.GetLastCMP('19', pos.number)
+
     >>> invoice_types['19'].invoice_sequence.number_next = cbte_nro + 1
     >>> invoice_types['19'].invoice_sequence.save()
 
@@ -222,21 +228,25 @@ Create invoice::
     >>> line.product = product
     >>> line.quantity = 5
     >>> line.unit_price = Decimal('40')
-    >>> line = InvoiceLine()
-    >>> invoice.lines.append(line)
-    >>> line.account = revenue
-    >>> line.description = 'Test'
-    >>> line.quantity = 1
-    >>> line.unit_price = Decimal(20)
     >>> invoice.untaxed_amount
-    Decimal('220.00')
+    Decimal('200.00')
     >>> invoice.tax_amount
     Decimal('0.00')
     >>> invoice.total_amount
-    Decimal('220.00')
+    Decimal('200.00')
     >>> invoice.invoice_type == invoice_types['19']
     True
     >>> invoice.save()
+    >>> bool(invoice.has_report_cache)
+    False
+
+Test change tax::
+
+    >>> tax_line = invoice.taxes[0]
+    >>> tax_line.tax == tax
+    True
+    >>> tax_line.tax = None
+    >>> tax_line.tax = tax
 
 Test missing pyafipws_concept at invoice::
 
@@ -262,21 +272,21 @@ Post invoice::
     >>> invoice.tax_identifier.code
     '30710158254'
     >>> invoice.untaxed_amount
-    Decimal('220.00')
+    Decimal('200.00')
     >>> invoice.tax_amount
-    Decimal('0')
+    Decimal('0.00')
     >>> invoice.total_amount
-    Decimal('220.00')
+    Decimal('200.00')
     >>> receivable.reload()
     >>> receivable.debit
-    Decimal('220.00')
+    Decimal('200.00')
     >>> receivable.credit
     Decimal('0.00')
     >>> revenue.reload()
     >>> revenue.debit
     Decimal('0.00')
     >>> revenue.credit
-    Decimal('220.00')
+    Decimal('200.00')
     >>> account_tax.reload()
     >>> account_tax.debit
     Decimal('0.00')
@@ -285,7 +295,7 @@ Post invoice::
     >>> with config.set_context(periods=period_ids):
     ...     invoice_base_code = TaxCode(invoice_base_code.id)
     ...     invoice_base_code.amount
-    Decimal('0.00')
+    Decimal('200.00')
     >>> with config.set_context(periods=period_ids):
     ...     invoice_tax_code = TaxCode(invoice_tax_code.id)
     ...     invoice_tax_code.amount
@@ -333,14 +343,14 @@ Credit invoice with refund::
     True
     >>> receivable.reload()
     >>> receivable.debit
-    Decimal('220.00')
+    Decimal('200.00')
     >>> receivable.credit
-    Decimal('220.00')
+    Decimal('200.00')
     >>> revenue.reload()
     >>> revenue.debit
-    Decimal('220.00')
+    Decimal('200.00')
     >>> revenue.credit
-    Decimal('220.00')
+    Decimal('200.00')
     >>> account_tax.reload()
     >>> account_tax.debit
     Decimal('0.00')
@@ -392,7 +402,7 @@ Pay invoice::
     >>> invoice.click('post')
     >>> pay = Wizard('account.invoice.pay', [invoice])
     >>> pay.form.amount
-    Decimal('220.00')
+    Decimal('200.00')
     >>> pay.form.amount = Decimal('110.00')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
@@ -440,6 +450,8 @@ Pay invoice::
 
     >>> invoice.state
     'paid'
+    >>> sorted(l.credit for l in invoice.reconciliation_lines)
+    [Decimal('1.00'), Decimal('31.00'), Decimal('99.00'), Decimal('131.00')]
 
 Create empty invoice::
 
@@ -449,9 +461,12 @@ Create empty invoice::
     >>> invoice.pyafipws_concept = '1'
     >>> invoice.pyafipws_incoterms = 'FOB'
     >>> invoice.payment_term = payment_term
-    >>> invoice.click('post')
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
     >>> invoice.state
-    'paid'
+    'draft'
 
 Create some complex invoice and test its taxes base rounding::
 
@@ -473,6 +488,8 @@ Create some complex invoice and test its taxes base rounding::
     >>> invoice.save()
     >>> invoice.untaxed_amount
     Decimal('0.00')
+    >>> invoice.taxes[0].base == invoice.untaxed_amount
+    True
     >>> found_invoice, = Invoice.find([('untaxed_amount', '=', Decimal(0))])
     >>> found_invoice.id == invoice.id
     True
