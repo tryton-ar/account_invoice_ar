@@ -8,7 +8,7 @@
             <field name="text">El número de la factura (%(cbte_nro)d), no coincide con el que espera la AFIP (%(cbte_nro_next)d). Modifique la secuencia del diario</field>
         </record>
         <record model="ir.message" id="msg_not_cae">
-            <field name="text">No fue posible obtener el CAE de la factura "%(invoice)s" para la entidad "%(party)s". Mensaje: "%(msg)s"</field>
+            <field name="text">No fue posible obtener el CAE de la factura "%(invoice)s" para el cliente "%(party)s". Mensaje: "%(msg)s"</field>
         </record>
         <record model="ir.message" id="msg_invalid_journal">
             <field name="text">Este diario (%s) no tiene establecido los datos necesaios para facturar electrónicamente</field>
