@@ -222,18 +222,6 @@ msgctxt "field:bank.account,pyafipws_cbu:"
 msgid "CBU del Emisor"
 msgstr ""
 
-msgctxt "field:company.company,pyafipws_certificate:"
-msgid "Certificado AFIP WS"
-msgstr ""
-
-msgctxt "field:company.company,pyafipws_mode_cert:"
-msgid "Modo de certificacion"
-msgstr "Modo de certificación"
-
-msgctxt "field:company.company,pyafipws_private_key:"
-msgid "Clave Privada AFIP WS"
-msgstr ""
-
 msgctxt "field:currency.currency,afip_code:"
 msgid "AFIP Code"
 msgstr "Código AFIP"
@@ -306,20 +294,6 @@ msgctxt "help:account_invoice_ar.afip_transaction,pyafipws_xml_response:"
 msgid "Mensaje XML recibido de AFIP (depuración)"
 msgstr ""
 
-msgctxt "help:company.company,pyafipws_certificate:"
-msgid "Certificado (.crt) de la empresa para webservices AFIP"
-msgstr ""
-
-msgctxt "help:company.company,pyafipws_mode_cert:"
-msgid ""
-"El objetivo de Homologación (testing), es facilitar las pruebas. Los "
-"certificados de Homologación y Producción son distintos."
-msgstr ""
-
-msgctxt "help:company.company,pyafipws_private_key:"
-msgid "Clave Privada (.key) de la empresa para webservices AFIP"
-msgstr ""
-
 msgctxt "help:currency.currency,afip_code:"
 msgid "The 3 digits AFIP currency code."
 msgstr ""
@@ -352,9 +326,6 @@ msgctxt "model:ir.action,name:report_invoice"
 msgid "Invoice"
 msgstr "Factura"
 
-msgctxt "model:ir.message,text:msg_vat_not_existance"
-msgid "Invoice \"%(invoice)s\" is missing a VAT tax."
-msgstr "A la factura \"%(invoice)s\" le falta un impuesto IVA."
 
 msgctxt "model:ir.message,text:msg_company_not_defined"
 msgid "The company is not defined"
@@ -450,7 +421,7 @@ msgstr ""
 
 msgctxt "model:ir.message,text:msg_not_cae"
 msgid ""
-"No fue posible obtener el CAE de la factura \"%(invoice)s\" para la entidad "
+"No fue posible obtener el CAE de la factura \"%(invoice)s\" para el cliente "
 "\"%(party)s\". Mensaje: \"%(msg)s\""
 msgstr ""
 
@@ -480,6 +451,10 @@ msgctxt "model:ir.message,text:msg_too_many_sequences"
 msgid "Existe mas de una secuencia para facturas del tipo: %(invoice_type)s"
 msgstr ""
 
+msgctxt "model:ir.message,text:msg_vat_not_existance"
+msgid "Invoice \"%(invoice)s\" is missing a VAT tax."
+msgstr "A la factura \"%(invoice)s\" le falta un impuesto IVA."
+
 msgctxt "model:ir.message,text:msg_webservice_not_supported"
 msgid "AFIP webservice %(service)s is not yet supported!"
 msgstr ""
@@ -491,10 +466,6 @@ msgstr ""
 msgctxt "model:ir.message,text:msg_wsaa_error"
 msgid "There was a problem to connect webservice WSAA: (%(msg)s)"
 msgstr ""
-
-msgctxt "model:ir.message,text:account_invoice.msg_invoice_similar"
-msgid "The invoice \"%(invoice)s\" is similar to invoice \"%(similar)s\"."
-msgstr "La factura \"%(invoice)s\" es similar a la factura \"%(similar)s\"."
 
 msgctxt "model:ir.rule.group,name:rule_group_pos_companies"
 msgid "User in companies"
@@ -514,7 +485,7 @@ msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid ":"
-msgstr ":"
+msgstr ""
 
 msgctxt "report:account.invoice:"
 msgid "Amount"
@@ -1355,17 +1326,6 @@ msgctxt "selection:account_invoice_ar.afip_transaction,pyafipws_result:"
 msgid "n/a"
 msgstr ""
 
-msgctxt "selection:company.company,pyafipws_mode_cert:"
-msgid "Homologación"
-msgstr ""
-
-msgctxt "selection:company.company,pyafipws_mode_cert:"
-msgid "Producción"
-msgstr ""
-
-msgctxt "selection:company.company,pyafipws_mode_cert:"
-msgid "n/a"
-msgstr ""
 
 msgctxt "view:account.invoice.credit.start:"
 msgid ""
@@ -1375,7 +1335,7 @@ msgstr ""
 
 msgctxt "view:account.invoice:"
 msgid "-"
-msgstr "-"
+msgstr ""
 
 msgctxt "view:account.invoice:"
 msgid "Factura Electronica Argentina"
@@ -1409,22 +1369,10 @@ msgctxt "view:account_invoice_ar.afip_transaction:"
 msgid "XML Response"
 msgstr ""
 
-msgctxt "view:company.company:"
-msgid "Afip WS"
-msgstr ""
-
-msgctxt "view:company.company:"
-msgid "Certificado AFIP WS"
-msgstr ""
-
-msgctxt "view:company.company:"
-msgid "Clave Privada AFIP WS"
-msgstr ""
-
-msgctxt "view:company.company:"
-msgid "Modo de Certificacion"
-msgstr "Modo de Certificación"
-
 msgctxt "view:party.party:"
 msgid "MiPyme FCE Amount"
 msgstr ""
+
+
+
+
