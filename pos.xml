@@ -2,8 +2,8 @@
 <tryton>
     <data>
 
-        <menuitem name="Points of Sale" parent="account.menu_account_configuration"
-            id="menu_main_point_of_sale" sequence="10"/>
+        <menuitem name="Points of Sale" id="menu_main_point_of_sale"
+            parent="account.menu_account_configuration" sequence="40"/>
 
         <record model="ir.ui.view" id="pos_view_form">
             <field name="model">account.pos</field>
@@ -33,8 +33,8 @@
             <field name="act_window" ref="act_account_pos"/>
         </record>
 
-        <menuitem name="Points of Sale" parent="menu_main_point_of_sale"
-            id="menu_point_of_sale" action="act_account_pos"/>
+        <menuitem action="act_account_pos" id="menu_point_of_sale"
+            parent="menu_main_point_of_sale"/>
 
         <record model="ir.rule.group" id="rule_group_pos_companies">
             <field name="name">User in companies</field>
