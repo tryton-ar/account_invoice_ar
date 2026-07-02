@@ -1816,6 +1816,7 @@ class Invoice(metaclass=PoolMeta):
             incoterms = self.pyafipws_incoterms
             incoterms_ds = dict(self._fields['pyafipws_incoterms'].selection)[
                 self.pyafipws_incoterms]
+            incoterms_ds = incoterms_ds[:20]
         else:
             incoterms = incoterms_ds = None
 
@@ -1828,7 +1829,10 @@ class Invoice(metaclass=PoolMeta):
                 'account_invoice_ar.msg_missing_pyafipws_incoterms'))
 
         if int(tipo_cbte) == 19 and tipo_expo == 1:
-            permiso_existente = 'N' or 'S'  # not used now
+            if self.pyafipws_licenses:
+                permiso_existente = 'S'
+            else:
+                permiso_existente = 'N'
         else:
             permiso_existente = ''
         obs_generales = self.comment
@@ -2000,10 +2004,11 @@ class Invoice(metaclass=PoolMeta):
                             importe_total, bonif)
 
             if service == 'wsfex':
-                for export_license in self.pyafipws_licenses:
-                    ws.AgregarPermiso(
-                        export_license.license_id,
-                        export_license.afip_country.code)
+                if tipo_expo == 1:
+                    for export_license in self.pyafipws_licenses:
+                        ws.AgregarPermiso(
+                            export_license.license_id,
+                            export_license.afip_country.code)
                 if int(tipo_cbte) in (20, 21):
                     for cbteasoc in self.pyafipws_cmp_asoc:
                         cbteasoc_tipo = int(cbteasoc.invoice_type.invoice_type)
@@ -2156,7 +2161,7 @@ class InvoiceExportLicense(ModelSQL, ModelView):
 
     invoice = fields.Many2One('account.invoice', 'Invoice',
         ondelete='CASCADE', required=True)
-    license_id = fields.Char('License Id', required=True)
+    license_id = fields.Char('License Id', size=16, required=True)
     afip_country = fields.Many2One('afip.country', 'AFIP Country',
         required=True)
 
