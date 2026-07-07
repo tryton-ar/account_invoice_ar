@@ -1,0 +1,78 @@
+[build-system]
+requires = [
+    'hatchling >= 1',
+    'hatch-tryton',
+    'hatch-tryton-ar @ git+https://github.com/tryton-ar/hatch-tryton-ar.git'
+    ]
+build-backend = 'hatchling.build'
+
+[project]
+name = 'trytonar_account_invoice_ar'
+dynamic = ['version', 'dependencies', 'optional-dependencies', 'authors', 'readme']
+requires-python = '>=3.10'
+maintainers = [
+    {name = "tryton-ar", email = "info@tryton.org.ar"},
+    ]
+description = "Tryton module to add account invoice (electronic/manual) localization for Argentina (AFIP)"
+license = 'GPL-3.0-or-later'
+license-files = ['LICENSE', 'COPYRIGHT']
+keywords = ["tryton", "invoice", "account", "argentina", "afip"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Plugins",
+    "Framework :: Tryton",
+    "Topic :: Office/Business",
+    "Topic :: Office/Business :: Financial :: Accounting",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    ]
+
+[project.entry-points.'trytond.modules']
+account_invoice_ar = 'trytond.modules.account_invoice_ar'
+
+[project.scripts]
+trytond_update_currencies_afip = 'trytond.modules.account_invoice_ar.scripts.update_currencies:run'
+
+[project.urls]
+homepage = "https://github.com/tryton-ar/account_invoice_ar"
+documentation = "https://docs.tryton.org/"
+changelog = "https://github.com/tryton-ar/account_invoice_ar/blob/master/CHANGELOG"
+forum = "https://www.tryton.org/forum"
+issues = "https://github.com/tryton-ar/account_invoice_ar/issues"
+funding = "https://www.tryton.org/donate"
+
+[tool.hatch.build]
+include = [
+    '**/tryton.cfg',
+    '**/*.py',
+    '**/*.xml',
+    'view/**/*.xml',
+    'locale/**/*.po',
+    '**/*.fodt',
+    'icons/**/*.svg',
+    'tests/**/*.rst',
+    'tests/**/*.json',
+    'tests/**/*.csv',
+    'scripts/**/*',
+    ]
+exclude = ['doc']
+
+[tool.hatch.build.targets.wheel.sources]
+"" = "trytond/modules/account_invoice_ar"
+
+[tool.hatch.metadata.hooks.tryton]
+dependencies = ['pytz']
+copyright = 'COPYRIGHT'
+readme = 'README.rst'
+
+[tool.hatch.metadata.hooks.tryton.prefixes]
+account_ar = 'trytonar'
+bank_ar = 'trytonar'
+party_ar = 'trytonar'
+
+[tool.hatch.metadata.hooks.tryton-ar]
+
+[tool.hatch.metadata.hooks.tryton.tryton-optional-dependencies]
+test = ['proteus']
+
+[tool.hatch.metadata]
+allow-direct-references = true
