@@ -9,6 +9,7 @@ from pyafipws.wsfexv1 import WSFEXv1
 from proteus import Model
 from trytond.modules.company.tests.tools import get_company
 from trytond.modules.party_ar.tests.tools import set_afip_certs
+from trytond.modules.account_ar.tests.tools import get_tax, get_tax_group
 
 
 __all__ = ['create_pos', 'get_pos', 'get_invoice_types',
@@ -104,30 +105,6 @@ def get_invoice_types(company=None, pos=None, config=None):
             ])
     invoice_types = {i.invoice_type: i for i in invoice_types}
     return invoice_types
-
-
-def get_tax(name='IVA Ventas 21%', config=None):
-    "Return tax"
-    Tax = Model.get('account.tax', config=config)
-
-    tax, = Tax.find([
-        ('name', '=', name),
-        ])
-
-    return tax
-
-
-def get_tax_group(code='IVA', kind='sale', afip_kind='gravado', config=None):
-    "Return tax group"
-    TaxGroup = Model.get('account.tax.group', config=config)
-
-    group, = TaxGroup.find([
-        ('code', '=', code),
-        ('kind', '=', kind),
-        ('afip_kind', '=', afip_kind),
-        ])
-
-    return group
 
 
 def get_wsfev1(company=None, config=None):
