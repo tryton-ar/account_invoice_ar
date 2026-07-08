@@ -739,7 +739,6 @@ class Invoice(metaclass=PoolMeta):
         default['pyafipws_cae_due_date'] = None
         default['pyafipws_barcode'] = None
         default['pyafipws_number'] = None
-        default['pyafipws_number'] = None
         default['pos'] = None
         default['invoice_type'] = None
         default['reference'] = None
