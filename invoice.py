@@ -576,22 +576,27 @@ class Invoice(metaclass=PoolMeta):
             #Index(t, (t.tipo_comprobante, Index.Equality())),
             #})
 
+    legacy_mapping = {
+        'fca': '001',
+        'fcb': '006',
+        'fcc': '011',
+        'tka': '081',
+        'tkb': '082',
+        'tkc': '111',
+    }
+
     @classmethod
     def __register__(cls, module_name):
         super().__register__(module_name)
-        cursor = Transaction().connection.cursor()
-        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'001\' '
-            'WHERE tipo_comprobante = \'fca\';')
-        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'006\' '
-            'WHERE tipo_comprobante = \'fcb\';')
-        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'011\' '
-            'WHERE tipo_comprobante = \'fcc\';')
-        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'081\' '
-            'WHERE tipo_comprobante = \'tka\';')
-        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'082\' '
-            'WHERE tipo_comprobante = \'tkb\';')
-        cursor.execute('UPDATE account_invoice SET tipo_comprobante = \'111\' '
-            'WHERE tipo_comprobante = \'tkc\';')
+        table = cls.__table__()
+        table_h = cls.__table_handler__(module_name)
+
+        if table_h.column_exist('tipo_comprobante'):
+            cursor = Transaction().connection.cursor()
+            for old, new in cls.legacy_mapping.items():
+                cursor.execute(*table.update(
+                    [table.tipo_comprobante], [new],
+                    where=table.tipo_comprobante == old))
 
     @staticmethod
     def default_party_iva_condition():
