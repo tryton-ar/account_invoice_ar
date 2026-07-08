@@ -251,7 +251,7 @@ Post invoice::
     >>> # invoice.pyafipws_cae
     >>> # invoice.transactions[0].pyafipws_xml_request
     >>> # invoice.transactions[0].pyafipws_xml_response
-    >>> invoice.tax_identifier.code
+    >>> invoice.tax_identifier.code_compact
     '30710158254'
     >>> invoice.untaxed_amount
     Decimal('200.00')
