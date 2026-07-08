@@ -200,7 +200,7 @@ Create invoice::
 
     >>> Invoice = Model.get('account.invoice')
     >>> InvoiceLine = Model.get('account.invoice.line')
-    >>> invoice = Invoice()
+    >>> invoice = Invoice(type='out')
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.payment_term = payment_term
@@ -421,7 +421,7 @@ Pay invoice::
 
 Create empty invoice::
 
-    >>> invoice = Invoice()
+    >>> invoice = Invoice(type='out')
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
@@ -436,7 +436,7 @@ Create empty invoice::
 
 Create some complex invoice and test its taxes base rounding::
 
-    >>> invoice = Invoice()
+    >>> invoice = Invoice(type='out')
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
@@ -465,7 +465,7 @@ Create some complex invoice and test its taxes base rounding::
 
 Create a paid invoice::
 
-    >>> invoice = Invoice()
+    >>> invoice = Invoice(type='out')
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'
@@ -497,7 +497,7 @@ The invoice is posted when the reconciliation is deleted::
 
 Credit invoice with non line lines::
 
-    >>> invoice = Invoice()
+    >>> invoice = Invoice(type='out')
     >>> invoice.party = party
     >>> invoice.pos = pos
     >>> invoice.pyafipws_concept = '1'

@@ -104,8 +104,7 @@ Create invoice::
 
     >>> Invoice = Model.get('account.invoice')
     >>> InvoiceLine = Model.get('account.invoice.line')
-    >>> invoice = Invoice()
-    >>> invoice.type = 'in'
+    >>> invoice = Invoice(type='in')
     >>> invoice.party = party
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
@@ -201,8 +200,7 @@ Credit invoice::
 
 Create a draft and post invoice::
 
-    >>> invoice = Invoice()
-    >>> invoice.type = 'in'
+    >>> invoice = Invoice(type='in')
     >>> invoice.party = party
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
@@ -238,8 +236,7 @@ Credit invoice::
 
 Create a posted and a draft invoice to cancel::
 
-    >>> invoice = Invoice()
-    >>> invoice.type = 'in'
+    >>> invoice = Invoice(type='in')
     >>> invoice.party = party
     >>> invoice.payment_term = payment_term
     >>> invoice.invoice_date = today
