@@ -1162,6 +1162,7 @@ class Invoice(metaclass=PoolMeta):
 
             if not invoice.invoice_date and invoice.type == 'out':
                 invoice.invoice_date = today
+            invoice.sequence_type_cache = invoice._sequence_type
             invoice.number, invoice.sequence = invoice.get_next_number()
             if invoice.type == 'out' and invoice.sequence not in sequences:
                 date = accounting_date(invoice)
