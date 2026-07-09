@@ -8,6 +8,9 @@ from pyafipws import pyqr
 from io import BytesIO
 import stdnum.ar.cuit as cuit
 import logging
+
+from collections import defaultdict
+from itertools import chain, groupby
 from decimal import Decimal
 from datetime import date, datetime
 from calendar import monthrange
@@ -1134,78 +1137,84 @@ class Invoice(metaclass=PoolMeta):
         pool = Pool()
         Date = pool.get('ir.date')
         Lang = pool.get('ir.lang')
-        Sequence = pool.get('ir.sequence')
         today = Date.today()
 
-        def accounting_date(invoice):
-            return invoice.accounting_date or invoice.invoice_date or today
-
-        invoices = sorted(invoices, key=accounting_date)
         sequences = set()
 
-        for invoice in invoices:
-            # Posted and paid invoices are tested by check_modify so we can
-            # not modify tax_identifier nor number
-            if invoice.state in {'posted', 'paid'}:
-                continue
-            if not invoice.tax_identifier:
-                invoice.tax_identifier = invoice.get_tax_identifier()
-            # Generated invoice may not fill the party tax identifier
-            if not invoice.party_tax_identifier:
-                invoice.party_tax_identifier = invoice.party.tax_identifier
-            # Generated invoice may not fill the party iva_condition
-            if not invoice.party_iva_condition and invoice.type == 'out':
-                invoice.party_iva_condition = invoice.party.iva_condition
+        for company, grouped_invoices in groupby(
+                invoices, key=lambda i: i.company):
+            with Transaction().set_context(company=company.id):
+                today = Date.today()
 
-            if invoice.number:
-                continue
+            def invoice_date(invoice):
+                return invoice.invoice_date or today
 
-            if not invoice.invoice_date and invoice.type == 'out':
-                invoice.invoice_date = today
-            invoice.sequence_type_cache = invoice._sequence_type
-            invoice.number, invoice.sequence = invoice.get_next_number()
-            if invoice.type == 'out' and invoice.sequence not in sequences:
-                date = accounting_date(invoice)
-                # Do not need to lock the table
-                # because sequence.get_id is sequential
-                after_invoices = cls.search([
-                    ('type', '=', 'out'),
-                    ('sequence', '=', invoice.sequence),
-                    ['OR',
-                        ('accounting_date', '>', date),
-                        [
-                            ('accounting_date', '=', None),
-                            ('invoice_date', '>', date)],
-                        ],
-                    ], order=[
-                        ('accounting_date', 'DESC'),
-                        ('invoice_date', 'DESC'),
-                        ],
-                    limit=1)
-                if after_invoices:
-                    after_invoice, = after_invoices
-                    raise InvoiceNumberError(
-                        gettext('account_invoice.msg_invoice_number_after',
-                            invoice=invoice.rec_name,
-                            sequence=Sequence(invoice.sequence).rec_name,
-                            date=Lang.get().strftime(date),
-                            after_invoice=after_invoice.rec_name))
-                sequences.add(invoice.sequence)
+            to_number = defaultdict(list)
+            grouped_invoices = sorted(grouped_invoices, key=invoice_date)
+
+            for invoice in grouped_invoices:
+                # Posted, paid and cancelled invoices are tested by
+                # check_modify so we can not modify tax_identifier nor number
+                if invoice.state in {'posted', 'paid', 'cancelled'}:
+                    continue
+                if not invoice.tax_identifier:
+                    invoice.tax_identifier = invoice.get_tax_identifier()
+                # Generated invoice may not fill the party tax identifier
+                if not invoice.party_tax_identifier:
+                    invoice.party_tax_identifier = invoice.party.tax_identifier
+                # Generated invoice may not fill the party iva_condition
+                if not invoice.party_iva_condition and invoice.type == 'out':
+                    invoice.party_iva_condition = invoice.party.iva_condition
+
+                if invoice.number:
+                    continue
+
+                if not invoice.invoice_date and invoice.type == 'out':
+                    invoice.invoice_date = today
+                invoice.sequence_type_cache = invoice._sequence_type
+                sequence, sequence_date = invoice._number_sequence()
+
+                to_number[(sequence, sequence_date)].append(invoice)
+                if invoice.type == 'out' and sequence not in sequences:
+                    date = invoice_date(invoice)
+                    # Do not need to lock the table
+                    # because sequence.get_many is sequential
+                    after_invoices = cls.search([
+                            ('sequence', '=', sequence),
+                            ('invoice_date', '>', date),
+                            ],
+                        limit=1, order=[('invoice_date', 'DESC')])
+                    if after_invoices:
+                        after_invoice, = after_invoices
+                        raise InvoiceNumberError(
+                            gettext('account_invoice.msg_invoice_number_after',
+                                invoice=invoice.rec_name,
+                                sequence=sequence.rec_name,
+                                date=Lang.get().strftime(date),
+                                after_invoice=after_invoice.rec_name))
+                    sequences.add(sequence)
+            for (sequence, date), n_invoices in to_number.items():
+                with Transaction().set_context(
+                        date=date, company=company.id):
+                    for invoice, number in zip(
+                            n_invoices, sequence.get_many(len(n_invoices))):
+                        if invoice.type == 'out' and invoice.pos:
+                            invoice.number = '%05d-%08d' % (invoice.pos.number, int(number))
+                        else:
+                            invoice.number = number
+                        invoice.sequence = sequence
         cls.save(invoices)
 
-    def get_next_number(self, pattern=None):
+    def _number_sequence(self, pattern=None):
+        sequence, sequence_date = super()._number_sequence(pattern)
         if self.type == 'out':
             sequence = self.invoice_type.invoice_sequence
             if not sequence:
                 raise UserError(gettext(
                     'account_invoice_ar.msg_missing_sequence',
                     self.invoice_type.rec_name))
-            accounting_date = self.accounting_date or self.invoice_date
-            with Transaction().set_context(date=accounting_date):
-                number = sequence.get()
-                number = '%05d-%08d' % (self.pos.number, int(number))
-                return number, sequence.id
-        return super().get_next_number(pattern)
+
+        return sequence, sequence_date
 
     def get_move(self):
         with Transaction().set_context(currency_rate=self.currency_rate):
