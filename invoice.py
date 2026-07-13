@@ -1958,7 +1958,7 @@ class Invoice(metaclass=PoolMeta):
                         if service != 'wsmtxca':
                             cmp_fecha_cbte = cmp_fecha_cbte.replace('-', '')
                         ws.AgregarCmpAsoc(cmp_tipo, punto_vta, cmp_nro,
-                            self.company.party.tax_identifier.code,
+                            self.company.party.tax_identifier.code_compact,
                             cmp_fecha_cbte)
 
             for tax_line in self.taxes:
@@ -2029,7 +2029,7 @@ class Invoice(metaclass=PoolMeta):
                         cbteasoc_nro = int(cbteasoc.number[-8:])
                         ws.AgregarCmpAsoc(cbteasoc_tipo, punto_vta,
                             cbteasoc_nro,
-                            self.company.party.tax_identifier.code)
+                            self.company.party.tax_identifier.code_compact)
                 if not self.lines:
                     codigo = 0
                     ds = '-'
@@ -2354,7 +2354,7 @@ class InvoiceReport(metaclass=PoolMeta):
     def _get_vat_number_cliente(cls, Invoice, invoice):
         value = ''
         if invoice.party_tax_identifier:
-            value = invoice.party_tax_identifier.code
+            value = invoice.party_tax_identifier.code_compact
         elif invoice.party.vat_number:
             value = invoice.party.vat_number
         return cuit.format(value)
@@ -2401,7 +2401,7 @@ class InvoiceReport(metaclass=PoolMeta):
     @classmethod
     def _get_vat_number(cls, invoice):
         if invoice.tax_identifier:
-            value = invoice.tax_identifier.code
+            value = invoice.tax_identifier.code_compact
         else:
             value = invoice.company.party.vat_number
         return cuit.format(value)
