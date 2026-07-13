@@ -7,7 +7,6 @@ Imports::
     >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
     >>> from proteus import Model, Wizard
-    >>> from trytond.tests.tools import activate_modules
     >>> from trytond.modules.currency.tests.tools import get_currency
     >>> from trytond.modules.company.tests.tools import create_company, \
     ...     get_company
@@ -18,6 +17,8 @@ Imports::
     ...     set_fiscalyear_invoice_sequences
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
     ...     create_pos, get_pos, get_invoice_types, get_tax
+    >>> from trytond.tests.tools import activate_modules, assertEqual, assertTrue
+
     >>> today = dt.date.today()
 
 Install account_invoice_ar::
@@ -36,6 +37,20 @@ Create company::
     >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
+
+Set employee::
+
+    >>> User = Model.get('res.user')
+    >>> Party = Model.get('party.party')
+    >>> Employee = Model.get('company.employee')
+    >>> employee_party = Party(name="Employee")
+    >>> employee_party.save()
+    >>> employee = Employee(party=employee_party)
+    >>> employee.save()
+    >>> user = User(config.user)
+    >>> user.employees.append(employee)
+    >>> user.employee = employee
+    >>> user.save()
 
 Create fiscal year::
 
@@ -184,9 +199,16 @@ Test change tax::
     >>> tax_line.tax = None
     >>> tax_line.tax = sale_tax
 
+Validate invoice::
+
+    >>> invoice.click('validate_invoice')
+    >>> assertEqual(invoice.validated_by, employee)
+
 Post invoice::
 
+    >>> invoice.invoice_date = today
     >>> invoice.click('post')
+    >>> assertEqual(invoice.posted_by, employee)
     >>> invoice.state
     'posted'
     >>> invoice.tax_identifier.code_compact
@@ -224,6 +246,8 @@ Credit invoice with refund::
     >>> invoice.reload()
     >>> invoice.state
     'cancelled'
+    >>> bool(invoice.cancel_move)
+    True
     >>> bool(invoice.reconciled)
     True
     >>> credit_note, = Invoice.find([
@@ -247,6 +271,8 @@ Credit invoice with refund::
     'cancelled'
     >>> invoice.reconciled == today
     True
+    >>> for line in credit_note.lines:
+    ...     assertEqual(line.taxes_date, today)
     >>> account_receivable.reload()
     >>> account_receivable.debit
     Decimal('262.00')
@@ -263,26 +289,26 @@ Credit invoice with refund::
     >>> account_tax.credit
     Decimal('42.00')
 
-Attempt to post invoice without pos::
+Unreconcile cancelled invoice::
 
-    >>> invoice, = invoice.duplicate()
+    >>> unreconcile_lines = Wizard(
+    ...     'account.move.unreconcile_lines', invoice.move.lines)
+    >>> invoice.reload()
     >>> invoice.state
-    'draft'
-    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    UserError: ...
-    >>> invoice.state
-    'draft'
+    'posted'
+    >>> invoice.cancel_move
 
 Pay invoice::
 
+    >>> invoice, = invoice.duplicate()
     >>> invoice.pos = pos
     >>> invoice.invoice_type == invoice_types['1']
     True
     >>> invoice.click('post')
+    >>> invoice.state
+    'posted'
 
-    >>> pay = Wizard('account.invoice.pay', [invoice])
+    >>> pay = invoice.click('pay')
     >>> pay.form.amount
     Decimal('262.00')
     >>> pay.form.amount = Decimal('120.00')
@@ -291,7 +317,7 @@ Pay invoice::
     >>> pay.state
     'end'
 
-    >>> pay = Wizard('account.invoice.pay', [invoice])
+    >>> pay = invoice.click('pay')
     >>> pay.form.amount
     Decimal('120.00')
     >>> pay.form.amount = Decimal('42.00')
@@ -310,7 +336,7 @@ Pay invoice::
     Decimal('100.00')
     >>> pay.execute('pay')
 
-    >>> pay = Wizard('account.invoice.pay', [invoice])
+    >>> pay = invoice.click('pay')
     >>> pay.form.amount
     Decimal('-20.00')
     >>> pay.form.amount = Decimal('99.00')
@@ -334,6 +360,18 @@ Pay invoice::
     'paid'
     >>> sorted(l.credit for l in invoice.reconciliation_lines)
     [Decimal('1.00'), Decimal('42.00'), Decimal('99.00'), Decimal('120.00')]
+
+Attempt to post invoice without pos::
+
+    >>> invoice, = invoice.duplicate()
+    >>> invoice.state
+    'draft'
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
+    >>> invoice.state
+    'draft'
 
 Create empty invoice::
 
@@ -404,7 +442,7 @@ Create a paid invoice::
     >>> tax_identifier.save()
 
     >>> invoice.click('post')
-    >>> pay = Wizard('account.invoice.pay', [invoice])
+    >>> pay = invoice.click('pay')
     >>> pay.form.payment_method = payment_method
     >>> pay.execute('choice')
     >>> pay.state
