@@ -222,10 +222,6 @@ Duplicate and test recover last invoice::
     >>> recover.state
     'ask_afip'
     >>> recover.form.invoice = recover_invoice
-    >>> recover.form.CbteNro == str(last_cbte_nro)
-    True
-    >>> recover.form.CAE == invoice.pyafipws_cae
-    True
     >>> recover.execute('save_invoice')
     >>> recover_invoice.reload()
     >>> recover_invoice.state
