@@ -1408,68 +1408,32 @@ class Invoice(metaclass=PoolMeta):
             raise UserError(gettext(
                 'account_invoice_ar.msg_webservice_unknown'))
 
-        (company, ta) = cls.authenticate_afip(service=service)
-        # TODO: get wsdl url from DictField?
-        if service == 'wsfe':
-            ws = WSFEv1()
-            if company.pyafipws_mode_cert == 'homologacion':
-                WSDL = 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL'
-            elif company.pyafipws_mode_cert == 'produccion':
-                WSDL = (
-                    'https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL')
-        elif service == 'wsfex':
-            ws = WSFEXv1()
-            if company.pyafipws_mode_cert == 'homologacion':
-                WSDL = 'https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL'
-            elif company.pyafipws_mode_cert == 'produccion':
-                WSDL = (
-                    'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
-        else:
-            logger.critical('AFIP ws is not yet supported! %s', service)
-            raise UserError(gettext(
-                'account_invoice_ar.msg_webservice_not_supported',
-                service=service))
-
-        ws = cls.conect_afip(ws, WSDL, company.party.vat_number, ta)
+        (company, ta) = cls.authenticate_afip(service=service, invoice=invoice)
+        ws = company.pyafipws_connect(ta, service)
         ws.Reprocesar = False
         return ws
 
     @classmethod
-    def authenticate_afip(cls, service='wsfe'):
+    def authenticate_afip(cls, service='wsfe', invoice=None):
         '''
         Authenticate to webservice WSAA
         '''
         pool = Pool()
         Company = pool.get('company.company')
-        company_id = Transaction().context.get('company')
-        if not company_id:
-            logger.error('The company is not defined')
-            raise UserError(gettext(
-                'account_invoice_ar.msg_company_not_defined'))
-        company = Company(company_id)
+
+        if invoice:
+            company = invoice.company
+        else:
+            company_id = Transaction().context.get('company')
+            if not company_id:
+                logger.error('The company is not defined')
+                raise UserError(gettext(
+                    'account_invoice_ar.msg_company_not_defined'))
+            company = Company(company_id)
+
         # authenticate against AFIP:
         ta = company.pyafipws_authenticate(service=service)
         return (company, ta)
-
-    @classmethod
-    def conect_afip(cls, ws, wsdl, vat_number, ta):
-        '''
-        Connect to WSAA webservice
-        '''
-        pool = Pool()
-        Company = pool.get('company.company')
-        cache = Company.get_cache_dir()
-        ws.LanzarExcepciones = True
-        ws.SetTicketAcceso(ta)
-        ws.Cuit = vat_number
-        try:
-            ws.Conectar(wsdl=wsdl, cache=cache, cacert=True)
-        except Exception as e:
-            msg = ws.Excepcion + ' ' + str(e)
-            logger.error('WSAA connecting to afip: %s' % msg)
-            raise UserError(gettext(
-                'account_invoice_ar.msg_wsaa_error', msg=msg))
-        return ws
 
     @classmethod
     def post_ws(cls, invoice):
@@ -2671,43 +2635,14 @@ class RecoverInvoice(Wizard):
             self.data.message = message
             return 'data'
 
-        # import the AFIP webservice helper for electronic invoice
-        if service == 'wsfe':
-            from pyafipws.wsfev1 import WSFEv1  # local market
-            ws = WSFEv1()
-            if company.pyafipws_mode_cert == 'homologacion':
-                WSDL = 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL'
-            elif company.pyafipws_mode_cert == 'produccion':
-                WSDL = (
-                    'https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL')
-        elif service == 'wsfex':
-            from pyafipws.wsfexv1 import WSFEXv1  # foreign trade
-            ws = WSFEXv1()
-            if company.pyafipws_mode_cert == 'homologacion':
-                WSDL = 'https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL'
-            elif company.pyafipws_mode_cert == 'produccion':
-                WSDL = (
-                    'https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL')
-        else:
-            message = 'WS no soportado: ' + repr(service)
-            self.data.message = message
-            return 'data'
-
-        ws.LanzarExcepciones = True
-        cache = company.get_cache_dir()
-
         # authenticate against AFIP:
         try:
-            ta = company.pyafipws_authenticate(service=service, cache=cache)
+            ta = company.pyafipws_authenticate(service=service)
+            ws = company.pyafipws_connect(ta, service)
         except Exception as e:
             message = 'Service no soportado:' + repr(e)
             self.data.message = message
             return 'data'
-
-        # set AFIP webservice credentials:
-        ws.SetTicketAcceso(ta)
-        ws.Cuit = company.party.vat_number
-        ws.Conectar(wsdl=WSDL, cache=cache, cacert=True)
 
         if self.start.cbte_nro is None:
             if service == 'wsfe' or service == 'wsmtxca':
