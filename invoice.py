@@ -1837,10 +1837,10 @@ class Invoice(metaclass=PoolMeta):
         if self.invoice_address:
             address = self.invoice_address
             domicilio_cliente = ' - '.join([
-                    address.name or '',
-                    address.street or '',
-                    address.postal_code or '',
-                    address.city or '',
+            (address.party and address.party.name) or '',
+            address.street or '',
+            address.postal_code or '',
+            address.city or '',
                     ])
         else:
             domicilio_cliente = ''
