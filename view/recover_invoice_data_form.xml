@@ -7,6 +7,24 @@
         <page string="Factura a recuperar" id='factura_borrador'>
             <label name="invoice"/>
             <field name="invoice"/>
+            <label name="fechacbte"/>
+            <field name="fechacbte"/>
+            <label name="cbtenro"/>
+            <field name="cbtenro"/>
+            <label name="imptotal"/>
+            <field name="imptotal"/>
+            <label name="cae"/>
+            <field name="cae"/>
+            <label name="vencimiento"/>
+            <field name="vencimiento"/>
+            <label name="cuit"/>
+            <field name="cuit"/>
+            <label name="cuit_cliente"/>
+            <field name="cuit_cliente"/>
+            <label name="emisiontipo"/>
+            <field name="emisiontipo"/>
+            <label name="puntoventa"/>
+            <field name="puntoventa"/>
         </page>
     </notebook>
 </form>

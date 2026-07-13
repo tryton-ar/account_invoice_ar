@@ -1113,11 +1113,12 @@ class Invoice(metaclass=PoolMeta):
         cls.save(new_invoices)
         cls.update_taxes(new_invoices)
         if refund:
-            try:
-                cls.post(new_invoices)
-            except Exception as e:
-                cls.delete(new_invoices)
-                raise e
+            cls.post(new_invoices)
+            # try:
+            #     cls.post(new_invoices)
+            # except Exception as e:
+            #     cls.delete(new_invoices)
+            #     raise e
             for invoice, new_invoice in zip(invoices, new_invoices):
                 if invoice.state != 'posted':
                     raise AccessError(
@@ -2023,7 +2024,6 @@ class Invoice(metaclass=PoolMeta):
         except Exception as e:
             if ws.Excepcion:
                 # get the exception already parsed by the helper
-                #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
                 msg = ws.Excepcion + ' ' + str(e)
             else:
                 # avoid encoding problem when reporting exceptions to the user:
@@ -2580,15 +2580,15 @@ class RecoverInvoiceData(ModelView):
     message = fields.Text('Message', readonly=True)
     invoice = fields.Many2One('account.invoice', 'Invoice',
         domain=[('state', '=', 'draft')])
-    FechaCbte = fields.Char('FechaCbte')
-    CbteNro = fields.Char('CbteNro')
-    PuntoVenta = fields.Char('PuntoVenta')
-    ImpTotal = fields.Char('ImpTotal')
-    CAE = fields.Char('CAE')
-    Vencimiento = fields.Char('Vencimiento')
-    EmisionTipo = fields.Char('EmisionTipo')
-    Cuit = fields.Char('Cuit')
-    cuit_cliente = fields.Char('CUIT del CLIENTE')
+    fechacbte = fields.Char('FechaCbte', readonly=True)
+    cbtenro = fields.Char('CbteNro', readonly=True)
+    imptotal = fields.Char('ImpTotal', readonly=True)
+    cae = fields.Char('CAE', readonly=True)
+    vencimiento = fields.Char('Vencimiento', readonly=True)
+    cuit = fields.Char('Cuit', readonly=True)
+    cuit_cliente = fields.Char('CUIT del CLIENTE', readonly=True)
+    emisiontipo = fields.Char('EmisionTipo', readonly=True)
+    puntoventa = fields.Char('PuntoVenta', readonly=True)
 
 
 class RecoverInvoice(Wizard):
@@ -2603,20 +2603,21 @@ class RecoverInvoice(Wizard):
     ask_afip = StateTransition()
     data = StateView('account.invoice.recover.data',
         'account_invoice_ar.recover_invoice_data_view', [
-            Button('Close', 'end', 'tryton-cancel'),
-            Button('Previous', 'start', 'tryton-back', default=True),
-            Button('Save Invoice', 'save_invoice', 'tryton-save'),
+            Button('Cancel', 'end', 'tryton-cancel'),
+            Button('Previous', 'start', 'tryton-back'),
+            Button('Save Invoice', 'save_invoice', 'tryton-save', default=True),
         ])
     save_invoice = StateTransition()
 
     def default_start(self, fields):
         res = {}
-        if hasattr(self.start, 'invoice_type'):
+        res['cbte_nro'] = self.start.cbte_nro
+
+        if self.start.invoice_type:
             res['invoice_type'] = self.start.invoice_type.id
-        if hasattr(self.start, 'pos'):
+        if self.start.pos:
             res['pos'] = self.start.pos.id
-        if hasattr(self.start, 'cbte_nro'):
-            res['cbte_nro'] = self.start.cbte_nro
+
         return res
 
     def transition_ask_afip(self):
@@ -2674,37 +2675,34 @@ class RecoverInvoice(Wizard):
         message += 'CUIT CLIENTE = %s\n' % cuit_cliente
         message += 'Tipo comprobante = %s\n' % emision_tipo
 
-        self.data.FechaCbte = str(ws.FechaCbte)
-        self.data.CbteNro = str(ws.CbteNro)
-        self.data.CAE = str(ws.CAE)
+        self.data.imptotal = str(ws.ImpTotal)
+        self.data.cuit_cliente = cuit_cliente
+        self.data.fechacbte = str(ws.FechaCbte)
+        self.data.cbtenro = str(ws.CbteNro)
+        self.data.cae = str(ws.CAE)
         if service == 'wsfex':
             vto = str(ws.Vencimiento).split('/')
-            self.data.Vencimiento = '-'.join([vto[2], vto[1], vto[0]])
+            self.data.vencimiento = '-'.join([vto[2], vto[1], vto[0]])
         else:
-            self.data.Vencimiento = str(ws.Vencimiento)
-        self.data.Cuit = str(ws.Cuit)
-
+            self.data.vencimiento = str(ws.Vencimiento)
+        self.data.cuit = str(ws.Cuit)
         self.data.message = message
         return 'data'
 
     def default_data(self, fields):
         res = {}
-        if hasattr(self.data, 'message'):
-            res['message'] = self.data.message
-        if hasattr(self.data, 'CbteNro'):
-            res['CbteNro'] = self.data.CbteNro
-        if hasattr(self.data, 'CAE'):
-            res['CAE'] = self.data.CAE
-        if hasattr(self.data, 'FechaCbte'):
-            res['FechaCbte'] = self.data.FechaCbte
-        if hasattr(self.data, 'ImpTotal'):
-            res['ImpTotal'] = self.data.ImpTotal
-        if hasattr(self.data, 'cuit_cliente'):
-            res['cuit_cliente'] = self.data.cuit_cliente
-        if hasattr(self.data, 'Vencimiento'):
-            res['Vencimiento'] = self.data.Vencimiento
-        if hasattr(self.data, 'Cuit'):
-            res['Cuit'] = self.data.Cuit
+        res['message'] = self.data.message
+        res['cbtenro'] = self.data.cbtenro
+        res['cae'] = self.data.cae
+        res['fechacbte'] = self.data.fechacbte
+        res['imptotal'] = self.data.imptotal
+        res['cuit_cliente'] = self.data.cuit_cliente
+        res['vencimiento'] = self.data.vencimiento
+        res['cuit'] = self.data.cuit
+
+        if self.data.invoice:
+            res['invoice'] = self.data.invoice.id
+
         return res
 
     def transition_save_invoice(self):
@@ -2712,7 +2710,7 @@ class RecoverInvoice(Wizard):
         pool = Pool()
         Invoice = pool.get('account.invoice')
 
-        if not self.data.invoice or not hasattr(self.data, 'CAE'):
+        if not self.data.invoice or not hasattr(self.data, 'cae'):
             return 'start'
 
         invoice = Invoice(self.data.invoice.id)
@@ -2720,7 +2718,7 @@ class RecoverInvoice(Wizard):
         invoice.invoice_type = self.start.invoice_type
 
         # store the results
-        invoice_date = self.data.FechaCbte or None
+        invoice_date = self.data.fechacbte or None
         if '-' not in invoice_date:
             fe = invoice_date
             invoice_date = '-'.join([fe[:4], fe[4:6], fe[6:8]])
@@ -2728,11 +2726,11 @@ class RecoverInvoice(Wizard):
             invoice_date, "%Y-%m-%d").date()
 
         invoice.number = '%05d-%08d' % (self.start.pos.number,
-            int(self.data.CbteNro))
+            int(self.data.cbtenro))
 
-        invoice.pyafipws_cae = self.data.CAE
+        invoice.pyafipws_cae = self.data.cae
 
-        cae_due_date = self.data.Vencimiento or None
+        cae_due_date = self.data.vencimiento or None
         if '-' not in cae_due_date:
             fe = cae_due_date
             cae_due_date = '-'.join([fe[:4], fe[4:6], fe[6:8]])
@@ -2742,10 +2740,10 @@ class RecoverInvoice(Wizard):
         # calculate the barcode:
         tipo_cbte = self.start.invoice_type.invoice_type
         punto_vta = self.start.pos.number
-        cae_due = ''.join([c for c in str(self.data.Vencimiento or '')
+        cae_due = ''.join([c for c in str(self.data.vencimiento or '')
                 if c.isdigit()])
-        bars = ''.join([str(self.data.Cuit), '%03d' % int(tipo_cbte),
-                '%05d' % int(punto_vta), str(self.data.CAE), cae_due])
+        bars = ''.join([str(self.data.cuit), '%03d' % int(tipo_cbte),
+                '%05d' % int(punto_vta), str(self.data.cae), cae_due])
         bars = bars + invoice.pyafipws_verification_digit_modulo10(bars)
         invoice.pyafipws_barcode = bars
 
