@@ -407,7 +407,7 @@ class Invoice(metaclass=PoolMeta):
     _states = {'readonly': Eval('state') != 'draft'}
 
     pos = fields.Many2One('account.pos', 'Point of Sale',
-        domain=[('company', '=', Eval('company'))],
+        domain=[('company', '=', Eval('company', -1))],
         states={
             'required': And(Eval('type') == 'out', Eval('state') != 'draft'),
             'invisible': Eval('type') == 'in',
@@ -415,7 +415,7 @@ class Invoice(metaclass=PoolMeta):
             })
     invoice_type = fields.Many2One('account.pos.sequence', 'Comprobante',
         domain=[
-            ('pos', '=', Eval('pos')),
+            ('pos', '=', Eval('pos', -1)),
             ('invoice_type', 'in',
                 If(Eval('total_amount', 0) >= 0,
                     ['1', '2', '4', '5', '6', '7', '9', '11', '12', '15',
@@ -518,11 +518,11 @@ class Invoice(metaclass=PoolMeta):
         'party_iva_condition')
     pyafipws_cbu = fields.Many2One('bank.account', 'CBU del Emisor',
         domain=[
-            ('owners', '=', Eval('company_party')),
+            ('owners', '=', Eval('company_party', -1)),
             ('numbers.type', '=', 'cbu'),
             ],
         context={
-            'owners': Eval('company_party'),
+            'owners': Eval('company_party', -1),
             'numbers.type': 'cbu',
             },
         states=_states, depends={'company_party'})
@@ -2605,7 +2605,7 @@ class RecoverInvoiceStart(ModelView):
 
     pos = fields.Many2One('account.pos', 'Point of Sale', required=True)
     invoice_type = fields.Many2One('account.pos.sequence', 'Invoice Type',
-        domain=[('pos', '=', Eval('pos'))], required=True)
+        domain=[('pos', '=', Eval('pos', -1))], required=True)
     cbte_nro = fields.Integer('Número comprobante')
 
 
