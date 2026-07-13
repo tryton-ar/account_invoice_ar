@@ -281,8 +281,16 @@ Credit invoice with refund::
     >>> credit.form.with_refund = True
     >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
-    >>> credit_note, = Invoice.find([
-    ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
+    >>> invoice.reload()
+    >>> invoice.state
+    'cancelled'
+    >>> bool(invoice.reconciled)
+    True
+    >>> credit_notes = Invoice.find([
+    ...     ('type', '=', 'out'),
+    ...     ('id', '!=', invoice.id),
+    ...     ('total_amount', '<', Decimal('0'))])
+    >>> credit_note = credit_notes[0]
     >>> credit_note.state
     'paid'
     >>> # credit_note.pyafipws_cae

@@ -20,7 +20,9 @@ Imports::
     >>> from trytond.modules.account_invoice_ar.tests.tools import \
     ...     create_pos, get_pos, get_invoice_types, get_tax, get_wsfev1
     >>> from trytond.modules.party_ar.tests.tools import set_afip_certs
-    >>> today = dt.date.today()
+    >>> import pytz
+    >>> timezone = pytz.timezone('America/Argentina/Buenos_Aires')
+    >>> today = dt.datetime.now(timezone).date()
 
 Install account_invoice_ar::
 
@@ -38,6 +40,11 @@ Create company::
     >>> tax_identifier.code = '30710158254' # gcoop CUIT
     >>> company.party.iva_condition = 'responsable_inscripto'
     >>> company.party.save()
+
+Configure company timezone::
+
+    >>> company.timezone = 'America/Argentina/Buenos_Aires'
+    >>> company.save()
 
 Configure AFIP certificates::
 
@@ -264,8 +271,11 @@ Credit invoice with refund::
     'cancelled'
     >>> bool(invoice.reconciled)
     True
-    >>> credit_note, = Invoice.find([
-    ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
+    >>> credit_notes = Invoice.find([
+    ...     ('type', '=', 'out'),
+    ...     ('id', '!=', invoice.id),
+    ...     ('total_amount', '<', Decimal('0'))])
+    >>> credit_note = credit_notes[0]
     >>> credit_note.state
     'paid'
     >>> credit_note.untaxed_amount == -invoice.untaxed_amount

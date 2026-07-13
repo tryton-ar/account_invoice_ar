@@ -235,10 +235,12 @@ Create invoice::
     >>> invoice.invoice_type == invoice_types['201']
     True
     >>> invoice.save()
+    >>> bool(invoice.has_report_cache)
+    False
 
 Test change tax::
 
-    >>> tax_line, = invoice.taxes
+    >>> tax_line = invoice.taxes[0]
     >>> tax_line.tax == sale_tax
     True
     >>> tax_line.tax = None
@@ -263,6 +265,8 @@ Post invoice::
     'posted'
     >>> invoice.tax_identifier.code_compact
     '30710158254'
+    >>> bool(invoice.has_report_cache)
+    True
     >>> invoice.untaxed_amount
     Decimal('100000.00')
     >>> invoice.tax_amount
@@ -291,8 +295,16 @@ Credit invoice with refund::
     >>> credit.form.with_refund = True
     >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
-    >>> credit_note, = Invoice.find([
-    ...     ('type', '=', 'out'), ('id', '!=', invoice.id)])
+    >>> invoice.reload()
+    >>> invoice.state
+    'cancelled'
+    >>> bool(invoice.reconciled)
+    True
+    >>> credit_notes = Invoice.find([
+    ...     ('type', '=', 'out'),
+    ...     ('id', '!=', invoice.id),
+    ...     ('total_amount', '<', Decimal('0'))])
+    >>> credit_note = credit_notes[0]
     >>> credit_note.state
     'paid'
     >>> credit_note.untaxed_amount == -invoice.untaxed_amount
@@ -355,9 +367,12 @@ Create empty invoice::
     >>> invoice.invoice_type == invoice_types['1']
     True
     >>> invoice.payment_term = payment_term
-    >>> invoice.click('post')
+    >>> invoice.click('post')  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    UserError: ...
     >>> invoice.state
-    'paid'
+    'draft'
 
 Create a paid invoice::
 

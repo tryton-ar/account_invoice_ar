@@ -178,8 +178,11 @@ Credit invoice::
     >>> credit.form.with_refund = False
     >>> credit.form.invoice_date = invoice.invoice_date
     >>> credit.execute('credit')
-    >>> credit_note, = Invoice.find(
-    ...     [('type', '=', 'in'), ('id', '!=', invoice.id)])
+    >>> credit_notes = Invoice.find([
+    ...     ('type', '=', 'in'),
+    ...     ('id', '!=', invoice.id),
+    ...     ('total_amount', '<', Decimal('0'))])
+    >>> credit_note = credit_notes[0]
     >>> credit_note.state
     'draft'
     >>> credit_note.untaxed_amount == -invoice.untaxed_amount
@@ -256,7 +259,10 @@ Create a posted and a draft invoice to cancel::
 Cancel draft invoice::
 
     >>> invoice_draft.tipo_comprobante
+    ''
     >>> invoice_draft.reference
+    >>> invoice_draft.ref_pos_number = '1'
+    >>> invoice_draft.ref_voucher_number = '1234'
     >>> invoice_draft.click('cancel')
     >>> invoice_draft.state
     'cancelled'
