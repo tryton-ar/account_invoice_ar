@@ -1,16 +1,12 @@
 # This file is part of the account_invoice_ar module for Tryton.
 # The COPYRIGHT file at the top level of this repository contains
 # the full copyright notices and license terms.
-import os
-import sys
-from pyafipws.wsfev1 import WSFEv1
-from pyafipws.wsfexv1 import WSFEXv1
 
 from proteus import Model
-from trytond.modules.company.tests.tools import get_company
-from trytond.modules.party_ar.tests.tools import set_afip_certs
-from trytond.modules.account_ar.tests.tools import get_tax, get_tax_group
 
+from trytond.modules.company.tests.tools import get_company
+from trytond.modules.party_ar.tests.tools import set_afip_certs, get_wsfev1 as _get_wsfev1, \
+    get_wsfexv1 as _get_wsfexv1
 
 __all__ = ['create_pos', 'get_pos', 'get_invoice_types',
     'get_tax', 'get_tax_group', 'get_wsfev1', 'get_wsfexv1']
@@ -107,37 +103,35 @@ def get_invoice_types(company=None, pos=None, config=None):
     return invoice_types
 
 
+def get_tax(name='IVA Ventas 21%', config=None):
+    "Return tax"
+    Tax = Model.get('account.tax', config=config)
+
+    tax, = Tax.find([
+        ('name', '=', name),
+        ])
+
+    return tax
+
+
+def get_tax_group(code='IVA', kind='sale', afip_kind='gravado', config=None):
+    "Return tax group"
+    TaxGroup = Model.get('account.tax.group', config=config)
+
+    group, = TaxGroup.find([
+        ('code', '=', code),
+        ('kind', '=', kind),
+        ('afip_kind', '=', afip_kind),
+        ])
+
+    return group
+
+
 def get_wsfev1(company=None, config=None):
-    "return wsfev1 object"
-    if not company:
-        company = get_company()
-        company = set_afip_certs(company, config)
-
-    URL_WSFEv1 = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
-    cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache')
-
-    ta = company.pyafipws_authenticate(service='wsfe', cache=cache)
-    wsfev1 = WSFEv1()
-    wsfev1.LanzarExcepciones = True
-    wsfev1.SetTicketAcceso(ta)
-    wsfev1.Cuit = company.party.vat_number
-    wsfev1.Conectar(wsdl=URL_WSFEv1, cache=cache, cacert=True)
-    return wsfev1
+    "Obtiene WSFEv1 autenticada (wrappa a party_ar.tests.tools)"
+    return _get_wsfev1(company, config)
 
 
 def get_wsfexv1(company=None, config=None):
-    "return wsfexv1 object"
-    if not company:
-        company = get_company()
-        company = set_afip_certs(company, config)
-
-    URL_WSFEXv1 = "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"
-    cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache')
-
-    ta = company.pyafipws_authenticate(service='wsfex', cache=cache)
-    wsfexv1 = WSFEXv1()
-    wsfexv1.LanzarExcepciones = True
-    wsfexv1.SetTicketAcceso(ta)
-    wsfexv1.Cuit = company.party.vat_number
-    wsfexv1.Conectar(wsdl=URL_WSFEXv1, cache=cache, cacert=True)
-    return wsfexv1
+    "Obtiene WSFEXv1 autenticada (wrappa a party_ar.tests.tools)"
+    return _get_wsfexv1(company, config)
