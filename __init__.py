@@ -5,6 +5,7 @@
 from trytond.pool import Pool
 from . import invoice
 from . import pos
+from . import journal
 from . import bank
 from . import party
 from . import currency
@@ -16,6 +17,7 @@ def register():
     Pool.register(
         pos.Pos,
         pos.PosSequence,
+        journal.Journal,
         invoice.Invoice,
         invoice.InvoiceLine,
         invoice.InvoiceExportLicense,
