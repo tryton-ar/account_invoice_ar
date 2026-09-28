@@ -50,7 +50,7 @@ class Pos(ModelSQL, ModelView):
     number = fields.Integer('Punto de Venta AFIP', required=True,
         states=_states, help='Prefijo de emisión habilitado en AFIP')
     pos_sequences = fields.One2Many('account.pos.sequence', 'pos',
-        'Point of Sale', context={'company': Eval('company', -1)},
+        'Tipos de comprobante', context={'company': Eval('company', -1)},
         states=_states, depends={'company'})
     pos_type = fields.Selection([
         ('manual', 'Manual'),
@@ -60,6 +60,9 @@ class Pos(ModelSQL, ModelView):
     pos_type_string = pos_type.translated('pos_type')
     pos_daily_report = fields.Boolean('Cierre diario (ZETA)',
         states={'invisible': Eval('pos_type') != 'fiscal_printer'})
+    pos_do_not_report = fields.Boolean('Do not report',
+        help='Check this option if sales from this Point of sale should not '
+        'be included in tax reports')
     pyafipws_electronic_invoice_service = fields.Selection([
         ('', ''),
         ('wsfe', 'Mercado interno -sin detalle- RG2485 (WSFEv1)'),
@@ -111,6 +114,10 @@ class Pos(ModelSQL, ModelView):
     @staticmethod
     def default_pos_type():
         return 'manual'
+
+    @staticmethod
+    def default_pos_do_not_report():
+        return False
 
     @staticmethod
     def default_active():

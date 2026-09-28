@@ -13,6 +13,8 @@
         <field name="active"/>
         <label name="pos_daily_report"/>
         <field name="pos_daily_report"/>
+        <label name="pos_do_not_report"/>
+        <field name="pos_do_not_report"/>
     </group>
     <field name="pos_sequences" colspan="4"/>
 </form>
